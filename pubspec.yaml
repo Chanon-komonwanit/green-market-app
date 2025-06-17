@@ -1,0 +1,45 @@
+# pubspec.yaml
+
+name: green_market
+description: Your eco-friendly marketplace app.
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8 # Updated to latest stable
+  # Firebase packages - Updated to latest recommended versions
+  firebase_core: ^3.1.1 # Or latest stable compatible version
+  cloud_firestore: ^5.0.2 # Or latest stable compatible version
+  firebase_auth: ^5.1.1 # Or latest stable compatible version
+  firebase_storage: ^12.1.0 # Or latest stable compatible version
+
+  provider: ^6.0.5
+  image_picker: ^1.1.2 # For image picking (seller/admin/profile)
+  intl: ^0.20.2 # For date formatting
+
+  # Added for product reviews
+  flutter_rating_bar: ^4.0.1
+  uuid: ^4.4.0 # Latest stable
+  photo_view: ^0.15.0 # Or latest version for image viewing with zoom
+  url_launcher: ^6.3.1
+  carousel_slider: ^5.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter 
+  flutter_lints: ^4.0.0 # Latest stable
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.jpg
+    # Add other assets if any, e.g., placeholder images
+    # - assets/images/placeholder.png
