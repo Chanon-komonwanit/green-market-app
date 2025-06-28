@@ -420,9 +420,8 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (seller.createdAt != null)
-                      Text(
-                          'สมัครเมื่อ: ${DateFormat('dd MMM yyyy').format(seller.createdAt!.toDate())}'),
+                    Text(
+                        'สมัครเมื่อ: ${DateFormat('dd MMM yyyy').format(seller.createdAt.toDate())}'),
                   ],
                 ),
               ),

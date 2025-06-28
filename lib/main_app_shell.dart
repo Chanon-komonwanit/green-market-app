@@ -7,7 +7,7 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin_panel_screen.dart';
 import 'package:green_market/screens/admin/admin_user_management_screen.dart'; // Keep for admin
-import 'package:green_market/screens/home_screen.dart';
+import 'package:green_market/screens/home_screen_beautiful.dart';
 import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
 import 'package:green_market/screens/simple_chat_list_screen.dart';
@@ -42,7 +42,7 @@ class _MainAppShellState extends State<MainAppShell> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     List<Widget> pages = [
-      const HomeScreen(), // 0. ตลาด (ทุกคน)
+      const HomeScreen(), // 0. ตลาด (ทุกคน) - ใช้ Beautiful Edition
       const CartScreen(), // 1. ตะกร้าสินค้า (ทุกคน)
       const OrdersScreen(), // 2. คำสั่งซื้อ (ทุกคน)
       const SimpleChatListScreen(), // 3. แชท (ทุกคน)
@@ -194,8 +194,8 @@ class _MainAppShellState extends State<MainAppShell> {
             },
             backgroundColor: Colors.green,
             foregroundColor: Colors.white,
-            child: const Icon(Icons.eco), // เปลี่ยนเป็นต้นไม้เล็ก
             tooltip: 'เปิดโลกสีเขียว',
+            child: const Icon(Icons.eco), // เปลี่ยนเป็นต้นไม้เล็ก
           ),
         );
       },

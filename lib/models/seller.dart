@@ -30,7 +30,9 @@ class Seller {
     this.socialMediaLink,
   });
 
-  // Getter for compatibility with older code that might use 'contactPhone'
+  // Getters for compatibility
+  String get businessName => shopName;
+  String get businessDescription => shopDescription ?? '';
   String get contactPhone => phoneNumber;
 
   factory Seller.fromMap(Map<String, dynamic> map) {

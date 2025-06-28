@@ -89,7 +89,7 @@ class SustainableActivitiesHubScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(30),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
+                        colors: const [
                           AppColors.lightTeal,
                           AppColors.primaryGreen,
                         ],

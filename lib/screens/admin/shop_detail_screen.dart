@@ -90,18 +90,17 @@ class ShopDetailScreen extends StatelessWidget {
                       style: theme.textTheme.bodyMedium,
                     ),
                     Text(
-                      'เบอร์โทรศัพท์: ${seller.contactPhone ?? 'N/A'}',
+                      'เบอร์โทรศัพท์: ${seller.contactPhone}',
                       style: theme.textTheme.bodyMedium,
                     ),
                     Text(
                       'เว็บไซต์: ${seller.website ?? 'N/A'}',
                       style: theme.textTheme.bodyMedium,
                     ),
-                    if (seller.createdAt != null) // Corrected: Already correct
-                      Text(
-                        'เป็นผู้ขายตั้งแต่: ${DateFormat('dd MMM yyyy').format(seller.createdAt!.toDate())}',
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                    Text(
+                      'เป็นผู้ขายตั้งแต่: ${DateFormat('dd MMM yyyy').format(seller.createdAt.toDate())}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'สินค้าทั้งหมดของร้าน',

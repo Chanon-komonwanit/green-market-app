@@ -9,9 +9,9 @@ class EcoLevelProductsScreen extends StatefulWidget {
   final EcoLevel ecoLevel;
 
   const EcoLevelProductsScreen({
-    Key? key,
+    super.key,
     required this.ecoLevel,
-  }) : super(key: key);
+  });
 
   @override
   State<EcoLevelProductsScreen> createState() => _EcoLevelProductsScreenState();
@@ -22,7 +22,6 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
   List<Product> _products = [];
   bool _isLoading = true;
   bool _hasMore = true;
-  int _currentPage = 1;
 
   @override
   void initState() {
@@ -66,7 +65,6 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
         _products = products;
         _isLoading = false;
         _hasMore = products.length == AppConstants.defaultPageSize;
-        _currentPage = 1;
       });
     } catch (e) {
       setState(() {
@@ -102,7 +100,6 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
         _products.addAll(newProducts);
         _isLoading = false;
         _hasMore = newProducts.length == AppConstants.defaultPageSize;
-        _currentPage++;
       });
     } catch (e) {
       setState(() {
@@ -145,15 +142,13 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
   int _getScoreForLevel(EcoLevel level, int index) {
     switch (level) {
       case EcoLevel.basic:
-        return 5 + (index % 15); // 5-19
+        return 5 + (index % 20); // 5-24
       case EcoLevel.standard:
-        return 20 + (index % 20); // 20-39
+        return 25 + (index % 25); // 25-49
       case EcoLevel.premium:
-        return 40 + (index % 20); // 40-59
-      case EcoLevel.hero:
-        return 60 + (index % 20); // 60-79
+        return 50 + (index % 25); // 50-74
       case EcoLevel.platinum:
-        return 80 + (index % 21); // 80-100
+        return 75 + (index % 26); // 75-100
     }
   }
 

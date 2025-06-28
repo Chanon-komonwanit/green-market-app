@@ -829,22 +829,18 @@ class FirebaseService {
     switch (ecoLevel) {
       case EcoLevel.basic:
         minScore = 0;
-        maxScore = 19;
+        maxScore = 24;
         break;
       case EcoLevel.standard:
-        minScore = 20;
-        maxScore = 39;
+        minScore = 25;
+        maxScore = 49;
         break;
       case EcoLevel.premium:
-        minScore = 40;
-        maxScore = 59;
-        break;
-      case EcoLevel.hero:
-        minScore = 60;
-        maxScore = 79;
+        minScore = 50;
+        maxScore = 74;
         break;
       case EcoLevel.platinum:
-        minScore = 80;
+        minScore = 75;
         maxScore = 100;
         break;
     }

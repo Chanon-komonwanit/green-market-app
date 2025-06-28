@@ -43,15 +43,17 @@ class AppColors {
   static const Color lightBeige =
       veryLightTeal; // Map old lightBeige to new veryLightTeal
   static const Color background = offWhite; // สีพื้นหลังหลัก
+
+  // เพิ่มสีที่ขาดหายไป
+  static const Color lightGreen = Color(0xFF8BC34A);
 }
 
-// Professional 5-level Eco Rating System
+// Professional 4-level Eco Rating System (ระบบประเมินสินค้าเพื่อสิ่งแวดล้อม 4 ระดับ)
 enum EcoLevel {
-  basic, // ระดับเริ่มต้น (0-19%)
-  standard, // ระดับมาตรฐาน (20-39%)
-  premium, // ระดับพรีเมียม (40-59%)
-  hero, // ระดับฮีโร่ (60-79%)
-  platinum // ระดับแพลตตินั่มฮีโร่ (80-100%)
+  basic, // ระดับเริ่มต้น (0-24%)
+  standard, // ระดับมาตรฐาน (25-49%)
+  premium, // ระดับพรีเมียม (50-74%)
+  platinum // ระดับแพลตตินั่ม (75-100%)
 }
 
 extension EcoLevelExtension on EcoLevel {
@@ -63,10 +65,8 @@ extension EcoLevelExtension on EcoLevel {
         return 'มาตรฐาน';
       case EcoLevel.premium:
         return 'พรีเมียม';
-      case EcoLevel.hero:
-        return 'ฮีโร่';
       case EcoLevel.platinum:
-        return 'แพลตตินั่มฮีโร่';
+        return 'แพลตตินั่ม';
     }
   }
 
@@ -78,10 +78,8 @@ extension EcoLevelExtension on EcoLevel {
         return 'ระดับมาตรฐาน';
       case EcoLevel.premium:
         return 'ระดับพรีเมียม';
-      case EcoLevel.hero:
-        return 'ระดับฮีโร่';
       case EcoLevel.platinum:
-        return 'ระดับแพลตตินั่มฮีโร่';
+        return 'ระดับแพลตตินั่ม';
     }
   }
 
@@ -90,28 +88,24 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return '🌱 เริ่มต้น';
       case EcoLevel.standard:
-        return '⭐ มาตรฐาน';
+        return '🌿 มาตรฐาน';
       case EcoLevel.premium:
-        return '🏆 พรีเมียม';
-      case EcoLevel.hero:
-        return '� ฮีโร่';
+        return '⭐ พรีเมียม';
       case EcoLevel.platinum:
-        return '💎 แพลตตินั่มฮีโร่';
+        return '💎 แพลตตินั่ม';
     }
   }
 
   String get description {
     switch (this) {
       case EcoLevel.basic:
-        return 'สินค้าระดับเริ่มต้นที่ผ่านการตรวจสอบคุณภาพ';
+        return 'สินค้าระดับเริ่มต้นที่ผ่านการตรวจสอบคุณภาพเบื้องต้น';
       case EcoLevel.standard:
         return 'สินค้าระดับมาตรฐานที่เริ่มใส่ใจสิ่งแวดล้อม';
       case EcoLevel.premium:
         return 'สินค้าระดับพรีเมียมที่มีคุณภาพสูงและเป็นมิตรกับสิ่งแวดล้อม';
-      case EcoLevel.hero:
-        return 'สินค้าระดับฮีโร่ที่ช่วยรักษาโลกอย่างเป็นรูปธรรม';
       case EcoLevel.platinum:
-        return 'สินค้าระดับแพลตตินั่มฮีโร่ที่เป็นจุดสุดยอดของความยั่งยืน';
+        return 'สินค้าระดับแพลตตินั่มที่เป็นจุดสุดยอดของความยั่งยืนและนวัตกรรมสีเขียว';
     }
   }
 
@@ -120,11 +114,9 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return 'เริ่มต้นเส้นทางสีเขียว';
       case EcoLevel.standard:
-        return 'ตัวเลือกมาตรฐานที่เชื่อถือได้';
+        return 'ตัวเลือกคุณภาพที่เชื่อถือได้';
       case EcoLevel.premium:
-        return 'คุณภาพพรีเมียม เพื่อโลกที่ดีกว่า';
-      case EcoLevel.hero:
-        return 'เป็นฮีโร่ช่วยโลก ด้วยการเลือกซื้อที่ถูกต้อง';
+        return 'คุณภาพสูง เพื่อโลกที่ดีกว่า';
       case EcoLevel.platinum:
         return 'จุดสุดยอดแห่งความเป็นเลิศ สำหรับผู้ที่ต้องการสิ่งที่ดีที่สุด';
     }
@@ -138,10 +130,8 @@ extension EcoLevelExtension on EcoLevel {
         return const Color(0xFF2196F3); // Blue
       case EcoLevel.premium:
         return const Color(0xFF9C27B0); // Purple
-      case EcoLevel.hero:
-        return const Color(0xFFFF9800); // Orange
       case EcoLevel.platinum:
-        return const Color(0xFFFFD700); // Gold
+        return const Color(0xFFFF9800); // Orange (combining hero and platinum)
     }
   }
 
@@ -153,10 +143,8 @@ extension EcoLevelExtension on EcoLevel {
         return const Color(0xFFE3F2FD);
       case EcoLevel.premium:
         return const Color(0xFFF3E5F5);
-      case EcoLevel.hero:
-        return const Color(0xFFFFF3E0);
       case EcoLevel.platinum:
-        return const Color(0xFFFFFDE7);
+        return const Color(0xFFFFF3E0);
     }
   }
 
@@ -168,10 +156,8 @@ extension EcoLevelExtension on EcoLevel {
         return const Color(0xFF42A5F5);
       case EcoLevel.premium:
         return const Color(0xFFAB47BC);
-      case EcoLevel.hero:
-        return const Color(0xFFFFB74D);
       case EcoLevel.platinum:
-        return const Color(0xFFFFD54F);
+        return const Color(0xFFFFB74D);
     }
   }
 
@@ -180,13 +166,11 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return const Color(0xFF4CAF50);
       case EcoLevel.standard:
-        return const Color(0xFF1976D2);
+        return const Color(0xFF2196F3);
       case EcoLevel.premium:
-        return const Color(0xFF7B1FA2);
-      case EcoLevel.hero:
-        return const Color(0xFFE65100);
+        return const Color(0xFF9C27B0);
       case EcoLevel.platinum:
-        return const Color(0xFFFF8F00);
+        return const Color(0xFFFF9800);
     }
   }
 
@@ -198,19 +182,16 @@ extension EcoLevelExtension on EcoLevel {
         return Icons.verified_outlined;
       case EcoLevel.premium:
         return Icons.star_border;
-      case EcoLevel.hero:
-        return Icons.shield_outlined;
       case EcoLevel.platinum:
         return Icons.diamond_outlined;
     }
   }
 
-  // Map eco score (0-100) to eco level
+  // Map eco score (0-100) to eco level (4-tier system)
   static EcoLevel fromScore(int score) {
-    if (score < 20) return EcoLevel.basic;
-    if (score < 40) return EcoLevel.standard;
-    if (score < 60) return EcoLevel.premium;
-    if (score < 80) return EcoLevel.hero;
+    if (score < 25) return EcoLevel.basic;
+    if (score < 50) return EcoLevel.standard;
+    if (score < 75) return EcoLevel.premium;
     return EcoLevel.platinum;
   }
 
@@ -218,15 +199,13 @@ extension EcoLevelExtension on EcoLevel {
   String get scoreRange {
     switch (this) {
       case EcoLevel.basic:
-        return '0-19%';
+        return '0-24%';
       case EcoLevel.standard:
-        return '20-39%';
+        return '25-49%';
       case EcoLevel.premium:
-        return '40-59%';
-      case EcoLevel.hero:
-        return '60-79%';
+        return '50-74%';
       case EcoLevel.platinum:
-        return '80-100%';
+        return '75-100%';
     }
   }
 
@@ -239,10 +218,8 @@ extension EcoLevelExtension on EcoLevel {
         return 2;
       case EcoLevel.premium:
         return 3;
-      case EcoLevel.hero:
-        return 4;
       case EcoLevel.platinum:
-        return 5;
+        return 4;
     }
   }
 }
@@ -288,178 +265,54 @@ class AppTheme {
   static const double smallFontSize = 12.0;
 }
 
-// Product listing constants
-class ProductConstants {
-  static const List<String> categories = [
-    'อาหารและเครื่องดื่ม',
-    'เสื้อผ้าและแฟชั่น',
-    'ของใช้ในบ้าน',
-    'สุขภาพและความงาม',
-    'อิเล็กทรอนิกส์',
-    'กีฬาและนันทนาการ',
-    'หนังสือและสื่อการเรียน',
-    'ของเล่นและเกม',
-    'สวนและพืชผล',
-    'อื่นๆ',
-  ];
-
-  static const List<String> conditions = [
-    'ใหม่',
-    'เหมือนใหม่',
-    'ใช้แล้วดี',
-    'ใช้แล้วปกติ',
-    'ต้องซ่อม',
-  ];
-
-  static const Map<String, IconData> categoryIcons = {
-    'อาหารและเครื่องดื่ม': Icons.restaurant,
-    'เสื้อผ้าและแฟชั่น': Icons.checkroom,
-    'ของใช้ในบ้าน': Icons.home,
-    'สุขภาพและความงาม': Icons.spa,
-    'อิเล็กทรอนิกส์': Icons.devices,
-    'กีฬาและนันทนาการ': Icons.sports,
-    'หนังสือและสื่อการเรียน': Icons.book,
-    'ของเล่นและเกม': Icons.toys,
-    'สวนและพืชผล': Icons.local_florist,
-    'อื่นๆ': Icons.category,
-  };
-}
-
-// Status constants
-enum OrderStatus {
-  pending,
-  confirmed,
-  preparing,
-  shipped,
-  delivered,
-  cancelled,
-  returned
-}
-
-extension OrderStatusExtension on OrderStatus {
-  String get displayName {
-    switch (this) {
-      case OrderStatus.pending:
-        return 'รอการยืนยัน';
-      case OrderStatus.confirmed:
-        return 'ยืนยันแล้ว';
-      case OrderStatus.preparing:
-        return 'กำลังเตรียม';
-      case OrderStatus.shipped:
-        return 'จัดส่งแล้ว';
-      case OrderStatus.delivered:
-        return 'ส่งแล้ว';
-      case OrderStatus.cancelled:
-        return 'ยกเลิก';
-      case OrderStatus.returned:
-        return 'คืนสินค้า';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case OrderStatus.pending:
-        return Colors.orange;
-      case OrderStatus.confirmed:
-        return Colors.blue;
-      case OrderStatus.preparing:
-        return Colors.indigo;
-      case OrderStatus.shipped:
-        return Colors.purple;
-      case OrderStatus.delivered:
-        return Colors.green;
-      case OrderStatus.cancelled:
-        return Colors.red;
-      case OrderStatus.returned:
-        return Colors.grey;
-    }
-  }
-}
-
-// Investment project level constants
-class InvestmentLevel {
-  static const List<Map<String, dynamic>> levels = [
-    {
-      'name': 'Beginner',
-      'minAmount': 1000,
-      'maxAmount': 50000,
-      'color': AppColors.primaryTeal,
-      'icon': Icons.eco_outlined,
-      'description': 'เหมาะสำหรับผู้เริ่มต้นลงทุนด้านสิ่งแวดล้อม',
-    },
-    {
-      'name': 'Intermediate',
-      'minAmount': 50001,
-      'maxAmount': 200000,
-      'color': AppColors.primaryTeal,
-      'icon': Icons.eco,
-      'description': 'สำหรับนักลงทุนที่มีประสบการณ์ปานกลาง',
-    },
-    {
-      'name': 'Advanced',
-      'minAmount': 200001,
-      'maxAmount': 1000000,
-      'color': AppColors.primaryTeal,
-      'icon': Icons.emoji_events,
-      'description': 'สำหรับนักลงทุนระดับสูงที่ต้องการผลตอบแทนสูง',
-    },
-  ];
-}
-
 // App Text Styles
 class AppTextStyles {
-  // Consider defining a base font family for the app in main.dart Theme
-  // static const String baseFontFamily = 'Nunito'; // Example
-
   static const TextStyle title = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.bold,
-    // fontFamily: baseFontFamily,
-    color: AppColors.primaryTeal, // ใช้สีหลักใหม่
+    color: AppColors.primaryTeal,
   );
+
   static const TextStyle headline = TextStyle(
     fontSize: 26,
     fontWeight: FontWeight.bold,
-    // fontFamily: baseFontFamily,
     color: AppColors.primaryTeal,
   );
+
   static const TextStyle subtitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    // fontFamily: baseFontFamily,
     color: AppColors.modernGrey,
   );
+
   static final TextStyle subtitleBold = subtitle.copyWith(
       fontWeight: FontWeight.bold, color: AppColors.primaryDarkGreen);
 
   static const TextStyle body = TextStyle(
     fontSize: 16,
-    /*fontFamily: baseFontFamily,*/ color: AppColors.modernGrey,
+    color: AppColors.modernGrey,
   );
+
   static final TextStyle bodySmall = body.copyWith(fontSize: 14);
 
   static const TextStyle price = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
-    // fontFamily: baseFontFamily,
     color: AppColors.primaryTeal,
   );
 
   static const TextStyle link = TextStyle(
     fontSize: 16,
-    // fontFamily: baseFontFamily,
-    color: AppColors.lightTeal, // ใช้สีอ่อนลงสำหรับลิงก์
+    color: AppColors.lightTeal,
     decoration: TextDecoration.underline,
   );
 
   static const TextStyle bodyBold = TextStyle(
-      fontSize: 16,
-      // fontFamily: baseFontFamily,
-      color: AppColors.modernGrey, // Changed from darkGrey
-      fontWeight: FontWeight.bold);
-  static const TextStyle caption = TextStyle(
-      fontSize: 12,
-      /*fontFamily: baseFontFamily,*/ color: AppColors.modernGrey);
+      fontSize: 16, color: AppColors.modernGrey, fontWeight: FontWeight.bold);
+
+  static const TextStyle caption =
+      TextStyle(fontSize: 12, color: AppColors.modernGrey);
+
   static final TextStyle captionBold =
       caption.copyWith(fontWeight: FontWeight.bold);
 
@@ -474,8 +327,7 @@ class AppTextStyles {
   static const TextStyle button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    // fontFamily: baseFontFamily,
-    color: AppColors.white, // Default button text color
+    color: AppColors.white,
   );
 }
 
@@ -501,182 +353,240 @@ extension RiskLevelExtension on RiskLevel {
   Color get color {
     switch (this) {
       case RiskLevel.low:
-        return Colors.green;
+        return AppColors.successGreen;
       case RiskLevel.medium:
-        return Colors.orange;
+        return AppColors.warningYellow;
       case RiskLevel.high:
-        return Colors.red;
+        return AppColors.errorRed;
     }
   }
 }
 
-// Admin Configuration
-const String kAdminEmail =
-    'admin@greenmarket.com'; // Add email here to manage admin
-
-// Eco Coins System Configuration
-class EcoCoinsConfig {
-  // Coin earning rates
-  static const int coinsPerPurchase = 10; // เหลียญต่อการซื้อ 100 บาท
-  static const int coinsPer100Baht = 10;
-  static const int coinsForReview = 5; // เหลียญสำหรับการรีวิว
-  static const int coinsForEcoProduct =
-      20; // เหลียญเพิ่มเติมสำหรับสินค้าเป็นมิตรกับสิ่งแวดล้อม
-  static const int dailyLoginCoins = 2; // เหลียญเช็คอินรายวัน
-  static const int weeklyLoginBonus = 15; // โบนัสเช็คอินครบ 7 วัน
-
-  // Special eco activities coins
-  static const int coinsForRecycling = 30; // เหลียญสำหรับการรีไซเคิล
-  static const int coinsForCarbonOffset = 50; // เหลียญสำหรับการชดเชยคาร์บอน
-  static const int coinsForTreePlanting = 100; // เหลียญสำหรับการปลูกต้นไม้
-
-  // Redemption rates
-  static const int coinsToDiscount1Baht = 10; // 10 เหลียญ = ส่วนลด 1 บาท
-  static const int minCoinsForRedemption = 100; // เหลียรขั้นต่ำสำหรับแลก
-  static const int maxDiscountPercent = 50; // ส่วนลดสูงสุด 50%
-
-  // Level system
-  static const List<EcoCoinTier> tiers = [
-    EcoCoinTier(
-      name: 'Green Starter',
-      minCoins: 0,
-      maxCoins: 999,
-      multiplier: 1.0,
-      color: Colors.green,
-      icon: Icons.eco_outlined,
-      benefits: ['เก็บเหลียญพื้นฐาน', 'ส่วนลดพิเศษ 5%'],
-    ),
-    EcoCoinTier(
-      name: 'Eco Warrior',
-      minCoins: 1000,
-      maxCoins: 4999,
-      multiplier: 1.2,
-      color: Colors.teal,
-      icon: Icons.eco,
-      benefits: ['เหลียญเพิ่ม 20%', 'ส่วนลดพิเศษ 10%', 'ฟรีค่าจัดส่ง'],
-    ),
-    EcoCoinTier(
-      name: 'Planet Protector',
-      minCoins: 5000,
-      maxCoins: 19999,
-      multiplier: 1.5,
-      color: Colors.amber,
-      icon: Icons.star,
-      benefits: [
-        'เหลียญเพิ่ม 50%',
-        'ส่วนลดพิเศษ 15%',
-        'สินค้าพิเศษ',
-        'ข้ามคิวรีวิว'
-      ],
-    ),
-    EcoCoinTier(
-      name: 'Earth Guardian',
-      minCoins: 20000,
-      maxCoins: 999999,
-      multiplier: 2.0,
-      color: Colors.purple,
-      icon: Icons.emoji_events,
-      benefits: [
-        'เหลียญเพิ่ม 100%',
-        'ส่วนลดพิเศษ 25%',
-        'สินค้าจำกัด',
-        'บริการ VIP'
-      ],
-    ),
-  ];
-}
-
-// Eco Coin Tier Model
-class EcoCoinTier {
-  final String name;
-  final int minCoins;
-  final int maxCoins;
-  final double multiplier;
-  final Color color;
-  final IconData icon;
-  final List<String> benefits;
-
-  const EcoCoinTier({
-    required this.name,
-    required this.minCoins,
-    required this.maxCoins,
-    required this.multiplier,
-    required this.color,
-    required this.icon,
-    required this.benefits,
-  });
-
-  // Check if user coins fall within this tier
-  bool isInTier(int userCoins) {
-    return userCoins >= minCoins && userCoins <= maxCoins;
-  }
-
-  // Get next tier
-  static EcoCoinTier? getNextTier(int currentCoins) {
-    for (var tier in EcoCoinsConfig.tiers) {
-      if (currentCoins < tier.minCoins) {
-        return tier;
-      }
-    }
-    return null; // Already at highest tier
-  }
-
-  // Get current tier
-  static EcoCoinTier getCurrentTier(int userCoins) {
-    for (var tier in EcoCoinsConfig.tiers.reversed) {
-      if (tier.isInTier(userCoins)) {
-        return tier;
-      }
-    }
-    return EcoCoinsConfig.tiers.first; // Default to first tier
-  }
-}
-
-// Eco Coins Transaction Types
+// EcoCoin related enums and classes
 enum EcoCoinTransactionType {
+  purchase,
+  sale,
+  reward,
+  activity,
+  adminAdjustment,
   earned,
   spent,
-  expired,
   bonus,
 }
 
 extension EcoCoinTransactionTypeExtension on EcoCoinTransactionType {
   String get displayName {
     switch (this) {
+      case EcoCoinTransactionType.purchase:
+        return 'ซื้อสินค้า';
+      case EcoCoinTransactionType.sale:
+        return 'ขายสินค้า';
+      case EcoCoinTransactionType.reward:
+        return 'รางวัล';
+      case EcoCoinTransactionType.activity:
+        return 'กิจกรรม';
+      case EcoCoinTransactionType.adminAdjustment:
+        return 'ปรับปรุงโดยแอดมิน';
       case EcoCoinTransactionType.earned:
-        return 'ได้รับเหลียญ';
+        return 'ได้รับ';
       case EcoCoinTransactionType.spent:
-        return 'ใช้เหลียญ';
-      case EcoCoinTransactionType.expired:
-        return 'เหลียญหมดอายุ';
+        return 'ใช้จ่าย';
       case EcoCoinTransactionType.bonus:
-        return 'โบนัสเหลียญ';
+        return 'โบนัส';
     }
   }
 
   Color get color {
     switch (this) {
+      case EcoCoinTransactionType.purchase:
+        return AppColors.errorRed;
+      case EcoCoinTransactionType.sale:
+        return AppColors.successGreen;
+      case EcoCoinTransactionType.reward:
+        return AppColors.primaryTeal;
+      case EcoCoinTransactionType.activity:
+        return AppColors.lightTeal;
+      case EcoCoinTransactionType.adminAdjustment:
+        return AppColors.warningYellow;
       case EcoCoinTransactionType.earned:
-        return Colors.green;
+        return AppColors.successGreen;
       case EcoCoinTransactionType.spent:
-        return Colors.orange;
-      case EcoCoinTransactionType.expired:
-        return Colors.red;
+        return AppColors.errorRed;
       case EcoCoinTransactionType.bonus:
-        return Colors.purple;
+        return AppColors.warningYellow;
     }
   }
 
   IconData get icon {
     switch (this) {
+      case EcoCoinTransactionType.purchase:
+        return Icons.shopping_cart;
+      case EcoCoinTransactionType.sale:
+        return Icons.sell;
+      case EcoCoinTransactionType.reward:
+        return Icons.emoji_events;
+      case EcoCoinTransactionType.activity:
+        return Icons.eco;
+      case EcoCoinTransactionType.adminAdjustment:
+        return Icons.admin_panel_settings;
       case EcoCoinTransactionType.earned:
         return Icons.add_circle;
       case EcoCoinTransactionType.spent:
         return Icons.remove_circle;
-      case EcoCoinTransactionType.expired:
-        return Icons.schedule;
       case EcoCoinTransactionType.bonus:
         return Icons.card_giftcard;
     }
   }
 }
+
+enum EcoCoinTier {
+  bronze,
+  silver,
+  gold,
+  platinum,
+}
+
+extension EcoCoinTierExtension on EcoCoinTier {
+  String get displayName {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return 'บรอนซ์';
+      case EcoCoinTier.silver:
+        return 'ซิลเวอร์';
+      case EcoCoinTier.gold:
+        return 'โกลด์';
+      case EcoCoinTier.platinum:
+        return 'แพลตตินั่ม';
+    }
+  }
+
+  int get minCoins {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return 0;
+      case EcoCoinTier.silver:
+        return 1000;
+      case EcoCoinTier.gold:
+        return 5000;
+      case EcoCoinTier.platinum:
+        return 15000;
+    }
+  }
+
+  int get maxCoins {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return 999;
+      case EcoCoinTier.silver:
+        return 4999;
+      case EcoCoinTier.gold:
+        return 14999;
+      case EcoCoinTier.platinum:
+        return 999999; // No upper limit for platinum
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return const Color(0xFFCD7F32);
+      case EcoCoinTier.silver:
+        return const Color(0xFF9E9E9E);
+      case EcoCoinTier.gold:
+        return const Color(0xFFFFD700);
+      case EcoCoinTier.platinum:
+        return const Color(0xFF6A5ACD);
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return Icons.eco_outlined;
+      case EcoCoinTier.silver:
+        return Icons.verified_outlined;
+      case EcoCoinTier.gold:
+        return Icons.star_border;
+      case EcoCoinTier.platinum:
+        return Icons.diamond_outlined;
+    }
+  }
+
+  double get multiplier {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return 1.0;
+      case EcoCoinTier.silver:
+        return 1.2;
+      case EcoCoinTier.gold:
+        return 1.5;
+      case EcoCoinTier.platinum:
+        return 2.0;
+    }
+  }
+
+  static EcoCoinTier getCurrentTier(int coins) {
+    if (coins >= EcoCoinTier.platinum.minCoins) return EcoCoinTier.platinum;
+    if (coins >= EcoCoinTier.gold.minCoins) return EcoCoinTier.gold;
+    if (coins >= EcoCoinTier.silver.minCoins) return EcoCoinTier.silver;
+    return EcoCoinTier.bronze;
+  }
+
+  EcoCoinTier? getNextTier() {
+    switch (this) {
+      case EcoCoinTier.bronze:
+        return EcoCoinTier.silver;
+      case EcoCoinTier.silver:
+        return EcoCoinTier.gold;
+      case EcoCoinTier.gold:
+        return EcoCoinTier.platinum;
+      case EcoCoinTier.platinum:
+        return null; // Already at the highest tier
+    }
+  }
+}
+
+// EcoCoins Configuration
+class EcoCoinsConfig {
+  static const int purchaseReward = 10;
+  static const int reviewReward = 50;
+  static const int activityReward = 25;
+  static const int dailyLoginReward = 5;
+  static const int coinsPer100Baht = 10;
+  static const int coinsForReview = 50;
+  static const int dailyLoginCoins = 5;
+
+  static const List<Map<String, dynamic>> tiers = [
+    {
+      'name': 'บรอนซ์',
+      'minCoins': 0,
+      'maxCoins': 999,
+      'multiplier': 1.0,
+      'color': 0xFFCD7F32,
+    },
+    {
+      'name': 'ซิลเวอร์',
+      'minCoins': 1000,
+      'maxCoins': 4999,
+      'multiplier': 1.2,
+      'color': 0xFF9E9E9E,
+    },
+    {
+      'name': 'โกลด์',
+      'minCoins': 5000,
+      'maxCoins': 14999,
+      'multiplier': 1.5,
+      'color': 0xFFFFD700,
+    },
+    {
+      'name': 'แพลตตินั่ม',
+      'minCoins': 15000,
+      'maxCoins': 999999,
+      'multiplier': 2.0,
+      'color': 0xFF6A5ACD,
+    }
+  ];
+}
+
+// Admin email constant
+const String kAdminEmail = 'admin@greenmarket.com';

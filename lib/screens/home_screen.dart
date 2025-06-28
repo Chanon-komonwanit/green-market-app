@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         slivers: [
           _buildAppBarWithEcoCoins(),
           SliverToBoxAdapter(
-            child: Container(
+            child: SizedBox(
               height: 400,
               child: const Center(
                 child: CircularProgressIndicator(),
@@ -268,11 +268,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 Expanded(
                   flex: 4,
-                  child: Column(
+                  child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'GREEN MARKET',
                         style: TextStyle(
                           color: Colors.white,
@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           letterSpacing: 1,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'ตลาดออนไลน์เพื่อสิ่งแวดล้อม',
                         style: TextStyle(
                           color: Colors.white70,
@@ -304,10 +304,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [
-                            const Color(0xFFFFD700), // Gold
-                            const Color(0xFFFFA500), // Orange
+                            Color(0xFFFFD700), // Gold
+                            Color(0xFFFFA500), // Orange
                           ],
                         ),
                         borderRadius: BorderRadius.circular(17),
@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Empty state
           if (products.isEmpty && categories.isEmpty && promotions.isEmpty) ...[
             SliverToBoxAdapter(
-              child: Container(
+              child: SizedBox(
                 height: 300,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -526,10 +526,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 10.0),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(Icons.category, color: AppColors.primaryGreen, size: 20),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   '📋 หมวดหมู่สินค้า',
                   style: TextStyle(
@@ -690,10 +690,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             // Header section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(Icons.eco, color: AppColors.primaryGreen, size: 20),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     '🌱 สินค้าแยกตามระดับ Eco',
                     style: TextStyle(
@@ -965,7 +965,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
+                    SizedBox(
                       height: 250,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -993,7 +993,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -1055,7 +1055,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             // Banner แสดงข่าวสาร/โฆษณา พร้อม PageView
-            Container(
+            SizedBox(
               height: 200,
               child: PageView.builder(
                 itemCount: promotions.length,
@@ -1187,13 +1187,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
-                                children: [
+                                children: const [
                                   Icon(
                                     Icons.local_offer,
                                     color: AppColors.primaryGreen,
                                     size: 16,
                                   ),
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: 4),
                                   Text(
                                     'HOT',
                                     style: TextStyle(
@@ -1407,7 +1407,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 16),
             // Products horizontal list
-            Container(
+            SizedBox(
               height: 280,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,

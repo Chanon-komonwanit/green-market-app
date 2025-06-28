@@ -97,7 +97,7 @@ class GreenWorldHubScreen extends StatelessWidget {
                           description:
                               'ลงทุนในโครงการที่เป็นมิตรกับสิ่งแวดล้อม\nและสร้างผลตอบแทนที่ยั่งยืน',
                           icon: Icons.trending_up,
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [
                               AppColors.primaryGreen,
                               AppColors.primaryTeal,
@@ -123,7 +123,7 @@ class GreenWorldHubScreen extends StatelessWidget {
                           description:
                               'เข้าร่วมกิจกรรมอนุรักษ์สิ่งแวดล้อม\nและสร้างผลกระทบเชิงบวกให้สังคม',
                           icon: Icons.volunteer_activism,
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [
                               AppColors.lightTeal,
                               AppColors.primaryGreen,

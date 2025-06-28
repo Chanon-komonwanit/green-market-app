@@ -117,4 +117,7 @@ class Promotion {
       usageLimitPerUser: usageLimitPerUser ?? this.usageLimitPerUser,
     );
   }
+
+  // Getter สำหรับ backward compatibility
+  String get imageUrl => image;
 }

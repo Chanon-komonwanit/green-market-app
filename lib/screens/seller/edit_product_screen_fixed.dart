@@ -1,11 +1,10 @@
 // lib/screens/seller/edit_product_screen.dart
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:green_market/models/category.dart';
+import 'package:green_market/models/category.dart' as app_category;
 import 'package:green_market/models/product.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/app_utils.dart';
@@ -42,7 +41,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   bool _isActive = true;
   bool _isLoading = false;
 
-  List<Category> _categories = [];
+  List<app_category.Category> _categories = [];
   List<PlatformFile> _pickedProductImageFiles = [];
   PlatformFile? _pickedPromotionalImageFile;
 
@@ -140,7 +139,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     try {
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
-      final currentUserId = firebaseService.currentUser?.uid ?? '';
+      final currentUserId = firebaseService.getCurrentUser()?.uid ?? '';
       String? promotionalImageUrl = widget.product.promotionalImageUrl;
       var uuid = const Uuid();
 
@@ -366,8 +365,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   labelText: 'หมวดหมู่สินค้า *',
                   border: OutlineInputBorder(),
                 ),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
+                items: _categories.map<DropdownMenuItem<String>>(
+                    (app_category.Category category) {
+                  return DropdownMenuItem<String>(
                     value: category.id,
                     child: Text(category.name),
                   );

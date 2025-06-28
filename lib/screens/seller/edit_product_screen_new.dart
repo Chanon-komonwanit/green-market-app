@@ -1,5 +1,5 @@
 // lib/screens/seller/edit_product_screen.dart
-import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -54,7 +54,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _stockQuantityController.text = widget.product.stockQuantity.toString();
     _weightController.text = widget.product.weight?.toString() ?? '';
     _dimensionsController.text = widget.product.dimensions ?? '';
-    _keywordsController.text = widget.product.keywords.join(', ');
+    _keywordsController.text = widget.product.keywords?.join(', ') ?? '';
     _selectedCategoryId = widget.product.categoryId;
     _selectedCondition = widget.product.condition ?? 'ใหม่';
     _allowReturns = widget.product.allowReturns;
@@ -66,9 +66,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
     try {
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
-      final categories = await firebaseService.getCategories();
-      setState(() {
-        _categories = categories;
+      final categoriesStream = firebaseService.getCategories();
+      categoriesStream.listen((categories) {
+        if (mounted) {
+          setState(() {
+            _categories = categories;
+          });
+        }
       });
     } catch (e) {
       _showSnackBar('เกิดข้อผิดพลาดในการโหลดหมวดหมู่', isError: true);
@@ -140,18 +144,24 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
         String? imageUrl;
         if (kIsWeb) {
-          final bytes = await imageFile.readAsBytes();
-          imageUrl = await firebaseService.uploadWebImage(
-            bytes,
-            storagePath,
-          );
+          final bytes = imageFile.bytes;
+          if (bytes != null) {
+            imageUrl = await firebaseService.uploadWebImage(
+              bytes,
+              storagePath,
+            );
+          }
         } else {
-          imageUrl = await firebaseService.uploadImageFile(
-            File(imageFile.path),
-            storagePath,
-          );
+          if (imageFile.path != null) {
+            imageUrl = await firebaseService.uploadImageFile(
+              File(imageFile.path!),
+              storagePath,
+            );
+          }
         }
-        uploadedImageUrls.add(imageUrl);
+        if (imageUrl != null) {
+          uploadedImageUrls.add(imageUrl);
+        }
       }
 
       // Upload new promotional image if selected
@@ -161,14 +171,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
             'promotional_images/$currentUserId/promo_${uuid.v4()}.$extension';
 
         if (kIsWeb) {
-          final bytes = await _pickedPromotionalImageFile!.readAsBytes();
+          final bytes = _pickedPromotionalImageFile!.bytes!;
           promotionalImageUrl = await firebaseService.uploadWebImage(
             bytes,
             storagePath,
           );
         } else {
           promotionalImageUrl = await firebaseService.uploadImageFile(
-            File(_pickedPromotionalImageFile!.path),
+            File(_pickedPromotionalImageFile!.path!),
             storagePath,
           );
         }
@@ -184,9 +194,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text.trim()),
+        stock: int.parse(_stockQuantityController.text.trim()),
         categoryId: _selectedCategoryId!,
         sellerId: currentUserId,
         imageUrls: finalImageUrls,
+        ecoScore: widget.product.ecoScore,
+        materialDescription: widget.product.materialDescription,
+        ecoJustification: widget.product.ecoJustification,
         stockQuantity: int.parse(_stockQuantityController.text.trim()),
         createdAt: widget.product.createdAt,
         updatedAt: Timestamp.now(),
@@ -423,18 +437,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: kIsWeb
-                                    ? FutureBuilder<Uint8List>(
-                                        future: _pickedProductImageFiles[index]
-                                            .readAsBytes(),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.hasData) {
-                                            return Image.memory(
-                                              snapshot.data!,
-                                              fit: BoxFit.cover,
-                                            );
-                                          }
-                                          return const CircularProgressIndicator();
-                                        },
+                                    ? Image.memory(
+                                        _pickedProductImageFiles[index].bytes!,
+                                        fit: BoxFit.cover,
                                       )
                                     : Image.file(
                                         File(_pickedProductImageFiles[index]
@@ -499,18 +504,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: kIsWeb
-                              ? FutureBuilder<Uint8List>(
-                                  future: _pickedPromotionalImageFile!
-                                      .readAsBytes(),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.hasData) {
-                                      return Image.memory(
-                                        snapshot.data!,
-                                        fit: BoxFit.cover,
-                                      );
-                                    }
-                                    return const CircularProgressIndicator();
-                                  },
+                              ? Image.memory(
+                                  _pickedPromotionalImageFile!.bytes!,
+                                  fit: BoxFit.cover,
                                 )
                               : Image.file(
                                   File(_pickedPromotionalImageFile!.path!),

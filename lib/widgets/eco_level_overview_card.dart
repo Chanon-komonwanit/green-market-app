@@ -1,4 +1,6 @@
 // lib/widgets/eco_level_overview_card.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../screens/eco_level_products_screen.dart';
@@ -8,10 +10,10 @@ class EcoLevelOverviewCard extends StatelessWidget {
   final int productCount;
 
   const EcoLevelOverviewCard({
-    Key? key,
+    super.key,
     required this.ecoLevel,
     required this.productCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -151,9 +153,9 @@ class EcoLevelOverviewSection extends StatelessWidget {
   final List<Map<String, dynamic>> levelCounts;
 
   const EcoLevelOverviewSection({
-    Key? key,
+    super.key,
     required this.levelCounts,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +190,7 @@ class EcoLevelOverviewSection extends StatelessWidget {
                   onPressed: () {
                     // TODO: Navigate to all eco levels page
                   },
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -198,7 +200,7 @@ class EcoLevelOverviewSection extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 14,

@@ -1,6 +1,7 @@
 // lib/screens/seller/seller_shop_settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/models/seller.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -57,8 +58,8 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
       if (mounted && seller != null) {
         _shopNameController.text = seller.shopName;
         _shopDescriptionController.text = seller.shopDescription ?? '';
-        _contactEmailController.text = seller.contactEmail ?? '';
-        _contactPhoneController.text = seller.contactPhone ?? '';
+        _contactEmailController.text = seller.contactEmail;
+        _contactPhoneController.text = seller.contactPhone;
         _websiteController.text = seller.website ?? '';
         _socialMediaLinkController.text = seller.socialMediaLink ?? '';
         _currentShopImageUrl = seller.shopImageUrl;
@@ -132,16 +133,30 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
         finalShopImageUrl = null;
       }
 
-      await firebaseService.updateShopDetails(
-        currentUserId,
+      // Get current seller data first
+      final currentSeller =
+          await firebaseService.getSellerFullDetails(currentUserId);
+      if (currentSeller == null) {
+        throw Exception('ไม่พบข้อมูลผู้ขาย');
+      }
+
+      // Create updated seller object
+      final updatedSeller = Seller(
+        id: currentSeller.id,
         shopName: _shopNameController.text.trim(),
-        shopDescription: _shopDescriptionController.text.trim(),
-        shopImageUrl: finalShopImageUrl,
         contactEmail: _contactEmailController.text.trim(),
-        contactPhone: _contactPhoneController.text.trim(),
+        phoneNumber: _contactPhoneController.text.trim(),
+        status: currentSeller.status,
+        rating: currentSeller.rating,
+        totalRatings: currentSeller.totalRatings,
+        createdAt: currentSeller.createdAt,
+        shopImageUrl: finalShopImageUrl,
+        shopDescription: _shopDescriptionController.text.trim(),
         website: _websiteController.text.trim(),
         socialMediaLink: _socialMediaLinkController.text.trim(),
       );
+
+      await firebaseService.updateShopDetails(updatedSeller);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('บันทึกข้อมูลร้านค้าสำเร็จ!')),

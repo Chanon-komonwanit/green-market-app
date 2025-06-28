@@ -177,10 +177,8 @@ class EcoCoinsService {
       expiredCoins: 0,
       lifetimeEarned: 0,
       lifetimeSpent: 0,
-      currentTier: EcoCoinsConfig.tiers.first,
-      coinsToNextTier: EcoCoinsConfig.tiers.length > 1
-          ? EcoCoinsConfig.tiers[1].minCoins
-          : 0,
+      currentTier: EcoCoinTier.bronze,
+      coinsToNextTier: EcoCoinTier.silver.minCoins,
       lastUpdated: Timestamp.now(),
     );
 
@@ -196,10 +194,8 @@ class EcoCoinsService {
       expiredCoins: 0,
       lifetimeEarned: 0,
       lifetimeSpent: 0,
-      currentTier: EcoCoinsConfig.tiers.first,
-      coinsToNextTier: EcoCoinsConfig.tiers.length > 1
-          ? EcoCoinsConfig.tiers[1].minCoins
-          : 0,
+      currentTier: EcoCoinTier.bronze,
+      coinsToNextTier: EcoCoinTier.silver.minCoins,
       lastUpdated: Timestamp.now(),
     );
   }
@@ -305,10 +301,12 @@ class EcoCoinsService {
       expiredCoins: 0,
       lifetimeEarned: 2500,
       lifetimeSpent: 1250,
-      currentTier: EcoCoinTier.getCurrentTier(1250),
-      coinsToNextTier: EcoCoinTier.getNextTier(1250)?.minCoins != null
-          ? EcoCoinTier.getNextTier(1250)!.minCoins - 1250
-          : 0,
+      currentTier: EcoCoinTierExtension.getCurrentTier(1250),
+      coinsToNextTier: () {
+        final currentTier = EcoCoinTierExtension.getCurrentTier(1250);
+        final nextTier = currentTier.getNextTier();
+        return nextTier != null ? nextTier.minCoins - 1250 : 0;
+      }(),
       lastUpdated: Timestamp.now(),
     );
   }

@@ -34,11 +34,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            level == EcoLevel.hero
-                ? Icons.shield_outlined
-                : level == EcoLevel.smart
-                    ? Icons.eco_outlined
-                    : Icons.energy_savings_leaf_outlined,
+            level == EcoLevel.platinum
+                ? Icons.diamond_outlined
+                : level == EcoLevel.premium
+                    ? Icons.star_border
+                    : level == EcoLevel.standard
+                        ? Icons.verified_outlined
+                        : Icons.eco_outlined,
             color: level.color,
             size: 20,
           ),

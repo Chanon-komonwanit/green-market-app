@@ -1,4 +1,6 @@
 // lib/screens/eco_coins_screen.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/eco_coin.dart';
@@ -9,9 +11,9 @@ class EcoCoinsScreen extends StatefulWidget {
   final EcoCoinBalance? balance;
 
   const EcoCoinsScreen({
-    Key? key,
+    super.key,
     this.balance,
-  }) : super(key: key);
+  });
 
   @override
   State<EcoCoinsScreen> createState() => _EcoCoinsScreenState();
@@ -101,7 +103,7 @@ class _EcoCoinsScreenState extends State<EcoCoinsScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withAlpha(25),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -142,7 +144,7 @@ class _EcoCoinsScreenState extends State<EcoCoinsScreen>
         gradient: LinearGradient(
           colors: [
             _balance.currentTier.color,
-            _balance.currentTier.color.withOpacity(0.8),
+            _balance.currentTier.color.withAlpha(204),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -713,10 +715,9 @@ class _EcoCoinsScreenState extends State<EcoCoinsScreen>
   }
 
   double _calculateProgressToNextTier() {
-    final nextTier = EcoCoinTier.getNextTier(_balance.totalCoins);
+    final nextTier = _balance.currentTier.getNextTier();
     if (nextTier == null) return 1.0;
 
-    final currentTierMax = _balance.currentTier.maxCoins;
     final nextTierMin = nextTier.minCoins;
     final progress = (_balance.totalCoins - _balance.currentTier.minCoins) /
         (nextTierMin - _balance.currentTier.minCoins);
@@ -814,10 +815,12 @@ class _EcoCoinsScreenState extends State<EcoCoinsScreen>
       expiredCoins: 150,
       lifetimeEarned: 5000,
       lifetimeSpent: 2750,
-      currentTier: EcoCoinTier.getCurrentTier(2250),
-      coinsToNextTier: EcoCoinTier.getNextTier(2250)?.minCoins != null
-          ? EcoCoinTier.getNextTier(2250)!.minCoins - 2250
-          : 0,
+      currentTier: EcoCoinTierExtension.getCurrentTier(2250),
+      coinsToNextTier: () {
+        final currentTier = EcoCoinTierExtension.getCurrentTier(2250);
+        final nextTier = currentTier.getNextTier();
+        return nextTier != null ? nextTier.minCoins - 2250 : 0;
+      }(),
       lastUpdated: Timestamp.now(),
     );
   }

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 class TestEcoWidget extends StatelessWidget {
-  const TestEcoWidget({Key? key}) : super(key: key);
+  const TestEcoWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,12 +14,12 @@ class TestEcoWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white, width: 1),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.eco, color: Colors.white, size: 12),
-          const SizedBox(width: 4),
-          const Text(
+          Icon(Icons.eco, color: Colors.white, size: 12),
+          SizedBox(width: 4),
+          Text(
             '1250',
             style: TextStyle(
               color: Colors.white,
@@ -27,10 +27,11 @@ class TestEcoWidget extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 2),
-          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 8),
+          SizedBox(width: 2),
+          Icon(Icons.arrow_forward_ios, color: Colors.white, size: 8),
         ],
       ),
     );
   }
 }
+

@@ -133,15 +133,13 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
           style: theme.textTheme.bodyLarge,
           textAlign: TextAlign.center,
         ),
-        if (seller.createdAt != null)
-          Padding(
-            padding:
-                const EdgeInsets.only(top: 8.0), // Corrected: Already correct
-            child: Text(
-              'เป็นผู้ขายตั้งแต่: ${DateFormat('dd MMMM yyyy', 'th_TH').format(seller.createdAt!.toDate())}',
-              style: theme.textTheme.bodySmall,
-            ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            'เป็นผู้ขายตั้งแต่: ${DateFormat('dd MMMM yyyy', 'th_TH').format(seller.createdAt.toDate())}',
+            style: theme.textTheme.bodySmall,
           ),
+        ),
       ],
     );
   }

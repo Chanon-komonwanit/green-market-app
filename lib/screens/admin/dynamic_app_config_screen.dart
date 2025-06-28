@@ -1,4 +1,6 @@
 // lib/screens/admin/dynamic_app_config_screen.dart
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
@@ -105,12 +107,12 @@ class _DynamicAppConfigScreenState extends State<DynamicAppConfigScreen>
   bool _enableMultiLanguage = false;
 
   // Text Content Maps
-  Map<String, TextEditingController> _staticTextControllers = {};
-  Map<String, TextEditingController> _errorMessageControllers = {};
-  Map<String, TextEditingController> _successMessageControllers = {};
-  Map<String, TextEditingController> _labelControllers = {};
-  Map<String, TextEditingController> _placeholderControllers = {};
-  Map<String, TextEditingController> _buttonTextControllers = {};
+  final Map<String, TextEditingController> _staticTextControllers = {};
+  final Map<String, TextEditingController> _errorMessageControllers = {};
+  final Map<String, TextEditingController> _successMessageControllers = {};
+  final Map<String, TextEditingController> _labelControllers = {};
+  final Map<String, TextEditingController> _placeholderControllers = {};
+  final Map<String, TextEditingController> _buttonTextControllers = {};
 
   final ImagePicker _picker = ImagePicker();
 
@@ -1070,7 +1072,7 @@ class _DynamicAppConfigScreenState extends State<DynamicAppConfigScreen>
                   : 1,
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -1081,8 +1083,6 @@ class _DynamicAppConfigScreenState extends State<DynamicAppConfigScreen>
     setState(() => _isSaving = true);
 
     try {
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
       final appConfigProvider =
           Provider.of<AppConfigProvider>(context, listen: false);
 

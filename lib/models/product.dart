@@ -71,6 +71,14 @@ class Product {
     this.approvalStatus = 'pending_approval',
   });
 
+  // Get EcoLevel from ecoScore using the 4-level system
+  EcoLevel get ecoLevel {
+    if (ecoScore < 25) return EcoLevel.basic;
+    if (ecoScore < 50) return EcoLevel.standard;
+    if (ecoScore < 75) return EcoLevel.premium;
+    return EcoLevel.platinum;
+  }
+
   factory Product.fromMap(Map<String, dynamic> map) {
     // Handle both 'isApproved' and 'status' fields from Firestore
     final bool isApproved = map['isApproved'] as bool? ?? false;
@@ -158,9 +166,6 @@ class Product {
 
   // Getter to check if the product is approved based on its status.
   bool get isApproved => status == 'approved';
-
-  // Getter to derive EcoLevel from the ecoScore.
-  EcoLevel get ecoLevel => EcoLevelExtension.fromScore(ecoScore);
 
   Product copyWith({
     String? id,

@@ -1,4 +1,6 @@
 // lib/screens/product_detail_screen.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/seller.dart';
@@ -19,7 +21,7 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
   int _currentImageIndex = 0;
   Widget _buildEcoScoreIndicator(EcoLevel level, BuildContext context) {
     return Container(

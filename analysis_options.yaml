@@ -13,6 +13,7 @@ analyzer:
   errors:
     avoid_print: ignore
     dead_code: ignore
+    deprecated_member_use: ignore
     prefer_const_constructors: ignore
     prefer_typing_uninitialized_variables: ignore
     unused_import: ignore

@@ -675,9 +675,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       print("Error initializing dashboard streams, using placeholders: $e");
       pendingProductsStream = Stream.value(0);
       pendingSellersStream = Stream.value(0);
-      totalOrdersFuture = Future.value(0); // Changed to Future.value
-      totalUsersFuture = Future.value(0); // Changed to Future.value
-      totalProductsFuture = Future.value(0); // Changed to Future.value
+      totalOrdersFuture = Future.value(0);
+      totalUsersFuture = Future.value(0);
+      totalProductsFuture = Future.value(0);
     }
 
     return SingleChildScrollView(
@@ -1257,9 +1257,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               child: FloatingActionButton(
                 onPressed: () {},
                 backgroundColor: _selectedColor ?? Colors.green,
-                child: Icon(_selectedIcon ?? Icons.eco),
                 heroTag:
                     "ui_preview_fab", // เพิ่ม heroTag เพื่อหลีกเลี่ยง conflict
+                child: Icon(_selectedIcon ?? Icons.eco),
               ),
             ),
           ),

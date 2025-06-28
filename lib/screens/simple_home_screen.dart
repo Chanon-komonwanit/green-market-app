@@ -1,4 +1,6 @@
 // lib/screens/simple_home_screen.dart
+// ignore_for_file: deprecated_member_use, sized_box_for_whitespace
+
 import 'package:flutter/material.dart';
 import 'package:green_market/widgets/test_eco_widget.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
@@ -40,8 +42,8 @@ class SimpleHomeScreen extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
+                            children: const [
+                              Text(
                                 'GREEN MARKET',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -50,7 +52,7 @@ class SimpleHomeScreen extends StatelessWidget {
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'ตลาดออนไลน์เพื่อสิ่งแวดล้อม',
                                 style: TextStyle(
                                   color: Colors.white70,
@@ -72,9 +74,9 @@ class SimpleHomeScreen extends StatelessWidget {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: [
+                            children: const [
                               Icon(Icons.eco, color: Colors.white, size: 10),
-                              const SizedBox(width: 2),
+                              SizedBox(width: 2),
                               Text(
                                 '1250',
                                 style: TextStyle(
@@ -83,7 +85,7 @@ class SimpleHomeScreen extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 2),
+                              SizedBox(width: 2),
                               Icon(Icons.arrow_forward_ios,
                                   color: Colors.white, size: 6),
                             ],

@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         slivers: [
           _buildAppBarWithEcoCoins(),
           SliverToBoxAdapter(
-            child: Container(
+            child: SizedBox(
               height: 400,
               child: const Center(
                 child: CircularProgressIndicator(),
@@ -246,8 +246,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
+                    children: const [
+                      Text(
                         'GREEN MARKET',
                         style: TextStyle(
                           color: Colors.white,
@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           letterSpacing: 1,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'ตลาดออนไลน์เพื่อสิ่งแวดล้อม',
                         style: TextStyle(
                           color: Colors.white70,
@@ -408,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: AppColors.lightGreen,
+                                color: AppColors.lightTeal,
                                 borderRadius: BorderRadius.circular(30),
                                 boxShadow: [
                                   BoxShadow(
@@ -499,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Empty state
           if (products.isEmpty && categories.isEmpty) ...[
             SliverToBoxAdapter(
-              child: Container(
+              child: SizedBox(
                 height: 300,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

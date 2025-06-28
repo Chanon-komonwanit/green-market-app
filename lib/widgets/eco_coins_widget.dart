@@ -1,4 +1,6 @@
 // lib/widgets/eco_coins_widget.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,11 +16,11 @@ class EcoCoinsWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   const EcoCoinsWidget({
-    Key? key,
+    super.key,
     this.balance,
     this.showAnimation = false,
     this.onTap,
-  }) : super(key: key);
+  });
   @override
   Widget build(BuildContext context) {
     // Try to get provider, but fallback to mock data if not available
@@ -73,10 +75,12 @@ class EcoCoinsWidget extends StatelessWidget {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.eco,
-                color: Colors.white,
-                size: 16,
+              child: const Text(
+                '🪙',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(width: 6),
@@ -137,10 +141,12 @@ class EcoCoinsWidget extends StatelessWidget {
       expiredCoins: 0,
       lifetimeEarned: 2500,
       lifetimeSpent: 1250,
-      currentTier: EcoCoinTier.getCurrentTier(1250),
-      coinsToNextTier: EcoCoinTier.getNextTier(1250)?.minCoins != null
-          ? EcoCoinTier.getNextTier(1250)!.minCoins - 1250
-          : 0,
+      currentTier: EcoCoinTierExtension.getCurrentTier(1250),
+      coinsToNextTier: () {
+        final currentTier = EcoCoinTierExtension.getCurrentTier(1250);
+        final nextTier = currentTier.getNextTier();
+        return nextTier != null ? nextTier.minCoins - 1250 : 0;
+      }(),
       lastUpdated: Timestamp.now(),
     );
   }
@@ -152,10 +158,10 @@ class AnimatedEcoCoinsWidget extends StatefulWidget {
   final int? newCoins; // จำนวนเหลียญที่เพิ่งได้รับ
 
   const AnimatedEcoCoinsWidget({
-    Key? key,
+    super.key,
     this.balance,
     this.newCoins,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedEcoCoinsWidget> createState() => _AnimatedEcoCoinsWidgetState();
@@ -254,10 +260,10 @@ class CompactEcoCoinsWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   const CompactEcoCoinsWidget({
-    Key? key,
+    super.key,
     required this.coins,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

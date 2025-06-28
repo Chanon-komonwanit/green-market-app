@@ -113,8 +113,8 @@ class EcoCoinBalance {
 
   factory EcoCoinBalance.fromMap(Map<String, dynamic> map, String userId) {
     final totalCoins = (map['totalCoins'] as num?)?.toInt() ?? 0;
-    final currentTier = EcoCoinTier.getCurrentTier(totalCoins);
-    final nextTier = EcoCoinTier.getNextTier(totalCoins);
+    final currentTier = EcoCoinTierExtension.getCurrentTier(totalCoins);
+    final nextTier = currentTier.getNextTier();
     final coinsToNextTier =
         nextTier != null ? nextTier.minCoins - totalCoins : 0;
 
@@ -175,7 +175,7 @@ enum EcoCoinMissionType {
   purchase,
   review,
   special,
-  eco_activity,
+  ecoActivity,
 }
 
 extension EcoCoinMissionTypeExtension on EcoCoinMissionType {
@@ -193,7 +193,7 @@ extension EcoCoinMissionTypeExtension on EcoCoinMissionType {
         return 'ภารกิจรีวิว';
       case EcoCoinMissionType.special:
         return 'ภารกิจพิเศษ';
-      case EcoCoinMissionType.eco_activity:
+      case EcoCoinMissionType.ecoActivity:
         return 'กิจกรรมเพื่อสิ่งแวดล้อม';
     }
   }
@@ -239,7 +239,7 @@ class EcoCoinMission {
         return Icons.star_rate;
       case EcoCoinMissionType.special:
         return Icons.emoji_events;
-      case EcoCoinMissionType.eco_activity:
+      case EcoCoinMissionType.ecoActivity:
         return Icons.eco;
     }
   }
@@ -258,7 +258,7 @@ class EcoCoinMission {
         return Colors.amber;
       case EcoCoinMissionType.special:
         return Colors.red;
-      case EcoCoinMissionType.eco_activity:
+      case EcoCoinMissionType.ecoActivity:
         return AppColors.primaryTeal;
     }
   }
