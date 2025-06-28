@@ -1,7 +1,12 @@
+// d:/Development/green_market/lib/screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:green_market/providers/auth_provider.dart';
+import 'package:green_market/screens/auth/forgot_password_screen.dart';
+import 'package:green_market/screens/auth/registration_screen.dart';
+import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/utils/constants.dart';
-import 'register_screen.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,117 +16,180 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
-  String _password = '';
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  void _tryLogin() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      setState(() {
-        _isLoading = true;
-      });
-      final userCredential = await _authService.signInWithEmailPassword(
-          _email, _password, context);
-      if (userCredential != null) {
-        // Navigation to MainScreen will be handled by StreamBuilder in main.dart
-        print('Login successful: ${userCredential.user?.uid}');
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _isLoading = true);
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await authProvider.signInWithEmailPassword(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      // Navigation is handled by the auth state listener in main.dart
+    } on FirebaseAuthException catch (e) {
+      String message = 'เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูลการเข้าสู่ระบบ';
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      } else if (e.code == 'user-disabled') {
+        message = 'บัญชีผู้ใช้นี้ถูกระงับการใช้งาน';
       }
-      // If login fails, AuthService already shows a SnackBar
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        showAppSnackBar(context, message, isError: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppSnackBar(context, 'เข้าสู่ระบบไม่สำเร็จ: ${e.toString()}',
+            isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
 
-  void _navigateToRegister() {
-    Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (ctx) => const RegisterScreen(),
-    ));
+  Future<void> _googleSignIn() async {
+    setState(() => _isLoading = true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await authProvider.signInWithGoogle();
+      // Navigation is handled by the auth state listener in main.dart
+    } catch (e) {
+      if (mounted) {
+        showAppSnackBar(
+            context, 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ: ${e.toString()}',
+            isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('เข้าสู่ระบบ Green Market',
-            style: AppTextStyles.title.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.primaryGreen,
-      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                // Placeholder for Logo
-                const Icon(
-                  Icons
-                      .eco_outlined, // Icon ต้นกล้า (ใช้ eco_outlined แทน sprout_outlined)
-                  size: 80,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(height: 20),
+                const Icon(Icons.eco_outlined,
+                    size: 80, color: AppColors.primaryGreen),
+                const SizedBox(height: 16),
+                Text('ยินดีต้อนรับสู่ Green Market',
+                    style: AppTextStyles.headline),
+                const SizedBox(height: 8),
+                Text('เข้าสู่ระบบเพื่อใช้งาน',
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.modernGrey)),
+                const SizedBox(height: 32),
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'อีเมล'),
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'อีเมล',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null ||
-                        value.isEmpty ||
+                        value.trim().isEmpty ||
                         !value.contains('@')) {
                       return 'กรุณากรอกอีเมลที่ถูกต้อง';
                     }
                     return null;
                   },
-                  onSaved: (value) {
-                    _email = value!;
-                  },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'รหัสผ่าน'),
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'รหัสผ่าน',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
+                  ),
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty || value.length < 6) {
+                    if (value == null || value.trim().length < 6) {
                       return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
                     }
                     return null;
                   },
-                  onSaved: (value) {
-                    _password = value!;
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ));
+                    },
+                    child: const Text('ลืมรหัสผ่าน?'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: const Text('เข้าสู่ระบบ'),
+                      ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const RegistrationScreen(),
+                    ));
                   },
+                  child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
                 ),
                 const SizedBox(height: 24),
-                if (_isLoading)
-                  CircularProgressIndicator(color: AppColors.primaryTeal)
-                else
-                  ElevatedButton(
-                    onPressed: _tryLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 15),
-                      textStyle: AppTextStyles.button,
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('หรือ'),
                     ),
-                    child: const Text('เข้าสู่ระบบ'),
-                  ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _navigateToRegister,
-                  child: Text(
-                    'ยังไม่มีบัญชี? สมัครสมาชิกที่นี่',
-                    style: AppTextStyles.link
-                        .copyWith(color: AppColors.primaryTeal),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.g_mobiledata), // Placeholder
+                  label: const Text('เข้าสู่ระบบด้วย Google'),
+                  onPressed: _isLoading ? null : _googleSignIn,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
                   ),
                 ),
-                // TODO: Add "Forgot Password?" button
-                // TODO: Add social login buttons (Google, Facebook, etc.)
               ],
             ),
           ),

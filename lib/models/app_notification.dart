@@ -1,15 +1,18 @@
 // lib/models/app_notification.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart'; // For date formatting
 
 class AppNotification {
   final String id;
-  final String userId; // ID ของผู้รับการแจ้งเตือน
+  final String userId;
   final String title;
   final String body;
-  final String type; // เช่น 'order_status', 'product_approved', 'chat_message'
-  final String? relatedId; // เช่น orderId, productId, chatId
+  final String
+      type; // e.g., 'order_status_update', 'product_approved', 'seller_application_approved'
+  final String? relatedId; // ID of the related entity (order, product, etc.)
+  final bool isRead; // Added isRead status
   final Timestamp createdAt;
-  bool isRead; // สถานะอ่านแล้ว/ยังไม่อ่าน
 
   AppNotification({
     required this.id,
@@ -18,42 +21,49 @@ class AppNotification {
     required this.body,
     required this.type,
     this.relatedId,
-    required this.createdAt,
     this.isRead = false,
+    required this.createdAt,
   });
 
-  // สร้าง AppNotification object จาก Firestore DocumentSnapshot
-  factory AppNotification.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>?;
-    if (data == null) {
-      throw StateError(
-          'Failed to parse notification from Firestore: data is null for doc ${doc.id}');
-    }
+  factory AppNotification.fromMap(Map<String, dynamic> map) {
     return AppNotification(
-      id: doc.id,
-      userId: data['userId'] as String? ?? '',
-      title: data['title'] as String? ?? '',
-      body: data['body'] as String? ?? '',
-      type: data['type'] as String? ?? 'general',
-      relatedId: data['relatedId'] as String?,
-      // Ensure createdAt is always a valid Timestamp from Firestore,
-      // or default to Timestamp.now() if it's null or not a Timestamp.
-      // This prevents errors during deserialization if the data is malformed or missing.
-      createdAt: (data['createdAt'] as Timestamp?) ?? Timestamp.now(),
-      isRead: data['isRead'] as bool? ?? false,
+      id: map['id'] as String,
+      userId: map['userId'] as String,
+      title: map['title'] as String,
+      body: map['body'] as String,
+      type: map['type'] as String,
+      relatedId: map['relatedId'] as String?,
+      isRead: map['isRead'] as bool? ?? false,
+      createdAt: map['createdAt'] as Timestamp,
     );
   }
 
-  // แปลง AppNotification object ไปเป็น Map สำหรับบันทึกลง Firestore
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'userId': userId,
       'title': title,
       'body': body,
       'type': type,
       'relatedId': relatedId,
-      'createdAt': createdAt,
       'isRead': isRead,
+      'createdAt': createdAt,
     };
   }
+
+  AppNotification copyWith({
+    bool? isRead,
+    required String id,
+  }) {
+    return AppNotification(
+      // Removed deprecated withOpacity
+      id: id, userId: userId, title: title, body: body, type: type,
+      relatedId: relatedId,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+    );
+  }
+
+  String get formattedDate =>
+      DateFormat('dd MMM yyyy HH:mm').format(createdAt.toDate());
 }

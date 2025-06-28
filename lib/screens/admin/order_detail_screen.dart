@@ -1,48 +1,125 @@
 // lib/screens/admin/order_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/models/order.dart' as app_order;
-import 'package:green_market/utils/constants.dart'; // Assuming AppTextStyles and AppColors are here
+import 'package:green_market/utils/constants.dart';
+import 'package:green_market/utils/order_utils.dart'; // Import order_utils
+import 'package:green_market/screens/image_viewer_screen.dart'; // Import image viewer
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart'; // For launching URLs
 
 class OrderDetailScreen extends StatelessWidget {
   final app_order.Order order;
 
   const OrderDetailScreen({super.key, required this.order});
 
+  Future<void> _launchURL(BuildContext context, String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ไม่สามารถเปิดลิงก์: $urlString')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('รายละเอียดคำสั่งซื้อ', style: AppTextStyles.title),
-        backgroundColor: AppColors.lightGrey,
+        title: Text('รายละเอียดคำสั่งซื้อ #${order.id.substring(0, 8)}'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('คำสั่งซื้อ #${order.id.substring(0, 8)}',
-                style: AppTextStyles.subtitle), // Show partial ID for brevity
-            const SizedBox(height: 8),
-            _buildDetailRow('ID เต็ม:', order.id),
-            _buildDetailRow(
-                'ผู้ซื้อ:',
-                order
-                    .fullName), // Assuming fullName is part of shipping address
-            _buildDetailRow('ที่อยู่:',
-                '${order.addressLine1}, ${order.subDistrict}, ${order.district}, ${order.province} ${order.zipCode}'), // Construct full address here or use order.fullAddress if implemented
-            _buildDetailRow('เบอร์โทรศัพท์:', order.phoneNumber),
-            _buildDetailRow('วันที่:',
-                order.orderDate.toDate().toLocal().toString().split('.')[0]),
-            _buildDetailRow(
-                'สถานะ:', order.status.replaceAll('_', ' ').toUpperCase()),
-            const SizedBox(height: 16),
-            Text('รายการสินค้า:',
-                style: AppTextStyles.subtitle.copyWith(fontSize: 16)),
+            _buildSectionTitle('ข้อมูลคำสั่งซื้อ'),
+            _buildInfoRow('หมายเลขคำสั่งซื้อ:', order.id),
+            _buildInfoRow(
+                'วันที่สั่งซื้อ:',
+                DateFormat('dd MMMM yyyy, HH:mm', 'th_TH')
+                    .format(order.orderDate.toDate())),
+            _buildInfoRow('สถานะ:', getOrderStatusText(order.status),
+                highlight: true),
+            _buildInfoRow('ยอดรวม:', '฿${order.totalAmount.toStringAsFixed(2)}',
+                highlight: true),
+            _buildInfoRow(
+                'วิธีการชำระเงิน:',
+                order.paymentMethod == 'qr_code'
+                    ? 'QR Code'
+                    : 'เก็บเงินปลายทาง'),
+            if (order.paymentSlipUrl != null &&
+                order.paymentSlipUrl!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('สลิปการชำระเงิน:', style: AppTextStyles.bodyBold),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => ImageViewerScreen(
+                                  imageUrl: order.paymentSlipUrl!,
+                                  heroTag: 'slip_${order.id}',
+                                )));
+                      },
+                      child: Image.network(
+                        order.paymentSlipUrl!,
+                        height: 150,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Text('ไม่สามารถโหลดรูปสลิปได้'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            _buildSectionTitle('ที่อยู่ในการจัดส่ง'),
+            Text(order.fullName, style: AppTextStyles.body),
+            Text(order.addressLine1, style: AppTextStyles.body),
+            Text(
+                '${order.subDistrict}, ${order.district}, ${order.province}, ${order.zipCode}',
+                style: AppTextStyles.body),
+            Text('โทร: ${order.phoneNumber}', style: AppTextStyles.body),
+            if (order.trackingNumber != null &&
+                order.trackingNumber!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('ข้อมูลการจัดส่ง'),
+                    _buildInfoRow('หมายเลขติดตาม:', order.trackingNumber!),
+                    if (order.trackingUrl != null &&
+                        order.trackingUrl!.isNotEmpty)
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            _launchURL(context, order.trackingUrl!),
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('ติดตามพัสดุ'),
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            _buildSectionTitle('รายการสินค้า'),
             ...order.items.map((item) => Card(
                   margin: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ListTile(
                     leading: item.imageUrl.isNotEmpty
-                        ? Image.network(item.imageUrl,
-                            width: 50, height: 50, fit: BoxFit.cover)
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: Image.network(
+                              item.imageUrl,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image_not_supported),
+                            ),
+                          )
                         : const Icon(Icons.image_not_supported),
                     title:
                         Text(item.productName, style: AppTextStyles.bodyBold),
@@ -55,29 +132,67 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 )),
             const SizedBox(height: 16),
-            _buildDetailRow('รวม:', '฿${order.totalAmount.toStringAsFixed(2)}',
-                isBold: true),
-            // เพิ่มรายละเอียดอื่น ๆ ตามต้องการ เช่น ช่องทางการชำระเงิน, tracking number
+            Card(
+              color: AppColors.veryLightTeal,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('ยอดรวมทั้งสิ้น', style: AppTextStyles.bodyBold),
+                    Text('฿${order.totalAmount.toStringAsFixed(2)}',
+                        style: AppTextStyles.title.copyWith(
+                          color: AppColors.primaryDarkGreen,
+                          fontWeight: FontWeight.bold,
+                        )),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isBold = false}) {
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+      child: Text(
+        title,
+        style: AppTextStyles.subtitle.copyWith(
+          fontWeight: FontWeight.bold,
+          color: AppColors.primaryDarkGreen,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool highlight = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label ',
-              style: AppTextStyles.bodyBold.copyWith(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: AppTextStyles.body.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
           Expanded(
-              child: Text(value,
-                  style: AppTextStyles.body.copyWith(
-                      fontWeight:
-                          isBold ? FontWeight.bold : FontWeight.normal))),
+            child: Text(
+              value,
+              style: highlight
+                  ? AppTextStyles.bodyBold.copyWith(
+                      color: AppColors.primaryDarkGreen,
+                    )
+                  : AppTextStyles.body,
+            ),
+          ),
         ],
       ),
     );

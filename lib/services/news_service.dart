@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:green_market/models/news_article.dart';
+import 'package:green_market/models/news_article_model.dart';
 
 class NewsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,17 +17,7 @@ class NewsService {
 
       return snapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Timestamp? publishedTimestamp = data['publishedDate'] as Timestamp?;
-
-        return NewsArticle(
-          id: doc.id,
-          title: data['title'] ?? 'N/A',
-          summary: data['summary'] ?? 'No summary available.',
-          imageUrl: data['imageUrl'], // Can be null
-          originalUrl: data['originalUrl'], // Can be null
-          source: data['source'] ?? 'Unknown Source',
-          publishedDate: publishedTimestamp?.toDate() ?? DateTime.now(),
-        );
+        return NewsArticle.fromMap(data, doc.id);
       }).toList();
     } catch (e) {
       print('Error fetching news articles: $e');

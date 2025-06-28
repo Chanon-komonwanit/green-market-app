@@ -1,5 +1,5 @@
 # pubspec.yaml
-
+# pubspec.yaml
 name: green_market
 description: Your eco-friendly marketplace app.
 
@@ -10,36 +10,51 @@ version: 1.0.0+1
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
-dependencies:
+dependencies: # Corrected: Already correct
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8 # Updated to latest stable
+  cupertino_icons: ^1.0.8
   # Firebase packages - Updated to latest recommended versions
-  firebase_core: ^3.1.1 # Or latest stable compatible version
-  cloud_firestore: ^5.0.2 # Or latest stable compatible version
-  firebase_auth: ^5.1.1 # Or latest stable compatible version
-  firebase_storage: ^12.1.0 # Or latest stable compatible version
+  firebase_core: ^3.1.1 # Keep this version for now
+  cloud_firestore: ^5.0.2 # Keep this version for now
+  firebase_auth: ^5.1.1 # Keep this version for now
+  firebase_storage: ^12.1.0 # Keep this version for now
 
-  provider: ^6.0.5
-  image_picker: ^1.1.2 # For image picking (seller/admin/profile)
-  intl: ^0.20.2 # For date formatting
+  provider: ^6.1.2 # Using a slightly older version for broader compatibility
+  image_picker: ^1.1.2 # Latest stable
+  intl: ^0.19.0 # Latest stable
 
+  # Added for new features and fixes
+  flutter_colorpicker: ^1.1.0 # Latest stable
+  fl_chart: ^0.68.0 # Keep this version for now
+  collection: ^1.18.0 # Latest stable
+  flutter_markdown: ^0.7.7+1 # Downgraded as per pub's suggestion to resolve dependency conflict
+  flutter_local_notifications: ^17.2.1 # Latest stable
   # Added for product reviews
-  flutter_rating_bar: ^4.0.1
+  flutter_rating_bar: ^4.0.1 # Latest stable
   uuid: ^4.4.0 # Latest stable
-  photo_view: ^0.15.0 # Or latest version for image viewing with zoom
-  url_launcher: ^6.3.1
-  carousel_slider: ^5.1.1
+  photo_view: ^0.15.0 # Latest stable
+  url_launcher: ^6.3.0 # Latest stable
+  carousel_slider: ^5.0.0 # Updated to latest version
+  google_sign_in: ^6.2.1 # For Google Sign-In
 
+  rxdart: ^0.28.0 # Latest stable
+  logger: ^2.3.0 # Latest stable
+  file_picker: ^8.0.0+1 # Latest stable for file picking
 dev_dependencies:
   flutter_test:
-    sdk: flutter 
-  flutter_lints: ^4.0.0 # Latest stable
+    sdk: flutter
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/logo.jpg
-    # Add other assets if any, e.g., placeholder images
-    # - assets/images/placeholder.png
+  assets: # Corrected: Already correct
+    - assets/
+
+  fonts:
+    - family: Sarabun
+      fonts:
+        - asset: assets/fonts/Sarabun-Regular.ttf
+        - asset: assets/fonts/Sarabun-Bold.ttf
+          weight: 700

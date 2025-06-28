@@ -1,7 +1,7 @@
 // lib/screens/seller/my_products_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
-import 'package:green_market/screens/seller/edit_product_seller_screen.dart';
+import 'package:green_market/screens/seller/edit_product_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -74,13 +74,14 @@ class MyProductsScreen extends StatelessWidget {
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8.0),
                           child: Image.network(
-                            product.imageUrls[0],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
+                            product.imageUrls[0], // Ensure imageUrl is not null
+                            // Use a placeholder if imageUrl is null or empty
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(Icons.broken_image,
                                     size: 60, color: AppColors.lightModernGrey),
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
                           ),
                         )
                       : const Icon(Icons.image_not_supported,
@@ -114,7 +115,7 @@ class MyProductsScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) =>
-                                  EditProductSellerScreen(product: product)));
+                                  EditProductScreen(product: product)));
                     },
                   ),
                   onTap: () {

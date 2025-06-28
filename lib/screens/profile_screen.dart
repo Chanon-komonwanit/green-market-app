@@ -1,259 +1,272 @@
-// profile_screen.dart
+// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/screens/auth/login_screen.dart';
-import 'package:green_market/providers/user_provider.dart'; // Import UserProvider
-import 'package:green_market/screens/admin_panel_screen.dart';
+import 'package:green_market/providers/auth_provider.dart';
+import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/user/edit_profile_screen.dart';
 import 'package:green_market/screens/user/become_seller_screen.dart';
-import 'package:green_market/screens/sustainable_investment_screen.dart'; // Import investment screen
+import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/utils/constants.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-// Assuming UserProfileScreen is for editing, if not, remove or adjust.
-// If this screen (profile_screen.dart) IS the user's own profile editing screen,
-// then the navigation to UserProfileScreen in _buildGeneralOptions might be redundant
-// or should be to a more specific "Edit Details" screen.
-// For now, I'll assume UserProfileScreen is a separate editing screen.
-import 'package:green_market/screens/user_profile_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+  Future<void> _changeProfilePicture(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final UserProvider userProvider =
+        Provider.of<UserProvider>(context, listen: false);
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // User data is now primarily managed by UserProvider,
-    // which is listened to by AuthWrapper.
-    // If specific refresh logic is needed here, it can be added.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Example: Force a refresh if needed, though UserProvider should handle this.
-      // Provider.of<UserProvider>(context, listen: false).refreshUserData();
-    });
-  }
-
-  Future<void> _fetchUserData() async {
-    // This method can be used for manual refresh via RefreshIndicator
-    // It will re-trigger UserProvider's loading logic if necessary.
-    await Provider.of<UserProvider>(context, listen: false).refreshUserData();
-  }
-
-  void _navigateToBecomeSellerScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const BecomeSellerScreen()),
-    ).then((_) =>
-        _fetchUserData()); // Refresh data after returning, UserProvider will update
-  }
-
-  void _navigateToSellerDashboard() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SellerDashboardScreen()),
-    );
+    try {
+      final XFile? image =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (image != null) {
+        await userProvider.updateUserProfilePicture(image);
+        if (context.mounted) {
+          showAppSnackBar(context, 'Profile picture updated successfully!',
+              isSuccess: true);
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showAppSnackBar(
+            context, 'Failed to update profile picture: ${e.toString()}',
+            isError: true);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.currentUser; // Get user from UserProvider
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUser = userProvider.currentUser;
 
-    if (userProvider.isLoading && userProvider.userData == null) {
-      // Show loading if UserProvider is loading and has no data yet
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryTeal));
-    }
-    if (user == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('กรุณาเข้าสู่ระบบ'),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                        builder: (context) => const LoginScreen()),
-                    (Route<dynamic> route) => false);
-              },
-              child: const Text('ไปหน้าเข้าสู่ระบบ'),
-            )
-          ],
-        ),
-      );
+    if (userProvider.isLoading && currentUser == null) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    // Use data from UserProvider
-    final bool isSeller = userProvider.userData?['isSeller'] == true;
-    final bool isAdmin = userProvider.isAdmin; // Use getter from UserProvider
-    final String? currentDisplayName =
-        userProvider.userData?['displayName'] ?? user.email;
+    if (currentUser == null) {
+      return const Center(child: Text('User not found. Please log in again.'));
+    }
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _fetchUserData,
-        color: AppColors.primaryTeal,
-        child: ListView(
-          children: <Widget>[
-            _buildProfileHeader(
-                user, currentDisplayName), // Use currentDisplayName
-            _buildInvestmentSection(
-                context), // New dedicated section for investment
-            const SizedBox(height: 16), // Spacing before role-specific actions
-            _buildRoleSpecificActions(
-                isAdmin, isSeller), // Role-specific actions
-            const Divider(height: 30, thickness: 1),
-            _buildGeneralOptions(context),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // --- Profile Header ---
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                CircleAvatar(
+                  radius: 60,
+                  backgroundColor: AppColors.lightGrey,
+                  backgroundImage: currentUser.photoUrl != null
+                      ? NetworkImage(currentUser.photoUrl!)
+                      : null,
+                  child: currentUser.photoUrl == null
+                      ? const Icon(Icons.person,
+                          size: 60, color: AppColors.modernGrey)
+                      : null,
+                ),
+                Material(
+                  color: AppColors.primaryGreen,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: () => _changeProfilePicture(context),
+                    customBorder: const CircleBorder(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child:
+                          Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                    ),
+                  ),
+                )
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              currentUser.displayName ?? 'N/A',
+              style: AppTextStyles.headline,
+            ),
+            Text(
+              currentUser.email,
+              style: AppTextStyles.body.copyWith(color: AppColors.modernGrey),
+            ),
+            const SizedBox(height: 32),
+
+            // --- Menu Options ---
+            _buildProfileMenu(context, userProvider, authProvider),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader(User user, String? displayName) {
-    return Padding(
-      // Added Padding for better spacing
-      padding: const EdgeInsets.symmetric(vertical: 24.0),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50,
-            // ignore: deprecated_member_use
-            backgroundColor: AppColors.lightTeal.withOpacity(0.5),
-            child: Icon(Icons.person, size: 50, color: AppColors.primaryTeal),
-            // TODO: Add user profile image if available
-          ),
-          const SizedBox(height: 16),
-          Text('สวัสดี, ${displayName ?? user.email ?? 'ผู้ใช้งาน'}!',
-              style: AppTextStyles.headline
-                  .copyWith(color: AppColors.primaryDarkGreen)),
-          Text(user.email ?? '',
-              style: AppTextStyles.body.copyWith(color: AppColors.modernGrey)),
-        ],
-      ),
-    );
-  }
+  Widget _buildProfileMenu(BuildContext context, UserProvider userProvider,
+      AuthProvider authProvider) {
+    final currentUser = userProvider.currentUser!;
 
-  Widget _buildInvestmentSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => const SustainableInvestmentScreen(),
-          ));
-        },
-        borderRadius: BorderRadius.circular(12), // For splash effect
-        child: Container(
-          padding: const EdgeInsets.all(20.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              colors: [
-                // ignore: deprecated_member_use
-                AppColors.primaryGreen.withOpacity(0.8),
-                // ignore: deprecated_member_use
-                AppColors.primaryTeal.withOpacity(0.9),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                // ignore: deprecated_member_use
-                color: AppColors.primaryTeal.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.insights_rounded,
-                  color: AppColors.white, size: 40),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'การลงทุนความยั่งยืน',
-                      style: AppTextStyles.subtitleBold
-                          .copyWith(color: AppColors.white, fontSize: 18),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'สร้างผลตอบแทนพร้อมสร้างโลกที่ดีกว่า',
-                      style: AppTextStyles.bodySmall
-                          // ignore: deprecated_member_use
-                          .copyWith(color: AppColors.white.withOpacity(0.85)),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  color: AppColors.white, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoleSpecificActions(bool isAdmin, bool isSeller) {
-    return Column(
-      children: <Widget>[
-        if (isAdmin)
-          ListTile(
-            leading: const Icon(Icons.admin_panel_settings_outlined,
-                color: AppColors.primaryTeal),
-            title: Text('แผงควบคุมผู้ดูแลระบบ', style: AppTextStyles.bodyBold),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AdminPanelScreen()));
-            },
-          ),
-        if (isAdmin && isSeller) const Divider(),
-        if (isSeller)
-          ListTile(
-            leading: const Icon(Icons.storefront, color: AppColors.primaryTeal),
-            title: Text('จัดการร้านค้าของฉัน', style: AppTextStyles.bodyBold),
-            onTap: _navigateToSellerDashboard,
-          )
-        else if (!isAdmin) // Show "Become Seller" only if not admin and not already a seller
-          ListTile(
-            leading: const Icon(Icons.add_business_outlined,
-                color: AppColors.primaryTeal),
-            title: Text('ร่วมเป็นผู้ขายกับเรา', style: AppTextStyles.bodyBold),
-            onTap: _navigateToBecomeSellerScreen,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildGeneralOptions(BuildContext context) {
     return Column(
       children: [
-        ListTile(
-          leading:
-              const Icon(Icons.edit_outlined, color: AppColors.primaryTeal),
-          title: Text('แก้ไขโปรไฟล์', style: AppTextStyles.bodyBold),
+        _buildMenuTile(
+          icon: Icons.edit_outlined,
+          title: 'Edit Profile',
           onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(
-                  builder: (context) => const UserProfileScreen(),
-                ))
-                .then((_) => _fetchUserData());
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const EditProfileScreen(),
+            ));
           },
         ),
-        // Add other general options here if needed
+        if (currentUser.isAdmin)
+          _buildMenuTile(
+            icon: Icons.admin_panel_settings_outlined,
+            title: 'แผงควบคุมแอดมิน',
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => AdminDashboardScreen(),
+              ));
+            },
+          )
+        else if (currentUser.isSeller)
+          _buildMenuTile(
+            icon: Icons.store_outlined,
+            title: 'แดชบอร์ดร้านค้า',
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const SellerDashboardScreen(),
+              ));
+            },
+          ),
+
+        _buildMenuTile(
+          icon: Icons.history_outlined,
+          title: 'ประวัติการสั่งซื้อ',
+          onTap: () {
+            showAppSnackBar(context, 'ฟีเจอร์ประวัติการสั่งซื้อจะมาเร็วๆ นี้!');
+          },
+        ),
+
+        // เมนูสำหรับสมัครเป็นผู้ขาย (ใช้ getter ใหม่จาก UserProvider)
+        if (userProvider.canApplyToBecomeSeller)
+          _buildMenuTile(
+            icon: Icons.storefront_outlined,
+            title: 'สมัครเป็นผู้ขาย',
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const BecomeSellerScreen(),
+              ));
+            },
+          ),
+        if (userProvider.isSellerApplicationPending)
+          _buildMenuTile(
+            icon: Icons.hourglass_top_outlined,
+            title: 'รอการอนุมัติเป็นผู้ขาย',
+            subtitle: 'กำลังรอการพิจารณาจากแอดมิน',
+            onTap: () {},
+            trailing: const Icon(Icons.schedule, color: Colors.orange),
+          ),
+        if (userProvider.isSellerApplicationRejected)
+          _buildMenuTile(
+            icon: Icons.cancel_outlined,
+            title: 'คำขอเป็นผู้ขายถูกปฏิเสธ',
+            subtitle: currentUser.rejectionReason ?? 'ไม่ได้ระบุเหตุผล',
+            color: Colors.red,
+            onTap: () {
+              // สามารถสมัครใหม่ได้
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const BecomeSellerScreen(),
+              ));
+            },
+          ),
+        const Divider(height: 32),
+        _buildMenuTile(
+          icon: Icons.logout,
+          title: 'ออกจากระบบ',
+          color: AppColors.errorRed,
+          onTap: () async {
+            final bool? confirmLogout = await showDialog<bool>(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text(
+                    'ยืนยันการออกจากระบบ',
+                    style: AppTextStyles.subtitle.copyWith(
+                      color: AppColors.primaryTeal,
+                    ),
+                  ),
+                  content: Text(
+                    'คุณต้องการออกจากระบบหรือไม่?',
+                    style: AppTextStyles.body,
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text(
+                        'ยกเลิก',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.modernGrey,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      },
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.errorRed,
+                        foregroundColor: AppColors.white,
+                      ),
+                      child: Text(
+                        'ออกจากระบบ',
+                        style: AppTextStyles.bodyBold.copyWith(
+                          color: AppColors.white,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+            if (confirmLogout == true) {
+              await authProvider.signOut();
+            }
+          },
+        ),
       ],
+    );
+  }
+
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? color,
+    String? subtitle,
+    Widget? trailing,
+  }) {
+    final Widget trailingWidget =
+        trailing ?? const Icon(Icons.arrow_forward_ios, size: 16);
+    return ListTile(
+      leading: Icon(icon, color: color ?? AppColors.primaryGreen),
+      title: Text(title, style: AppTextStyles.body.copyWith(color: color)),
+      subtitle: subtitle != null
+          ? Text(subtitle,
+              style:
+                  AppTextStyles.body.copyWith(color: Colors.grey, fontSize: 12))
+          : null,
+      trailing: trailingWidget,
+      onTap: onTap,
     );
   }
 }

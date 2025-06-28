@@ -1,19 +1,18 @@
-// lib/screens/checkout_summary_screen.dart
+// d:/Development/green_market/lib/screens/checkout_summary_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/providers/cart_provider.dart'; // Updated import if main.dart stub was removed
-import 'package:green_market/models/order.dart'
-    as app_order; // สำหรับ Order Model
-import 'package:green_market/models/order_item.dart'; // สำหรับ OrderItem Model
-import 'package:green_market/services/firebase_service.dart'; // สำหรับบันทึกคำสั่งซื้อ
+import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/models/order.dart' as app_order;
+import 'package:green_market/models/order_item.dart';
+import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // สำหรับดึง User ID ปัจจุบัน
-import 'package:cloud_firestore/cloud_firestore.dart'; // สำหรับ Timestamp
-import 'package:green_market/screens/order_confirmation_screen.dart'; // สำหรับหน้ายืนยันคำสั่งซื้อ
-import 'package:green_market/screens/payment_confirmation_screen.dart'; // สำหรับหน้าแจ้งการชำระเงิน
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:green_market/screens/order_confirmation_screen.dart';
+import 'package:green_market/screens/payment_confirmation_screen.dart';
 
 class CheckoutSummaryScreen extends StatefulWidget {
-  final Map<String, dynamic> shippingAddress; // รับข้อมูลที่อยู่จัดส่ง
+  final Map<String, dynamic> shippingAddress;
   const CheckoutSummaryScreen({super.key, required this.shippingAddress});
 
   @override
@@ -23,33 +22,31 @@ class CheckoutSummaryScreen extends StatefulWidget {
 class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
   static const double _defaultShippingFee = 50.00;
 
-  String? _selectedPaymentMethod; // 'qr_code' หรือ 'cash_on_delivery'
+  String? _selectedPaymentMethod;
   bool _isLoading = false;
-  String? _qrCodeImageUrl; // สำหรับเก็บ URL ของ QR Code ที่สร้างขึ้น
+  String? _qrCodeImageUrl;
 
-  // เมื่อเลือก PromptPay ให้สร้าง QR Code
   void _onPaymentMethodChanged(String? value) async {
     setState(() {
       _selectedPaymentMethod = value;
-      _qrCodeImageUrl = null; // ล้าง QR เดิมเมื่อเปลี่ยน
+      _qrCodeImageUrl = null;
     });
 
     if (value == 'qr_code') {
       if (mounted) {
         setState(() {
-          _isLoading = true; // แสดง loading ขณะสร้าง QR
+          _isLoading = true;
         });
       }
       try {
         final firebaseService =
             Provider.of<FirebaseService>(context, listen: false);
-        final cartProvider = Provider.of<CartProvider>(context, listen: false);
-        final double totalAmount =
-            cartProvider.totalAmount + _defaultShippingFee;
+        // final cartProvider = Provider.of<CartProvider>(context, listen: false);
+        // final double totalAmount =
+        //     cartProvider.totalAmount + _defaultShippingFee;
 
-        // เรียกเมธอดจำลองการสร้าง QR Code จาก FirebaseService
         final String generatedQrUrl =
-            await firebaseService.generateMockQrCode(totalAmount);
+            await firebaseService.generateMockQrCode();
         if (mounted) {
           setState(() {
             _qrCodeImageUrl = generatedQrUrl;
@@ -101,7 +98,6 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
 
       final List<OrderItem> orderItems =
           cartProvider.items.values.map((cartItem) {
-        // Iterate over cartProvider.items.values which is Iterable<CartItem>
         return OrderItem(
           productId: cartItem.product.id,
           productName: cartItem.product.name,
@@ -111,11 +107,10 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
               ? cartItem.product.imageUrls[0]
               : '',
           ecoScore: cartItem.product.ecoScore,
-          sellerId: cartItem.product.sellerId, // Ensure sellerId is passed
+          sellerId: cartItem.product.sellerId,
         );
       }).toList();
 
-      // ดึง sellerIds ทั้งหมดจาก orderItems
       final Set<String> sellerIdsSet =
           orderItems.map((item) => item.sellerId).toSet();
       final List<String> sellerIds = sellerIdsSet.toList();
@@ -124,15 +119,15 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
       final double totalAmount = subTotal + _defaultShippingFee;
 
       final newOrder = app_order.Order(
-        id: '', // Firestore จะ generate ID ให้
+        id: '',
         userId: currentUser.uid,
         orderDate: Timestamp.now(),
         status: _selectedPaymentMethod == 'qr_code'
             ? 'pending_payment'
-            : 'pending_delivery', // หรือ 'processing' สำหรับ COD
+            : 'pending_delivery',
         paymentMethod: _selectedPaymentMethod!,
-        totalAmount: totalAmount, // ใช้ totalAmount ที่คำนวณไว้
-        shippingFee: _defaultShippingFee, // ใช้ค่าคงที่
+        totalAmount: totalAmount,
+        shippingFee: _defaultShippingFee,
         subTotal: subTotal,
         fullName: widget.shippingAddress['fullName'],
         phoneNumber: widget.shippingAddress['phoneNumber'],
@@ -143,15 +138,10 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
         zipCode: widget.shippingAddress['zipCode'],
         note: widget.shippingAddress['note'],
         items: orderItems,
-        sellerIds: sellerIds, // เพิ่ม sellerIds ที่นี่
+        sellerIds: sellerIds,
       );
 
-      final app_order.Order? placedOrder =
-          await firebaseService.placeOrder(newOrder);
-
-      if (placedOrder == null) {
-        throw Exception('ไม่สามารถสร้างคำสั่งซื้อได้');
-      }
+      await firebaseService.placeOrder(newOrder);
 
       cartProvider.clearCart();
 
@@ -164,14 +154,13 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    PaymentConfirmationScreen(order: placedOrder)),
+                    PaymentConfirmationScreen(order: newOrder)),
           );
         } else {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) =>
-                    OrderConfirmationScreen(order: placedOrder)),
+                builder: (context) => OrderConfirmationScreen(order: newOrder)),
           );
         }
       }
@@ -205,8 +194,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-            'สรุปคำสั่งซื้อและชำระเงิน'), // Removed style for consistency with theme
+        title: const Text('สรุปคำสั่งซื้อและชำระเงิน'),
       ),
       body: Column(
         children: [
@@ -283,7 +271,7 @@ class _CartItemsList extends StatelessWidget {
                 Image.network(
                   cartItem.product.imageUrls.isNotEmpty
                       ? cartItem.product.imageUrls[0]
-                      : 'https://via.placeholder.com/50', // Placeholder URL
+                      : 'https://via.placeholder.com/50',
                   width: 60,
                   height: 60,
                   fit: BoxFit.cover,
@@ -460,8 +448,7 @@ class _QrCodeSection extends StatelessWidget {
       );
     }
 
-    return const SizedBox
-        .shrink(); // Return an empty widget if no QR code and not loading
+    return const SizedBox.shrink();
   }
 }
 
@@ -490,15 +477,13 @@ class _OrderTotalsAndConfirm extends StatelessWidget {
           color: AppColors.white,
           boxShadow: [
             BoxShadow(
-                // ignore: deprecated_member_use
-                color: AppColors.darkGrey.withOpacity(0.1),
+                color: AppColors.darkGrey.withAlpha((0.1 * 255).round()),
                 blurRadius: 4,
                 offset: const Offset(0, -2)),
           ],
           border: Border(
               top: BorderSide(
-                  // ignore: deprecated_member_use
-                  color: AppColors.lightGrey.withOpacity(0.5),
+                  color: AppColors.lightGrey.withAlpha((0.5 * 255).round()),
                   width: 1))),
       child: Column(
         mainAxisSize: MainAxisSize.min,

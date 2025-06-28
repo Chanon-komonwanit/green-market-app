@@ -5,7 +5,7 @@ import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:green_market/screens/admin/order_detail_screen.dart'; // Can reuse for seller if appropriate
+import 'package:green_market/screens/seller/seller_order_detail_screen.dart'; // Use seller-specific detail screen
 
 class SellerOrdersScreen extends StatelessWidget {
   const SellerOrdersScreen({super.key});
@@ -38,7 +38,7 @@ class SellerOrdersScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: AppColors.white),
       ),
       body: StreamBuilder<List<app_order.Order>>(
-        stream: firebaseService.getOrdersForSeller(user.uid),
+        stream: firebaseService.getOrdersBySellerId(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -111,13 +111,12 @@ class SellerOrdersScreen extends StatelessWidget {
                   trailing: const Icon(Icons.arrow_forward_ios,
                       color: AppColors.lightModernGrey),
                   onTap: () {
-                    // Sellers might need a different OrderDetailScreen or a modified one
-                    // For now, reusing admin's OrderDetailScreen
+                    // Use seller-specific order detail screen with status update functionality
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (context) =>
-                              OrderDetailScreen(order: order)),
+                              SellerOrderDetailScreen(order: order)),
                     );
                   },
                 ),

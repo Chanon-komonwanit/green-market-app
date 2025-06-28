@@ -1,7 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 
 import 'package:flutter/material.dart';
-import 'package:green_market/models/news_article.dart';
+import 'package:green_market/models/news_article_model.dart';
 import 'package:green_market/utils/constants.dart'; // Assuming AppTextStyles and AppColors are here
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart'; // If you want to open external links
@@ -48,55 +48,54 @@ class NewsArticleDetailPage extends StatelessWidget {
                   AppTextStyles.caption.copyWith(color: AppColors.modernGrey),
             ),
             const Divider(height: 32, thickness: 1),
-            if (article.imageUrl != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Image.network(
-                    article.imageUrl!,
-                    width: double.infinity,
-                    height: 220, // Slightly increased height
-                    fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child,
-                        ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        width: double.infinity,
-                        height: 220,
-                        // ignore: deprecated_member_use
-                        color: AppColors.lightModernGrey.withOpacity(0.3),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                            color: AppColors.primaryTeal,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) => Container(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
+                child: Image.network(
+                  article.imageUrl ?? '',
+                  width: double.infinity,
+                  height: 220, // Slightly increased height
+                  fit: BoxFit.cover,
+                  loadingBuilder: (BuildContext context, Widget child,
+                      ImageChunkEvent? loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
                       width: double.infinity,
                       height: 220,
                       // ignore: deprecated_member_use
-                      color: AppColors.lightModernGrey.withOpacity(0.5),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.broken_image_outlined,
-                              size: 50, color: AppColors.modernGrey),
-                          const SizedBox(height: 8),
-                          Text("ไม่สามารถโหลดรูปภาพได้",
-                              style: AppTextStyles.caption
-                                  .copyWith(color: AppColors.modernDarkGrey))
-                        ],
+                      color: AppColors.lightModernGrey.withOpacity(0.3),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: AppColors.primaryTeal,
+                        ),
                       ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: double.infinity,
+                    height: 220,
+                    // ignore: deprecated_member_use
+                    color: AppColors.lightModernGrey.withOpacity(0.5),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.broken_image_outlined,
+                            size: 50, color: AppColors.modernGrey),
+                        const SizedBox(height: 8),
+                        Text("ไม่สามารถโหลดรูปภาพได้",
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.modernDarkGrey))
+                      ],
                     ),
                   ),
                 ),
               ),
+            ),
             Text(
               article
                   .summary, // For now, we'll display the summary as main content

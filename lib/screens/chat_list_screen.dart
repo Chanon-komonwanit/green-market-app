@@ -26,7 +26,7 @@ class ChatListScreen extends StatelessWidget {
       //   title: const Text('รายการแชท'),
       // ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: firebaseService.getChatRoomsForUser(currentUser.uid),
+        stream: firebaseService.streamChatRoomsForUser(currentUser.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -42,10 +42,8 @@ class ChatListScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.chat_bubble_outline,
-                      // ignore: deprecated_member_use
                       size: 80,
-                      // ignore: deprecated_member_use
-                      color: AppColors.darkGrey.withOpacity(0.5)),
+                      color: AppColors.darkGrey.withAlpha((0.5 * 255).round())),
                   const SizedBox(height: 20),
                   Text('ยังไม่มีรายการแชท', style: AppTextStyles.subtitle),
                 ],

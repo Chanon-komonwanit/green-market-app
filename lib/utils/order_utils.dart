@@ -23,7 +23,15 @@ String getOrderStatusText(String status) {
   }
 }
 
+// Define statuses that sellers can update to
+const List<String> sellerUpdatableStatuses = [
+  'processing',
+  'shipped',
+  'delivered',
+];
+
 Color getOrderStatusColor(String status) {
+  // Removed theme parameter
   switch (status) {
     case 'pending_payment':
       return Colors.orangeAccent;

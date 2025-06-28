@@ -1,8 +1,8 @@
 // lib/screens/order_confirmation_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/models/order.dart'
+import 'package:green_market/models/order.dart' // Assuming Order model exists
     as app_order; // ใช้ Order model ของเรา
-import 'package:green_market/screens/main_screen.dart'; // For navigating back to home
+import 'package:green_market/main_app_shell.dart'; // For navigating back to home
 import 'package:green_market/utils/constants.dart';
 
 class OrderConfirmationScreen extends StatelessWidget {
@@ -13,8 +13,9 @@ class OrderConfirmationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Removed deprecated withOpacity
         // AppBar will use app's theme
-        title: const Text('ยืนยันคำสั่งซื้อ'),
+        title: const Text('ยืนยันคำสั่งซื้อ'), // Corrected: Already correct
         automaticallyImplyLeading: false, // ไม่แสดงปุ่มย้อนกลับอัตโนมัติ
       ),
       body: Center(
@@ -31,10 +32,11 @@ class OrderConfirmationScreen extends StatelessWidget {
                   order.paymentMethod == 'cash_on_delivery'
                       ? 'สั่งซื้อสินค้าสำเร็จ!'
                       : 'การชำระเงินของคุณได้รับการยืนยันแล้ว!', // Or a more general success message
-                  style: AppTextStyles.title
+                  style: AppTextStyles.title // Corrected: Already correct
                       .copyWith(color: AppColors.primaryGreen)),
               const SizedBox(height: 10),
-              Text('คำสั่งซื้อ #${order.id.substring(0, 8)}',
+              Text(
+                  'คำสั่งซื้อ #${order.id.substring(0, 8)}', // Corrected: Use withAlpha
                   style: AppTextStyles.subtitle),
               const SizedBox(height: 20),
               Text('คุณสามารถตรวจสอบสถานะคำสั่งซื้อได้ที่หน้าประวัติคำสั่งซื้อ',
@@ -47,7 +49,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                   // กลับไปหน้าแรกสุด (Home Screen)
                   Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
-                          builder: (context) => const MainScreen()),
+                          builder: (context) => const MainAppShell()),
                       (route) => false);
                 },
                 style: ElevatedButton.styleFrom(

@@ -1,22 +1,19 @@
-// lib/screens/chat_screen.dart
+// d:/Development/green_market/lib/screens/chat_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String? chatId; // Optional: if navigating from chat list
+  final String? chatId;
   final String productId;
   final String productName;
   final String productImageUrl;
   final String buyerId;
   final String sellerId;
-  // Optional: Pass names if fetched before navigating
-  // final String? buyerName;
-  // final String? sellerName;
 
   const ChatScreen({
     super.key,
@@ -26,8 +23,6 @@ class ChatScreen extends StatefulWidget {
     required this.productImageUrl,
     required this.buyerId,
     required this.sellerId,
-    // this.buyerName,
-    // this.sellerName,
   });
 
   @override
@@ -39,7 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   late FirebaseService _firebaseService;
   late User _currentUser;
-  String _otherUserName = "ผู้ขาย"; // Default, will try to fetch
+  String _otherUserName = "ผู้ขาย";
 
   @override
   void initState() {
@@ -47,15 +42,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _currentUser = FirebaseAuth.instance.currentUser!;
     _firebaseService = Provider.of<FirebaseService>(context, listen: false);
     _fetchOtherUserName();
-    // Mark chat as read when screen opens, ensure chatId is not null or empty
     String effectiveChatId = widget.chatId ?? '';
 
-    // If the passed chatId is null or empty, try to construct it
-    if (effectiveChatId.isEmpty) {
-      // This logic to construct chatId should ideally live within FirebaseService or be consistent with it.
-      // For now, we'll assume that if chatId is not passed, it might be a new chat, and reading is not applicable yet.
-    }
-    // Only mark as read if we have a valid, non-empty chatId.
     if (effectiveChatId.isNotEmpty) {
       _firebaseService.markChatRoomAsRead(effectiveChatId, _currentUser.uid);
     }
@@ -76,45 +64,33 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messageController.text.trim().isEmpty) {
       return;
     }
-    // Optimistically clear the text field
     final messageText = _messageController.text.trim();
     _messageController.clear();
 
-    // Prepare display names for the chat room document
-    // Use fetched _otherUserName, and current user's display name or a default
-    final String currentUserDisplayName = _currentUser.displayName ??
-        _currentUser.email?.split('@')[0] ??
-        "ผู้ใช้";
-    final String buyerDisplayName = _currentUser.uid == widget.buyerId
-        ? currentUserDisplayName
-        : _otherUserName;
-    final String sellerDisplayName = _currentUser.uid == widget.sellerId
-        ? currentUserDisplayName
-        : _otherUserName;
-
     try {
-      await _firebaseService.sendChatMessage(
-        widget.productId,
-        widget.productName,
-        widget.productImageUrl,
-        widget.buyerId,
-        widget.sellerId,
-        _currentUser.uid,
-        messageText,
-        buyerName: buyerDisplayName, // Pass determined buyer name
-        sellerName: sellerDisplayName, // Pass determined seller name
-      );
+      final messageData = {
+        'text': messageText,
+        'senderId': _currentUser.uid,
+        'timestamp': FieldValue.serverTimestamp(),
+        'productId': widget.productId,
+        'productName': widget.productName,
+        'productImageUrl': widget.productImageUrl,
+      };
+
+      // Create or get chat room ID
+      final chatRoomId =
+          '${widget.buyerId}_${widget.sellerId}_${widget.productId}';
+
+      await _firebaseService.sendMessage(chatRoomId, messageData);
     } catch (e) {
-      // If sending fails, consider re-populating the text field or showing an error
       if (mounted) {
-        _messageController.text = messageText; // Re-populate on error
+        _messageController.text = messageText;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('ไม่สามารถส่งข้อความได้: $e')),
         );
       }
     }
 
-    // Scroll to bottom after sending
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -140,23 +116,19 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start, // Align text to the start
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_otherUserName,
                 style: AppTextStyles.subtitle
                     .copyWith(fontSize: 18, color: AppColors.white)),
             Text('เกี่ยวกับ: ${widget.productName}',
                 style: AppTextStyles.body.copyWith(
-                    // ignore: deprecated_member_use
                     fontSize: 12,
-                    // ignore: deprecated_member_use
-                    color: AppColors.white.withOpacity(0.8))),
+                    color: AppColors.white.withAlpha((0.8 * 255).round()))),
           ],
         ),
-        backgroundColor: AppColors.primaryGreen, // Theme AppBar
-        iconTheme:
-            const IconThemeData(color: AppColors.white), // Back button color
+        backgroundColor: AppColors.primaryGreen,
+        iconTheme: const IconThemeData(color: AppColors.white),
         actions: [
           if (widget.productImageUrl.isNotEmpty)
             Padding(
@@ -173,7 +145,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _firebaseService.getChatMessages(
-                  widget.productId, widget.buyerId, widget.sellerId),
+                  '${widget.buyerId}_${widget.sellerId}_${widget.productId}'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -213,8 +185,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         decoration: BoxDecoration(
                           color: isMe
                               ? AppColors.primaryGreen
-                              : AppColors
-                                  .lightBeige, // Use lightBeige for other's messages
+                              : AppColors.lightBeige,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(12),
                             topRight: const Radius.circular(12),
@@ -248,10 +219,10 @@ class _ChatScreenState extends State<ChatScreen> {
                               displayTime,
                               style: TextStyle(
                                 color: isMe
-                                    // ignore: deprecated_member_use
-                                    ? AppColors.white.withOpacity(0.7)
-                                    // ignore: deprecated_member_use
-                                    : AppColors.earthyBrown.withOpacity(0.7),
+                                    ? AppColors.white
+                                        .withAlpha((0.7 * 255).round())
+                                    : AppColors.earthyBrown
+                                        .withAlpha((0.7 * 255).round()),
                                 fontSize: 10,
                               ),
                             ),
@@ -272,8 +243,7 @@ class _ChatScreenState extends State<ChatScreen> {
               BoxShadow(
                 offset: const Offset(0, -1),
                 blurRadius: 1,
-                // ignore: deprecated_member_use
-                color: AppColors.darkGrey.withOpacity(0.05),
+                color: AppColors.darkGrey.withAlpha((0.05 * 255).round()),
               )
             ]),
             child: Row(
@@ -287,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(25.0),
                         borderSide: BorderSide.none,
                       ),
-                      filled: true, // Add a subtle fill color
+                      filled: true,
                       fillColor: AppColors.lightBeige,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),

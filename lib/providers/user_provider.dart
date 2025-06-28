@@ -1,171 +1,202 @@
-// lib/providers/user_provider.dart
-import 'package:flutter/foundation.dart';
+// user_provider.dart
+import 'dart:async';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart'
-    as fb_auth; // Firebase Auth User
-import 'package:green_market/services/firebase_service.dart'; // Your FirebaseService
+    as auth; // ใช้ as auth เพื่อความชัดเจน
+import 'package:flutter/material.dart';
+import 'package:green_market/models/app_user.dart';
+import 'package:green_market/services/firebase_service.dart';
+import 'package:image_picker/image_picker.dart';
 
+/// UserProvider ทำหน้าที่จัดการข้อมูลและสถานะของผู้ใช้ที่ล็อกอินเข้ามา
+/// เป็นหัวใจสำคัญในการระบุว่าผู้ใช้เป็นใคร (ผู้ซื้อ, ผู้ขาย, หรือแอดมิน)
 class UserProvider extends ChangeNotifier {
   final FirebaseService _firebaseService;
-  fb_auth.User? _firebaseUser; // The authenticated user from Firebase Auth
-  Map<String, dynamic>?
-      _userData; // User data from Firestore (e.g., roles, display name)
-
+  AppUser? _currentUser;
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  StreamSubscription<auth.User?>? _authSubscription;
 
+  /// Constructor: เมื่อ Provider ถูกสร้างขึ้น จะเริ่มฟังการเปลี่ยนแปลงสถานะการล็อกอินทันที
   UserProvider({required FirebaseService firebaseService})
       : _firebaseService = firebaseService {
     _listenToAuthChanges();
   }
 
-  fb_auth.User? get currentUser => _firebaseUser;
-  Map<String, dynamic>? get userData => _userData;
+  // --- Getters สำหรับให้ UI ส่วนต่างๆ นำไปใช้ ---
+  AppUser? get currentUser => _currentUser;
+  bool get isLoading => _isLoading;
+  bool get isLoggedIn => _currentUser != null;
+  bool get isAdmin => _currentUser?.isAdmin ?? false;
+  bool get isSeller => _currentUser?.isSeller ?? false;
 
-  bool get isLoggedIn => _firebaseUser != null;
+  // เพิ่ม getters สำหรับตรวจสอบสถานะการสมัครเป็นผู้ขาย
+  bool get hasAppliedToBecomeSeller =>
+      _currentUser?.sellerApplicationStatus != null;
+  bool get isSellerApplicationPending =>
+      _currentUser?.sellerApplicationStatus == 'pending';
+  bool get isSellerApplicationApproved =>
+      _currentUser?.sellerApplicationStatus == 'approved';
+  bool get isSellerApplicationRejected =>
+      _currentUser?.sellerApplicationStatus == 'rejected';
+  bool get canApplyToBecomeSeller =>
+      !isAdmin && !isSeller && !hasAppliedToBecomeSeller;
 
-  bool get isAdmin {
-    if (_userData != null && _userData!['isAdmin'] == true) {
-      return true;
-    }
-    return false;
-  }
-
-  // Listen to Firebase Auth state changes
+  /// [หัวใจหลัก] เมธอดนี้จะคอย "ฟัง" ว่ามีการล็อกอินหรือล็อกเอาท์เกิดขึ้นหรือไม่
   void _listenToAuthChanges() {
-    fb_auth.FirebaseAuth.instance
-        .authStateChanges()
-        .listen((fb_auth.User? user) async {
-      print(
-          "UserProvider (authStateChanges): Auth state changed. User: ${user?.email}, UID: ${user?.uid}");
-      _setLoading(true);
-      if (user != null) {
-        _firebaseUser = user;
-        await _loadUserData(user.uid); // Load Firestore data
+    // ยกเลิกการฟังเก่า (ถ้ามี) เพื่อป้องกันการทำงานซ้ำซ้อน
+    _authSubscription?.cancel();
+    _authSubscription =
+        _firebaseService.authStateChanges.listen((firebaseUser) {
+      if (firebaseUser != null) {
+        // หากมีผู้ใช้ล็อกอินเข้ามา, ให้ไปดึงข้อมูลจาก Firestore ทันที
+        loadUserData(firebaseUser.uid);
       } else {
-        _firebaseUser = null;
-        _userData = null; // Clear user data on logout
-        print("UserProvider (authStateChanges): User logged out.");
+        // หากผู้ใช้ล็อกเอาท์, ให้ล้างข้อมูลผู้ใช้ออกจากระบบ
+        clearUserData();
       }
-      _setLoading(false);
-      notifyListeners();
     });
   }
 
-  // Load user-specific data from Firestore
-  Future<void> _loadUserData(String uid) async {
-    print(
-        "UserProvider (_loadUserData): Attempting to load user data for UID: $uid");
+  /// โหลดข้อมูลโปรไฟล์ของผู้ใช้ (AppUser) จาก Firestore โดยใช้ uid
+  /// ซึ่งข้อมูลนี้จะมี field สำคัญเช่น isAdmin, isSeller อยู่ด้วย
+  Future<void> loadUserData(String uid) async {
+    _isLoading = true;
+    notifyListeners(); // แจ้ง UI ว่ากำลังโหลด
     try {
-      _userData = await _firebaseService.getUserData(uid);
-      if (_userData != null) {
-        print(
-            "UserProvider (_loadUserData): Successfully loaded user data: $_userData");
-        print(
-            "UserProvider (_loadUserData): isAdmin flag from Firestore: ${_userData!['isAdmin']}");
-      } else {
-        print(
-            "UserProvider (_loadUserData): No user data found in Firestore for UID: $uid. This might be expected for a new user before Firestore doc is created, or an issue.");
-      }
-    } catch (e, s) {
-      print(
-          "UserProvider (_loadUserData): Error loading user data for UID $uid: $e");
-      print("UserProvider (_loadUserData): Stacktrace: $s");
-      _userData = null; // Ensure userData is null on error
+      // เรียกใช้ service เพื่อดึงข้อมูลจาก collection 'users'
+      _currentUser = await _firebaseService.getAppUser(uid);
+    } catch (e) {
+      _firebaseService.logger.e('Failed to load user data', error: e);
+      _currentUser = null; // หากพลาด ให้เคลียร์ข้อมูล
+    } finally {
+      _isLoading = false;
+      notifyListeners(); // แจ้ง UI ว่าโหลดเสร็จแล้ว (ไม่ว่าจะสำเร็จหรือไม่)
     }
-    // notifyListeners() will be called by the calling function (_listenToAuthChanges or signIn)
   }
 
-  // Sign in method
-  Future<bool> signIn(String email, String password) async {
-    _setLoading(true);
+  /// ล้างข้อมูลผู้ใช้ทั้งหมดเมื่อมีการล็อกเอาท์
+  void clearUserData() {
+    _currentUser = null;
     notifyListeners();
-    try {
-      print("UserProvider (signIn): Attempting to sign in user: $email");
-      final fb_auth.User? user = await _firebaseService.signIn(email, password);
-      if (user != null) {
-        _firebaseUser = user;
-        print(
-            "UserProvider (signIn): Firebase sign-in successful for ${user.email}, UID: ${user.uid}");
-        // _loadUserData will be triggered by authStateChanges listener,
-        // but you can also call it here explicitly if needed for immediate data after signIn.
-        // However, relying on authStateChanges is often cleaner.
-        // If you call it here, ensure authStateChanges handles potential race conditions or duplicate loads.
-        // For now, let's assume authStateChanges is sufficient.
-        // await _loadUserData(user.uid); // Potentially redundant if authStateChanges is quick
-        _setLoading(false);
-        notifyListeners(); // Notify for UI update after sign-in attempt
-        return true;
-      } else {
-        print(
-            "UserProvider (signIn): Firebase sign-in failed for $email. FirebaseService returned null.");
-        _firebaseUser = null;
-        _userData = null;
-        _setLoading(false);
-        notifyListeners();
-        return false;
-      }
-    } catch (e, s) {
-      print("UserProvider (signIn): Error during sign in for $email: $e");
-      print("UserProvider (signIn): Stacktrace: $s");
-      _firebaseUser = null;
-      _userData = null;
-      _setLoading(false);
-      notifyListeners();
-      return false;
-    }
   }
 
-  // Sign up method
-  Future<bool> signUp(String email, String password) async {
-    _setLoading(true);
+  /// อัปเดตรูปโปรไฟล์
+  Future<void> updateUserProfilePicture(XFile imageFile) async {
+    if (_currentUser == null) return;
+    _isLoading = true;
     notifyListeners();
+
     try {
-      print("UserProvider (signUp): Attempting to sign up user: $email");
-      final fb_auth.User? user = await _firebaseService.signUp(email, password);
-      if (user != null) {
-        _firebaseUser = user;
-        print(
-            "UserProvider (signUp): Firebase sign-up successful for ${user.email}, UID: ${user.uid}");
-        // _loadUserData will be triggered by authStateChanges.
-        _setLoading(false);
-        notifyListeners();
-        return true;
-      } else {
-        print("UserProvider (signUp): Firebase sign-up failed for $email.");
-        _firebaseUser = null;
-        _userData = null;
-        _setLoading(false);
-        notifyListeners();
-        return false;
-      }
-    } catch (e, s) {
-      print("UserProvider (signUp): Error during sign up for $email: $e");
-      print("UserProvider (signUp): Stacktrace: $s");
-      _firebaseUser = null;
-      _userData = null;
-      _setLoading(false);
+      final userId = _currentUser!.id;
+      // ใช้ uploadImageFile แทน uploadImage
+      final imageUrl = await _firebaseService.uploadImageFile(
+        File(imageFile.path),
+        'user_profiles/${userId}_profile.jpg',
+      );
+
+      await _firebaseService.updateUserProfilePicture(userId, imageUrl);
+      await loadUserData(userId); // โหลดข้อมูลใหม่เพื่อให้ UI อัปเดต
+    } catch (e) {
+      _firebaseService.logger.e('Failed to update profile picture', error: e);
+      rethrow;
+    } finally {
+      _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
-  // Sign out
-  Future<void> signOut() async {
-    print("UserProvider (signOut): Signing out user: ${_firebaseUser?.email}");
-    await _firebaseService.signOut();
-    // Auth state listener will handle clearing _firebaseUser and _userData
-    // No need to call notifyListeners() here, as authStateChanges will do it.
-  }
+  /// อัปเดตข้อมูลโปรไฟล์ (ชื่อ, เบอร์โทร)
+  Future<void> updateUserProfile(String displayName, String phoneNumber) async {
+    if (_currentUser == null) return;
+    _isLoading = true;
+    notifyListeners();
 
-  void _setLoading(bool value) {
-    if (_isLoading != value) {
-      _isLoading = value;
-      // Optionally, notify listeners immediately if the loading state is critical for UI updates.
-      // notifyListeners();
+    try {
+      final userId = _currentUser!.id;
+      await _firebaseService.updateUserProfile(
+          userId, displayName, phoneNumber);
+      await loadUserData(userId); // โหลดข้อมูลใหม่เพื่อให้ UI อัปเดต
+    } catch (e) {
+      _firebaseService.logger.e('Failed to update user profile', error: e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<void> refreshUserData() async {}
+  // --- Investment Methods ---
+  // เมธอดด้านล่างเป็นตัวอย่างการทำงานร่วมกับข้อมูลผู้ใช้ปัจจุบัน
 
-  // Add other methods like updateUserProfile, etc.
+  Future<void> investInProject(
+      String projectId, String projectTitle, double amount) async {
+    if (_currentUser == null) {
+      throw Exception('User not logged in.');
+    }
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _firebaseService.investInProject(
+        projectId,
+        _currentUser!.id,
+        amount,
+      );
+    } catch (e) {
+      _firebaseService.logger.e('Failed to invest in project', error: e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> buyMoreInvestment(String investmentId, double amount) async {
+    if (_currentUser == null) {
+      throw Exception('User not logged in.');
+    }
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _firebaseService.buyMoreInvestment(
+        investmentId,
+        amount,
+      );
+      await loadUserData(_currentUser!.id);
+    } catch (e) {
+      _firebaseService.logger.e('Failed to buy more investment', error: e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> sellInvestment(String investmentId, double amount) async {
+    if (_currentUser == null) {
+      throw Exception('User not logged in.');
+    }
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _firebaseService.sellInvestment(investmentId);
+      await loadUserData(_currentUser!.id);
+    } catch (e) {
+      _firebaseService.logger.e('Failed to sell investment', error: e);
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// สำคัญมาก: ต้องยกเลิกการ `listen` (unsubscribe) เมื่อ Provider ถูกทำลาย
+  /// เพื่อป้องกัน Memory Leak
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
 }

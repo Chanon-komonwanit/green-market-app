@@ -51,19 +51,16 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
         currentUser.email?.split('@')[0] ??
         'ผู้ใช้งานนิรนาม';
 
-    final newReview = Review(
-      id: '', // Firestore will generate
-      productId: widget.orderItem.productId,
-      userId: currentUser.uid,
-      orderId: widget.orderId,
-      userName: userName,
-      rating: _rating,
-      comment: _commentController.text.trim(),
-      createdAt: Timestamp.now(),
-    );
-
     try {
-      await firebaseService.addReview(newReview);
+      await firebaseService.addReview({
+        'productId': widget.orderItem.productId,
+        'userId': currentUser.uid,
+        'orderId': widget.orderId,
+        'userName': userName,
+        'rating': _rating,
+        'comment': _commentController.text.trim(),
+        'createdAt': Timestamp.now(),
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

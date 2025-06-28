@@ -1,135 +1,111 @@
+// lib/screens/my_investment_detail_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/models/my_investment.dart';
-import 'package:green_market/utils/constants.dart'; // Assuming AppTextStyles and AppColors are here
+import 'package:green_market/models/user_investment.dart';
+import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/utils/app_utils.dart';
+import 'package:green_market/utils/constants.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class MyInvestmentDetailPage extends StatelessWidget {
-  final MyInvestment investment;
+  final UserInvestment investment;
 
   const MyInvestmentDetailPage({super.key, required this.investment});
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
+    final double currentReturn =
+        investment.amount * 0.05; // Placeholder 5% return
+    final double returnPercentage = (investment.amount > 0)
+        ? (currentReturn / investment.amount) * 100
+        : 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(investment.name,
-            style: AppTextStyles.title.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.primaryGreen,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.white),
-          onPressed: () => Navigator.of(context).pop(),
+        title: Text(
+          'รายละเอียดการลงทุนของฉัน',
+          style: AppTextStyles.title.copyWith(color: AppColors.primaryGreen),
         ),
+        backgroundColor: AppColors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: AppColors.primaryGreen),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Header Section
-            Row(
-              children: [
-                Icon(investment.icon, size: 50, color: AppColors.primaryGreen),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    investment.name,
-                    style: AppTextStyles.headline
-                        .copyWith(color: AppColors.primaryDarkGreen),
-                  ),
-                ),
-              ],
+          children: [
+            Text(
+              investment.projectTitle,
+              style: AppTextStyles.headline.copyWith(
+                color: AppColors.primaryDarkGreen,
+              ),
             ),
-            const SizedBox(height: 24),
-
-            // Investment Details Card
+            const SizedBox(height: 16),
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow(
-                        context, "ประเภทสินทรัพย์:", investment.assetType),
-                    _buildDetailRow(context, "จำนวนหน่วย/ปริมาณ:",
-                        investment.quantity.toString()),
-                    _buildDetailRow(context, "มูลค่าปัจจุบัน:",
-                        '฿${investment.currentValue.toStringAsFixed(2)}',
-                        valueColor: AppColors.primaryTeal),
-                    _buildDetailRow(context, "ผลตอบแทนรวม:",
-                        '฿${investment.totalReturn.toStringAsFixed(2)}',
-                        valueColor: investment.totalReturn >= 0
-                            ? AppColors.accentGreen
-                            : AppColors.warningOrange),
-                    _buildDetailRow(context, "ผลตอบแทน (%):",
-                        '${investment.returnPercentage >= 0 ? '+' : ''}${investment.returnPercentage.toStringAsFixed(1)}%',
-                        valueColor: investment.returnPercentage >= 0
-                            ? AppColors.accentGreen
-                            : AppColors.warningOrange),
+                    _buildInfoRow(
+                      Icons.account_balance_wallet_outlined,
+                      'จำนวนเงินลงทุน',
+                      currencyFormat.format(investment.amount),
+                    ),
+                    _buildInfoRow(
+                      Icons.calendar_today_outlined,
+                      'วันที่ลงทุน',
+                      DateFormat(
+                        'dd MMM yyyy',
+                      ).format(investment.investedAt.toDate()),
+                    ),
+                    _buildInfoRow(
+                      Icons.show_chart,
+                      'ผลตอบแทนโดยประมาณ',
+                      '${currencyFormat.format(currentReturn)} (${returnPercentage.toStringAsFixed(1)}%)',
+                      valueColor: returnPercentage >= 0
+                          ? AppColors.accentGreen
+                          : AppColors.warningOrange,
+                    ),
+                    // TODO: Add more relevant investment details like project status, next payout, etc.
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Placeholder for Performance Chart or Transaction History
-            Text(
-              'ประวัติและผลการดำเนินงาน:',
-              style: AppTextStyles.title
-                  .copyWith(color: AppColors.primaryDarkGreen),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border:
-                    // ignore: deprecated_member_use
-                    Border.all(color: AppColors.modernGrey.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  'ส่วนนี้สำหรับแสดงกราฟผลการดำเนินงาน หรือ ประวัติการทำธุรกรรมที่เกี่ยวข้องกับการลงทุนนี้ (จะพัฒนาในภายหลัง)',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.modernDarkGrey),
-                ),
-              ),
-            ),
             const SizedBox(height: 32),
-
-            // Action Buttons (Example)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryTeal,
-                      foregroundColor: AppColors.white),
-                  onPressed: () {
-                    // TODO: Implement "Sell" action
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              'ดำเนินการ "ขาย" สำหรับ: ${investment.name}')),
-                    );
-                  },
-                  child: const Text('ขาย'),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('ซื้อเพิ่ม'),
+                    onPressed: () => _showBuyMoreDialog(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentGreen,
-                      foregroundColor: AppColors.white),
-                  onPressed: () {
-                    // TODO: Implement "Buy More" action
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              'ดำเนินการ "ซื้อเพิ่ม" สำหรับ: ${investment.name}')),
-                    );
-                  },
-                  child: const Text('ซื้อเพิ่ม'),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.sell_outlined),
+                    label: const Text('ขาย'),
+                    onPressed: () => _showSellDialog(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.errorRed,
+                      side: const BorderSide(color: AppColors.errorRed),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -139,31 +115,169 @@ class MyInvestmentDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value,
-      {Color? valueColor}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: AppTextStyles.subtitle
-                  .copyWith(color: AppColors.modernDarkGrey),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: AppTextStyles.subtitleBold
-                  .copyWith(color: valueColor ?? AppColors.primaryDarkGreen),
-            ),
+          Icon(icon, color: AppColors.primaryTeal, size: 24),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.body.copyWith(color: AppColors.modernGrey),
+              ),
+              Text(
+                value,
+                style: AppTextStyles.subtitleBold.copyWith(color: valueColor),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  void _showBuyMoreDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('ซื้อเพิ่ม'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'จำนวนเงิน (฿)',
+                prefixText: '฿ ',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'กรุณาระบุจำนวนเงิน';
+                final amount = double.tryParse(value);
+                if (amount == null || amount <= 0) {
+                  return 'จำนวนเงินต้องมากกว่า 0';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final amount = double.parse(amountController.text);
+                  Navigator.of(dialogContext).pop(amount);
+                }
+              },
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        );
+      },
+    ).then((amount) async {
+      if (amount != null && amount > 0) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        try {
+          await userProvider.buyMoreInvestment(investment.id, amount);
+          showAppSnackBar(context, 'ซื้อเพิ่มสำเร็จ!', isSuccess: true);
+        } catch (e) {
+          showAppSnackBar(
+            context,
+            'ซื้อเพิ่มล้มเหลว: ${e.toString()}',
+            isError: true,
+          );
+        }
+      }
+    });
+  }
+
+  void _showSellDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('ขายการลงทุน'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'จำนวนเงินที่ต้องการขาย (฿)',
+                prefixText: '฿ ',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'กรุณาระบุจำนวนเงิน';
+                final amount = double.tryParse(value);
+                if (amount == null || amount <= 0) {
+                  return 'จำนวนเงินต้องมากกว่า 0';
+                }
+                // Add validation to ensure amount <= investment.amount
+                if (amount > investment.amount) {
+                  return 'จำนวนเงินที่ขายต้องไม่เกินจำนวนที่ลงทุน';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final amount = double.parse(amountController.text);
+                  Navigator.of(dialogContext).pop(amount);
+                }
+              },
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        );
+      },
+    ).then((amount) async {
+      if (amount != null && amount > 0) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        try {
+          await userProvider.sellInvestment(investment.id, amount);
+          showAppSnackBar(context, 'ขายสำเร็จ!', isSuccess: true);
+          // Optionally, pop this screen if the investment is fully sold
+          if (amount == investment.amount && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        } catch (e) {
+          showAppSnackBar(
+            context,
+            'ขายล้มเหลว: ${e.toString()}',
+            isError: true,
+          );
+        }
+      }
+    });
   }
 }

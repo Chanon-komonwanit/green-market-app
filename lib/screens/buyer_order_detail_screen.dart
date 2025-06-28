@@ -224,8 +224,9 @@ class _BuyerOrderDetailScreenState extends State<BuyerOrderDetailScreen> {
                                                 style: AppTextStyles.body
                                                     .copyWith(
                                                         fontSize: 14,
-                                                        color: AppColors
-                                                            .darkGrey)),
+                                                        color:
+                                                            AppColors // Corrected: Already correct
+                                                                .darkGrey)),
                                             onPressed: () {
                                               // TODO: Navigate to view their review (if a separate screen is needed)
                                               ScaffoldMessenger.of(context)

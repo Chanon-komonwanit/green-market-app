@@ -1,7 +1,7 @@
 // lib/screens/orders_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/models/order.dart' as app_order;
-import 'package:green_market/screens/order_detail_screen.dart';
+import 'package:green_market/screens/buyer_order_detail_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/order_utils.dart'; // Import order_utils
@@ -47,7 +47,7 @@ class OrdersScreen extends StatelessWidget {
       //   title: const Text('ประวัติคำสั่งซื้อ'),
       // ),
       body: StreamBuilder<List<app_order.Order>>(
-        stream: firebaseService.getOrdersForUser(currentUser.uid),
+        stream: firebaseService.getOrdersByUserId(currentUser.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -93,7 +93,8 @@ class OrdersScreen extends StatelessWidget {
                   isThreeLine: true,
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => OrderDetailScreen(order: order),
+                      builder: (context) =>
+                          BuyerOrderDetailScreen(order: order),
                     ));
                   },
                 ),

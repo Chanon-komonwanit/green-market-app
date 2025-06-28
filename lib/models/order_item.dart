@@ -1,5 +1,6 @@
 // lib/models/order_item.dart
-// ใช้สำหรับรายการสินค้าแต่ละชิ้นที่อยู่ในคำสั่งซื้อ
+import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp if needed
+
 class OrderItem {
   final String productId;
   final String productName;
@@ -16,32 +17,51 @@ class OrderItem {
     required this.pricePerUnit,
     required this.imageUrl,
     required this.ecoScore,
-    required this.sellerId, // Added to constructor
+    required this.sellerId,
   });
 
-  // ใช้สำหรับแปลงจาก Map (ที่มาจาก Firestore) ไปเป็น OrderItem object
-  factory OrderItem.fromMap(Map<String, dynamic> data) {
+  factory OrderItem.fromMap(Map<String, dynamic> map) {
     return OrderItem(
-      productId: data['productId'] ?? '',
-      productName: data['productName'] ?? '',
-      quantity: data['quantity'] ?? 0,
-      pricePerUnit: (data['pricePerUnit'] ?? 0.0).toDouble(),
-      imageUrl: data['imageUrl'] ?? '',
-      ecoScore: data['ecoScore'] ?? 0,
-      sellerId: data['sellerId'] ?? '', // Retrieve sellerId
+      productId: map['productId'] as String,
+      productName: map['productName'] as String,
+      quantity: map['quantity'] as int,
+      pricePerUnit: (map['pricePerUnit'] as num).toDouble(),
+      imageUrl: map['imageUrl'] as String,
+      ecoScore: map['ecoScore'] as int,
+      sellerId: map['sellerId'] as String? ??
+          '', // Default to empty string if not found
     );
   }
 
-  // ใช้สำหรับแปลงจาก OrderItem object ไปเป็น Map (เพื่อบันทึกลง Firestore)
   Map<String, dynamic> toMap() {
     return {
-      'productId': productId, // ID ของสินค้า
-      'productName': productName, // ชื่อสินค้า
+      'productId': productId,
+      'productName': productName,
       'quantity': quantity,
       'pricePerUnit': pricePerUnit,
       'imageUrl': imageUrl,
       'ecoScore': ecoScore,
-      'sellerId': sellerId, // ID ของผู้ขายสินค้านี้
+      'sellerId': sellerId,
     };
+  }
+
+  OrderItem copyWith({
+    String? productId,
+    String? productName,
+    int? quantity,
+    double? pricePerUnit,
+    String? imageUrl,
+    int? ecoScore,
+    String? sellerId,
+  }) {
+    return OrderItem(
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      quantity: quantity ?? this.quantity,
+      pricePerUnit: pricePerUnit ?? this.pricePerUnit,
+      imageUrl: imageUrl ?? this.imageUrl,
+      ecoScore: ecoScore ?? this.ecoScore,
+      sellerId: sellerId ?? this.sellerId,
+    );
   }
 }

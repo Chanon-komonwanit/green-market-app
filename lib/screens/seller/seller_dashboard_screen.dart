@@ -1,6 +1,6 @@
 // lib/screens/seller/seller_dashboard_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/screens/seller/add_product_seller_screen.dart'; // Import AddProductSellerScreen
+import 'package:green_market/screens/seller/add_product_screen.dart'; // Import AddProductScreen
 import 'package:green_market/screens/seller/my_products_screen.dart'; // Import MyProductsScreen
 import 'package:green_market/screens/seller/seller_orders_screen.dart'; // Import SellerOrdersScreen
 import 'package:green_market/screens/seller/shop_settings_screen.dart'; // Import ShopSettingsScreen
@@ -30,8 +30,7 @@ class SellerDashboardScreen extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => const AddProductSellerScreen()),
+            MaterialPageRoute(builder: (context) => const AddProductScreen()),
           );
         },
       ),

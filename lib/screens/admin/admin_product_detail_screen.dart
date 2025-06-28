@@ -1,4 +1,5 @@
 // lib/screens/admin/admin_product_detail_screen.dart
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/services/firebase_service.dart';
@@ -8,6 +9,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:intl/intl.dart';
 import 'package:green_market/models/category.dart' as app_category;
 import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp
+import 'package:green_market/models/seller.dart';
 
 class AdminProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -90,11 +92,13 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                               color: AppColors.primaryTeal, width: 2.0)),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'กรุณากรอก Eco Score';
+                      }
                       final score = int.tryParse(value);
-                      if (score == null || score < 1 || score > 100)
+                      if (score == null || score < 1 || score > 100) {
                         return 'Eco Score ต้องอยู่ระหว่าง 1-100';
+                      }
                       return null;
                     },
                   ),
@@ -158,10 +162,12 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                           imageUrl: '',
                           createdAt: Timestamp.now()));
                   try {
-                    await firebaseService.approveProduct(
-                        widget.product.id, finalEcoScore,
-                        categoryId: selectedCategoryIdInDialog,
-                        categoryName: selectedCategory.name);
+                    await firebaseService.approveProductWithDetails(
+                      widget.product.id,
+                      finalEcoScore,
+                      categoryId: selectedCategoryIdInDialog!,
+                      categoryName: selectedCategory.name,
+                    );
                     widget.onApprovedOrRejected();
                     Navigator.of(dialogContext).pop(); // Close dialog
                     if (mounted) {
@@ -172,11 +178,12 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                       Navigator.of(context).pop(); // Go back from detail screen
                     }
                   } catch (e) {
-                    if (mounted)
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(
                               'เกิดข้อผิดพลาดในการอนุมัติ: ${e.toString()}'),
                           backgroundColor: AppColors.errorRed));
+                    }
                   }
                 }
               },
@@ -188,7 +195,6 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
   }
 
   Future<void> _rejectProductDialog() async {
-    // Re-use the dialog logic from ApprovalListScreen
     final firebaseService =
         Provider.of<FirebaseService>(context, listen: false);
     String? rejectionReason;
@@ -223,8 +229,8 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
 
     if (confirmReject == true) {
       try {
-        await firebaseService.rejectProduct(widget.product.id,
-            reason: rejectionReason);
+        await firebaseService.rejectProduct(
+            widget.product.id, rejectionReason ?? '');
         widget.onApprovedOrRejected(); // Call callback
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -250,18 +256,11 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
   Widget build(BuildContext context) {
     final NumberFormat currencyFormatter =
         NumberFormat.currency(locale: 'th_TH', symbol: '฿');
-    final sellerProposedCategoryName = widget.product.categoryId != null &&
-            _allCategories.isNotEmpty &&
-            !_isLoadingCategories
-        ? _allCategories
-            .firstWhere((cat) => cat.id == widget.product.categoryId,
-                orElse: () => app_category.Category(
-                    id: '',
-                    name: 'N/A',
-                    imageUrl: '',
-                    createdAt: Timestamp.now()))
-            .name
-        : widget.product.categoryName ?? 'ไม่ระบุ';
+    final sellerProposedCategoryName = _allCategories
+            .firstWhereOrNull((cat) => cat.id == widget.product.categoryId)
+            ?.name ??
+        widget.product.categoryName ??
+        'ไม่ระบุ';
 
     return Scaffold(
       appBar: AppBar(
@@ -324,6 +323,7 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
               _buildDetailSection(
                   'ลิงก์ยืนยัน:', widget.product.verificationVideoUrl!),
             const SizedBox(height: 24),
+            _buildSellerInfoSection(widget.product.sellerId),
           ],
         ),
       ),
@@ -381,6 +381,55 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                   AppTextStyles.body.copyWith(color: AppColors.modernDarkGrey)),
         ],
       ),
+    );
+  }
+
+  Widget _buildSellerInfoSection(String sellerId) {
+    final firebaseService =
+        Provider.of<FirebaseService>(context, listen: false);
+    return FutureBuilder<Seller?>(
+      future: firebaseService.getSellerFullDetails(sellerId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Text('ไม่พบข้อมูลผู้ขาย');
+        }
+        final seller = snapshot.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 32),
+            Text('ข้อมูลผู้ขาย',
+                style: AppTextStyles.subtitle
+                    .copyWith(color: AppColors.primaryTeal)),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 2,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: seller.shopImageUrl != null
+                      ? NetworkImage(seller.shopImageUrl!)
+                      : null,
+                  child: seller.shopImageUrl == null
+                      ? const Icon(Icons.storefront)
+                      : null,
+                ),
+                title: Text(seller.shopName, style: AppTextStyles.bodyBold),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (seller.createdAt != null)
+                      Text(
+                          'สมัครเมื่อ: ${DateFormat('dd MMM yyyy').format(seller.createdAt!.toDate())}'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

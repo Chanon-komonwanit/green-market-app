@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read for all files (e.g., product images, shop images, app settings images)
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    // Allow authenticated users to upload their profile pictures
+    match /users/{userId}/profile_images/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Allow authenticated users (sellers) to upload product images
+    // The actual validation that the uploader is the product's seller
+    // should be enforced by Firestore rules when the product document is created/updated.
+    match /product_images/{productId}/{fileName} {
+      allow write: if request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSeller == true;
+    }
+    // Allow authenticated users (sellers) to upload shop images
+    match /shop_images/{sellerId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == sellerId;
+    }
+    // Allow authenticated users (admins) to upload app settings images
+    // The actual validation that only admins can *set* these URLs in Firestore
+    // is handled by the Firestore rules for the 'app_settings' collection.
+    match /app_settings/{fileName} {
+      allow write: if request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}

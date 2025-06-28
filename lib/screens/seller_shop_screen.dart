@@ -1,6 +1,7 @@
 // lib/screens/seller_shop_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
+import 'package:green_market/models/seller.dart'; // Import Seller model
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/widgets/product_card.dart'; // Assuming you have a ProductCard widget
@@ -16,7 +17,7 @@ class SellerShopScreen extends StatefulWidget {
 }
 
 class _SellerShopScreenState extends State<SellerShopScreen> {
-  Map<String, dynamic>? _shopDetails;
+  Seller? _shopDetails;
   String? _sellerDisplayName;
   bool _isLoadingShopInfo = true;
 
@@ -55,10 +56,10 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
     final firebaseService =
         Provider.of<FirebaseService>(context, listen: false);
     final String shopName =
-        _shopDetails?['shopName'] ?? _sellerDisplayName ?? 'ร้านค้าของผู้ขาย';
-    final String? shopImageUrl = _shopDetails?['shopImageUrl'];
+        _shopDetails?.shopName ?? _sellerDisplayName ?? 'ร้านค้าของผู้ขาย';
+    final String? shopImageUrl = _shopDetails?.shopImageUrl;
     final String shopDescription =
-        _shopDetails?['shopDescription'] ?? 'ยินดีต้อนรับสู่ร้านค้าของเรา';
+        _shopDetails?.shopDescription ?? 'ยินดีต้อนรับสู่ร้านค้าของเรา';
 
     return Scaffold(
       appBar: AppBar(
@@ -86,10 +87,10 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: AppColors.lightModernGrey,
-                          backgroundImage:
-                              shopImageUrl != null && shopImageUrl.isNotEmpty
-                                  ? NetworkImage(shopImageUrl)
-                                  : null,
+                          backgroundImage: shopImageUrl != null &&
+                                  shopImageUrl.isNotEmpty
+                              ? NetworkImage(shopImageUrl)
+                              : null, // Use NetworkImage only if URL is valid
                           child: (shopImageUrl == null || shopImageUrl.isEmpty)
                               ? const Icon(Icons.storefront,
                                   size: 50, color: AppColors.modernGrey)
@@ -118,7 +119,7 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
           StreamBuilder<List<Product>>(
             stream: firebaseService.getProductsBySeller(widget.sellerId).map(
                 (products) => products
-                    .where((p) => p.isApproved)
+                    .where((p) => p.status == 'approved')
                     .toList() // Only show approved products
                 ),
             builder: (context, snapshot) {

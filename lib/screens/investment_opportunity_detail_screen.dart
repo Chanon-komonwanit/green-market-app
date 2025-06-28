@@ -1,10 +1,23 @@
+// investment_opportunity_detail_screen.dart
 import 'package:flutter/material.dart';
-// เราจะย้าย Model มาไว้ที่นี่
-import 'package:green_market/models/investment_opportunity.dart';
+import 'package:green_market/models/investment_project.dart';
+import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/utils/constants.dart';
+import 'package:provider/provider.dart';
+
+// A helper extension to capitalize strings
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) {
+      return this;
+    }
+    return "${this[0].toUpperCase()}${substring(1)}";
+  }
+}
 
 class InvestmentOpportunityDetailPage extends StatelessWidget {
-  final InvestmentOpportunity opportunity;
+  final InvestmentProject opportunity;
 
   const InvestmentOpportunityDetailPage({super.key, required this.opportunity});
 
@@ -12,128 +25,163 @@ class InvestmentOpportunityDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(opportunity.name,
-            style: AppTextStyles.title.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.primaryGreen,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.white),
-          onPressed: () => Navigator.of(context).pop(),
+        title: Text(
+          'รายละเอียดการลงทุน',
+          style: AppTextStyles.title.copyWith(color: AppColors.primaryGreen),
         ),
+        backgroundColor: AppColors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: AppColors.primaryGreen),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Header Section
-            Row(
-              children: [
-                Hero(
-                  tag: 'opportunityIcon_${opportunity.id}', // Same unique tag
-                  child: Icon(opportunity.icon,
-                      size: 50, color: AppColors.primaryGreen),
+          children: [
+            Hero(
+              tag: 'investmentIcon_${opportunity.id}',
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                color: AppColors.lightTeal,
+                child: Icon(
+                  Icons
+                      .eco_outlined, // Placeholder, replace with opportunity.imageUrl if available
+                  size: 80,
+                  color: AppColors.primaryGreen.withAlpha(150),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    opportunity.name,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    opportunity.title,
                     style: AppTextStyles.headline
                         .copyWith(color: AppColors.primaryDarkGreen),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              opportunity.description,
-              style: AppTextStyles.body
-                  .copyWith(color: AppColors.modernDarkGrey, fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-
-            // Details Section
-            _buildDetailRow(context, "ประเภทการลงทุน:", opportunity.type),
-            _buildDetailRow(
-                context, "ผลตอบแทนที่คาดหวัง:", opportunity.expectedReturn),
-            _buildDetailRow(context, "ระดับความเสี่ยง:", opportunity.riskLevel,
-                valueColor: _getRiskColor(opportunity.riskLevel)),
-            const SizedBox(height: 24),
-
-            // Additional Information (Placeholder)
-            Text(
-              'ข้อมูลเพิ่มเติม:',
-              style: AppTextStyles.title
-                  .copyWith(color: AppColors.primaryDarkGreen),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'ที่นี่คุณสามารถใส่รายละเอียดเพิ่มเติมเกี่ยวกับโอกาสการลงทุนนี้ เช่น ข้อมูลบริษัท, รายงานผลกระทบทางสิ่งแวดล้อม, หรือเอกสารโครงการ (Prospectus) เป็นต้น',
-              style: AppTextStyles.body.copyWith(color: AppColors.modernGrey),
-            ),
-            const SizedBox(height: 32),
-
-            // Call to Action Button
-            Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.trending_up),
-                label: const Text('ลงทุนเลย'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentGreen,
-                  foregroundColor: AppColors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: AppTextStyles.button,
-                ),
-                onPressed: () {
-                  // TODO: Implement investment action
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('ดำเนินการลงทุนใน: ${opportunity.name}')),
-                  );
-                },
+                  const SizedBox(height: 12),
+                  Text(
+                    opportunity.description,
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.modernDarkGrey),
+                  ),
+                  const SizedBox(height: 24),
+                  // --- CORRECTED: Use new getter and enum properties ---
+                  _buildInfoRow(Icons.show_chart, 'ผลตอบแทนที่คาดหวัง',
+                      opportunity.formattedExpectedReturn),
+                  _buildInfoRow(Icons.shield_outlined, 'ระดับความเสี่ยง',
+                      opportunity.riskLevel.name.capitalize()),
+                  // REMOVED: The 'type' field was removed from the model.
+                ],
               ),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: _buildInvestButton(context),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value,
-      {Color? valueColor}) {
+  Widget _buildInvestButton(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: AppTextStyles.subtitle
-                  .copyWith(color: AppColors.modernDarkGrey),
-            ),
+      padding: const EdgeInsets.all(20.0),
+      child: ElevatedButton(
+        onPressed: () => _showInvestmentDialog(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryGreen,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: AppTextStyles.subtitleBold
-                  .copyWith(color: valueColor ?? AppColors.primaryDarkGreen),
-            ),
-          ),
-        ],
+        ),
+        child: Text('ลงทุนตอนนี้', style: AppTextStyles.subtitleBold),
       ),
     );
   }
 
-  Color _getRiskColor(String riskLevel) {
-    if (riskLevel.toLowerCase().contains('สูง')) {
-      return AppColors.warningOrange;
-    } else if (riskLevel.toLowerCase().contains('ปานกลาง')) {
-      return AppColors.primaryTeal;
-    } else {
-      return AppColors.accentGreen; // ต่ำ
-    }
+  void _showInvestmentDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('ระบุจำนวนเงินลงทุน'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: amountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'จำนวนเงิน (฿)',
+                prefixText: '฿ ',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'กรุณาระบุจำนวนเงิน';
+                }
+                final amount = double.tryParse(value);
+                if (amount == null || amount <= 0) {
+                  return 'จำนวนเงินต้องมากกว่า 0';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final amount = double.parse(amountController.text);
+                  Navigator.of(dialogContext).pop(amount);
+                }
+              },
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        );
+      },
+    ).then((amount) async {
+      if (amount != null && amount > 0) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        try {
+          await userProvider.investInProject(
+              opportunity.id, opportunity.title, amount);
+          showAppSnackBar(context, 'ลงทุนสำเร็จ!', isSuccess: true);
+        } catch (e) {
+          showAppSnackBar(context, 'การลงทุนล้มเหลว: ${e.toString()}',
+              isError: true);
+        }
+      }
+    });
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primaryTeal, size: 24),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style:
+                      AppTextStyles.body.copyWith(color: AppColors.modernGrey)),
+              Text(value, style: AppTextStyles.subtitleBold),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

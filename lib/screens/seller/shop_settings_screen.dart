@@ -1,12 +1,13 @@
 // lib/screens/seller/shop_settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/services/firebase_service.dart';
-import 'package:green_market/utils/constants.dart';
+import 'package:green_market/models/seller.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase User
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:uuid/uuid.dart';
 
 class ShopSettingsScreen extends StatefulWidget {
@@ -21,12 +22,16 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
   final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _shopDescriptionController =
       TextEditingController();
+  final TextEditingController _contactEmailController = TextEditingController();
+  final TextEditingController _contactPhoneController = TextEditingController();
+  final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _socialMediaLinkController =
+      TextEditingController();
 
-  bool _isLoading = true;
-  bool _isSaving = false;
+  XFile? _pickedShopImageFile;
   String? _currentShopImageUrl;
-  XFile? _pickedImageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -35,19 +40,30 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
   }
 
   Future<void> _loadShopDetails() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) setState(() => _isLoading = false);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กรุณาเข้าสู่ระบบเพื่อจัดการร้านค้า')),
+        );
+        Navigator.of(context).pop();
+      }
       return;
     }
-    final firebaseService =
-        Provider.of<FirebaseService>(context, listen: false);
+
+    setState(() => _isLoading = true);
     try {
-      final shopData = await firebaseService.getShopDetails(user.uid);
-      if (shopData != null) {
-        _shopNameController.text = shopData['shopName'] ?? '';
-        _shopDescriptionController.text = shopData['shopDescription'] ?? '';
-        _currentShopImageUrl = shopData['shopImageUrl'];
+      final firebaseService =
+          Provider.of<FirebaseService>(context, listen: false);
+      final seller = await firebaseService.getSellerFullDetails(currentUserId);
+      if (mounted && seller != null) {
+        _shopNameController.text = seller.shopName;
+        _shopDescriptionController.text = seller.shopDescription ?? '';
+        _contactEmailController.text = seller.contactEmail;
+        _contactPhoneController.text = seller.contactPhone;
+        _websiteController.text = seller.website ?? '';
+        _socialMediaLinkController.text = seller.socialMediaLink ?? '';
+        _currentShopImageUrl = seller.shopImageUrl;
       }
     } catch (e) {
       if (mounted) {
@@ -56,223 +72,272 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _pickShopImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _pickedImageFile = pickedFile;
-        // _currentShopImageUrl = null; // Optional: clear current image preview immediately
-      });
+    final XFile? selectedImage = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (selectedImage != null) {
+      if (mounted) {
+        setState(() {
+          _pickedShopImageFile = selectedImage;
+          _currentShopImageUrl = null; // Clear current URL if new image picked
+        });
+      }
     }
   }
 
   Future<void> _saveShopDetails() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || !_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() => _isSaving = true);
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
 
-    final firebaseService =
-        Provider.of<FirebaseService>(context, listen: false);
-    String? newShopImageUrl = _currentShopImageUrl;
-    String? oldShopImageUrlToDelete;
-
-    if (_pickedImageFile != null) {
-      try {
-        var uuid = const Uuid();
-        String extension = _pickedImageFile!.name.split('.').last;
-        if (_currentShopImageUrl != null && _currentShopImageUrl!.isNotEmpty) {
-          oldShopImageUrlToDelete =
-              _currentShopImageUrl; // Store old URL for deletion
-        }
-        String fileName =
-            'shop_profiles/${user.uid}/${uuid.v4()}.$extension'; // Store in a user-specific folder
-
-        if (kIsWeb) {
-          final bytes = await _pickedImageFile!.readAsBytes();
-          newShopImageUrl = await firebaseService.uploadImageBytes(
-              'shops', fileName, bytes); // Changed storagePath
-        } else {
-          newShopImageUrl = await firebaseService.uploadImage(
-              'shops', _pickedImageFile!.path,
-              fileName: fileName); // Changed storagePath
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูป: $e'),
-              backgroundColor: AppColors.errorRed));
-        }
-        setState(() => _isSaving = false);
-        return;
-      }
-    }
-
-    try {
-      await firebaseService.updateShopDetails(
-          user.uid, _shopNameController.text, _shopDescriptionController.text,
-          shopImageUrl: newShopImageUrl);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('บันทึกข้อมูลร้านค้าสำเร็จ!'),
-              backgroundColor: AppColors.successGreen),
+          const SnackBar(content: Text('ไม่พบผู้ใช้งาน')),
         );
       }
-      // Delete the old shop image from storage if a new one was uploaded and shop details update was successful
-      if (oldShopImageUrlToDelete != null &&
-          oldShopImageUrlToDelete != newShopImageUrl) {
-        // Ensure we don't delete the new image if URLs are somehow the same
-        await firebaseService.deleteImageByUrl(oldShopImageUrlToDelete);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final firebaseService =
+          Provider.of<FirebaseService>(context, listen: false);
+      String? finalShopImageUrl = _currentShopImageUrl;
+
+      if (_pickedShopImageFile != null) {
+        const uuid = Uuid();
+        final extension = _pickedShopImageFile!.name.split('.').last;
+        final fileName = '${uuid.v4()}.$extension';
+
+        if (kIsWeb) {
+          final bytes = await _pickedShopImageFile!.readAsBytes();
+          finalShopImageUrl =
+              await firebaseService.uploadWebImage(bytes, fileName);
+        } else {
+          finalShopImageUrl = await firebaseService.uploadImageFile(
+              File(_pickedShopImageFile!.path), fileName);
+        }
+      } else if (_currentShopImageUrl != null &&
+          _currentShopImageUrl!.isEmpty) {
+        // If user cleared the URL and didn't pick a new image, set to null
+        finalShopImageUrl = null;
       }
 
-      // Update current image URL if a new one was uploaded and saved
-      if (_pickedImageFile != null && newShopImageUrl != null) {
-        setState(() => _currentShopImageUrl = newShopImageUrl);
+      // Create updated seller object
+      final updatedSeller = Seller(
+        id: currentUserId,
+        shopName: _shopNameController.text.trim(),
+        contactEmail: _contactEmailController.text.trim(),
+        phoneNumber: _contactPhoneController.text.trim(),
+        status: 'active', // Assuming active status
+        rating: 0.0, // Will be maintained from existing data
+        totalRatings: 0, // Will be maintained from existing data
+        createdAt: Timestamp.now(), // Will be maintained from existing data
+        shopImageUrl: finalShopImageUrl,
+        shopDescription: _shopDescriptionController.text.trim(),
+        website: _websiteController.text.trim(),
+        socialMediaLink: _socialMediaLinkController.text.trim(),
+      );
+
+      await firebaseService.updateShopDetails(updatedSeller);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('บันทึกข้อมูลร้านค้าสำเร็จ!')),
+        );
       }
-      _pickedImageFile = null; // Reset picked file
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
-              backgroundColor: AppColors.errorRed),
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการบันทึก: $e')),
         );
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
+  void dispose() {
+    _shopNameController.dispose();
+    _shopDescriptionController.dispose();
+    _contactEmailController.dispose();
+    _contactPhoneController.dispose();
+    _websiteController.dispose();
+    _socialMediaLinkController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('ตั้งค่าร้านค้า',
-            style: AppTextStyles.title
-                .copyWith(color: AppColors.white, fontSize: 20)),
-        backgroundColor: AppColors.primaryTeal,
-        iconTheme: const IconThemeData(color: AppColors.white),
+            style: theme.textTheme.titleLarge
+                ?.copyWith(color: theme.colorScheme.primary)),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryTeal))
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Center(
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundColor: AppColors.lightModernGrey,
-                            backgroundImage: _pickedImageFile != null
-                                ? (kIsWeb
-                                        ? NetworkImage(_pickedImageFile!
-                                            .path) // For web, path is a URL
-                                        : FileImage(
-                                            File(_pickedImageFile!.path)))
-                                    as ImageProvider // For mobile
-                                : (_currentShopImageUrl != null &&
-                                        _currentShopImageUrl!.isNotEmpty
-                                    ? NetworkImage(_currentShopImageUrl!)
-                                    : null),
-                            child: (_pickedImageFile == null &&
-                                    (_currentShopImageUrl == null ||
-                                        _currentShopImageUrl!.isEmpty))
-                                ? const Icon(Icons.storefront,
-                                    size: 60, color: AppColors.modernGrey)
-                                : null,
-                          ),
-                          MaterialButton(
-                            onPressed: _pickShopImage,
-                            color: AppColors.primaryTeal,
-                            textColor: Colors.white,
-                            padding: const EdgeInsets.all(8),
-                            shape: const CircleBorder(),
-                            child: const Icon(Icons.camera_alt, size: 20),
-                          )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: TextButton(
-                          onPressed: _pickShopImage,
-                          child: Text(
-                              _currentShopImageUrl != null ||
-                                      _pickedImageFile != null
-                                  ? 'เปลี่ยนรูปโปรไฟล์ร้าน'
-                                  : 'เพิ่มรูปโปรไฟล์ร้าน',
-                              style: AppTextStyles.link
-                                  .copyWith(color: AppColors.primaryTeal))),
-                    ),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _shopNameController,
-                      decoration: InputDecoration(
-                        labelText: 'ชื่อร้านค้า',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                            borderSide: const BorderSide(
-                                color: AppColors.primaryTeal, width: 2.0)),
-                      ),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'กรุณากรอกชื่อร้านค้า'
-                          : null,
-                    ),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ข้อมูลร้านค้า',
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _shopDescriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'คำอธิบายร้านค้า',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                            borderSide: const BorderSide(
-                                color: AppColors.primaryTeal, width: 2.0)),
-                      ),
-                      maxLines: 3,
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'กรุณากรอกคำอธิบายร้านค้า'
-                          : null,
+                      controller: _shopNameController,
+                      decoration: _inputDecoration('ชื่อร้านค้า'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณากรอกชื่อร้านค้า';
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _saveShopDetails,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryTeal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: AppTextStyles.subtitle.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold)),
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                  color: AppColors.white, strokeWidth: 3.0))
-                          : Text('บันทึกการเปลี่ยนแปลง',
-                              style: AppTextStyles.subtitle
-                                  .copyWith(color: AppColors.white)),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _shopDescriptionController,
+                      decoration: _inputDecoration('คำอธิบายร้านค้า'),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('รูปภาพร้านค้า', style: theme.textTheme.bodyLarge),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: _pickedShopImageFile != null
+                          ? (kIsWeb
+                              ? FutureBuilder<Uint8List>(
+                                  future: _pickedShopImageFile!.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Image.memory(snapshot.data!,
+                                          height: 150, fit: BoxFit.cover);
+                                    }
+                                    return const CircularProgressIndicator();
+                                  })
+                              : Image.file(File(_pickedShopImageFile!.path),
+                                  height: 150, fit: BoxFit.cover))
+                          : (_currentShopImageUrl != null &&
+                                  _currentShopImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  _currentShopImageUrl!,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildImageErrorPlaceholder(context),
+                                )
+                              : _buildImageErrorPlaceholder(context)),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _pickShopImage,
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: const Text('เลือกรูปภาพร้านค้า'),
+                      ),
+                    ),
+                    if (_currentShopImageUrl != null ||
+                        _pickedShopImageFile != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _pickedShopImageFile = null;
+                              _currentShopImageUrl = null;
+                            });
+                          },
+                          icon: const Icon(Icons.delete_forever_outlined),
+                          label: const Text('ลบรูปภาพ'),
+                        ),
+                      ),
+                    const SizedBox(height: 32),
+                    Text('ข้อมูลติดต่อ',
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _contactEmailController,
+                      decoration: _inputDecoration('อีเมลติดต่อ'),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _contactPhoneController,
+                      decoration: _inputDecoration('เบอร์โทรศัพท์ติดต่อ'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _websiteController,
+                      decoration: _inputDecoration('เว็บไซต์ (ถ้ามี)'),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _socialMediaLinkController,
+                      decoration:
+                          _inputDecoration('ลิงก์โซเชียลมีเดีย (ถ้ามี)'),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _saveShopDetails,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 3),
+                              )
+                            : const Text('บันทึกการตั้งค่าร้านค้า'),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String labelText) {
+    return InputDecoration(
+        labelText: labelText,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary, width: 2.0)),
+        labelStyle: Theme.of(context).textTheme.bodyMedium);
+  }
+
+  Widget _buildImageErrorPlaceholder(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      height: 150,
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.image_outlined,
+          size: 50, color: theme.colorScheme.onSurfaceVariant),
     );
   }
 }

@@ -24,19 +24,13 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
       FirebaseService firebaseService) async {
     final TextEditingController ecoScoreController =
         TextEditingController(text: product.ecoScore.toString());
-    String? selectedCategoryIdInDialog =
-        product.categoryId; // Initialize with product's current category
+    String? selectedCategoryIdInDialog = product.categoryId;
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must tap button!
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         final GlobalKey<FormState> dialogFormKey = GlobalKey<FormState>();
-
-        // Use a StatefulWidget for the dialog content if its internal state becomes complex
-        // For now, managing selectedCategoryIdInDialog directly in the builder.
-        // This requires the dialog to be stateful or for the parent to manage this state if it needs to persist across rebuilds of the dialog itself.
-        // A simpler approach for a dialog is often to handle changes and then pass the final values on submit.
 
         return AlertDialog(
           title: Text('อนุมัติสินค้า: ${product.name}',
@@ -75,12 +69,8 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_allCategories.isNotEmpty)
-                    // To make DropdownButtonFormField update its display when selectedCategoryIdInDialog changes,
-                    // it should be part of a StatefulWidget or its state managed via a StateSetter if the dialog is complex.
-                    // For this setup, the change is captured on submit.
                     DropdownButtonFormField<String>(
-                      value:
-                          selectedCategoryIdInDialog, // Reflects the current selection in the dialog
+                      value: selectedCategoryIdInDialog,
                       decoration: InputDecoration(
                         labelText: 'หมวดหมู่สินค้า',
                         border: OutlineInputBorder(
@@ -99,8 +89,6 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        // This updates the local variable for the dialog.
-                        // If the dialog were a StatefulWidget, you'd call setState here.
                         selectedCategoryIdInDialog = value;
                       },
                       validator: (value) =>
@@ -141,20 +129,18 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                   final finalEcoScore = int.parse(ecoScoreController.text);
                   final selectedCategory = _allCategories.firstWhere(
                     (cat) => cat.id == selectedCategoryIdInDialog,
-                    // Provide a default or handle error if category not found,
-                    // though validator should prevent null selectedCategoryIdInDialog.
                     orElse: () => app_category.Category(
                         id: selectedCategoryIdInDialog ?? '',
-                        name:
-                            'ไม่ระบุหมวดหมู่', // Default name if somehow not found
+                        name: 'ไม่ระบุหมวดหมู่',
                         imageUrl: '',
                         createdAt: Timestamp.now()),
                   );
-                  // Use the 'selectedCategoryIdInDialog' which holds the latest selection from the dropdown
-                  await firebaseService.approveProduct(
-                      product.id, finalEcoScore,
-                      categoryId: selectedCategoryIdInDialog,
-                      categoryName: selectedCategory.name);
+                  await firebaseService.approveProductWithDetails(
+                    product.id,
+                    finalEcoScore,
+                    categoryId: selectedCategoryIdInDialog!,
+                    categoryName: selectedCategory.name,
+                  );
                   Navigator.of(dialogContext).pop();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -217,8 +203,7 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
 
     if (confirmReject == true) {
       try {
-        await firebaseService.rejectProduct(product.id,
-            reason: rejectionReason);
+        await firebaseService.rejectProduct(product.id, rejectionReason ?? '');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -253,7 +238,6 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
   }
 
   void _refreshList() {
-    // This will trigger a rebuild of the StreamBuilder, effectively refreshing the list.
     if (mounted) setState(() {});
   }
 
@@ -288,7 +272,7 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
         Provider.of<FirebaseService>(context, listen: false);
 
     return StreamBuilder<List<Product>>(
-      stream: firebaseService.getPendingProducts(),
+      stream: firebaseService.getPendingApprovalProducts(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -304,7 +288,6 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
         final allProducts = snapshot.data!;
         final filteredProducts = allProducts.where((product) {
           final productName = product.name.toLowerCase();
-          // We'll add seller name search in a bit, after fetching it.
           return productName.contains(_searchQuery);
         }).toList();
 
@@ -379,21 +362,20 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.only(
-                    left: 16.0, right: 16.0, bottom: 16.0), // Adjust padding
+                    left: 16.0, right: 16.0, bottom: 16.0),
                 itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];
-                  final categoryName =
-                      product.categoryId != null && _allCategories.isNotEmpty
-                          ? _allCategories
-                              .firstWhere((cat) => cat.id == product.categoryId,
-                                  orElse: () => app_category.Category(
-                                      id: '',
-                                      name: 'ไม่ระบุ',
-                                      imageUrl: '',
-                                      createdAt: Timestamp.now()))
-                              .name
-                          : 'ไม่ระบุ';
+                  final categoryName = _allCategories.isNotEmpty
+                      ? _allCategories
+                          .firstWhere((cat) => cat.id == product.categoryId,
+                              orElse: () => app_category.Category(
+                                  id: '',
+                                  name: 'ไม่ระบุ',
+                                  imageUrl: '',
+                                  createdAt: Timestamp.now()))
+                          .name
+                      : 'ไม่ระบุ';
 
                   return FutureBuilder<String?>(
                     future:
@@ -402,19 +384,19 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                       String sellerDisplayName = sellerSnapshot.data ??
                           product.sellerId.substring(0, 8);
                       if (sellerSnapshot.connectionState ==
-                              ConnectionState.waiting &&
+                              ConnectionState
+                                  .waiting && // Corrected: Already correct
                           !sellerSnapshot.hasData) {
+                        // Corrected: Already correct
                         sellerDisplayName = "กำลังโหลดชื่อผู้ขาย...";
                       }
 
-                      // Client-side filter for seller name (if search query is not empty)
                       if (_searchQuery.isNotEmpty &&
                           !product.name.toLowerCase().contains(_searchQuery) &&
                           !sellerDisplayName
                               .toLowerCase()
                               .contains(_searchQuery)) {
-                        return const SizedBox
-                            .shrink(); // Hide if not matching product name or seller name
+                        return const SizedBox.shrink();
                       }
 
                       return InkWell(
@@ -424,8 +406,7 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                             MaterialPageRoute(
                               builder: (context) => AdminProductDetailScreen(
                                 product: product,
-                                onApprovedOrRejected:
-                                    _refreshList, // Pass callback
+                                onApprovedOrRejected: _refreshList,
                               ),
                             ),
                           );
@@ -494,13 +475,14 @@ class _ApprovalListScreenState extends State<ApprovalListScreen> {
                                                   .copyWith(
                                                       color:
                                                           AppColors.primaryTeal,
-                                                      fontWeight:
-                                                          FontWeight.bold)),
+                                                      fontWeight: FontWeight
+                                                          .bold)), // Corrected: Already correct
                                           const SizedBox(height: 4),
                                           Text('ผู้ขาย: $sellerDisplayName',
                                               style: AppTextStyles.body
                                                   .copyWith(
-                                                      fontSize: 14,
+                                                      fontSize:
+                                                          14, // Corrected: Already correct
                                                       color: AppColors
                                                           .modernDarkGrey)),
                                           Text(

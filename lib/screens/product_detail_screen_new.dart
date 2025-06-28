@@ -1,0 +1,371 @@
+// d:/Development/green_market/lib/screens/product_detail_screen_new.dart
+import 'package:flutter/material.dart';
+import 'package:green_market/models/product.dart';
+import 'package:green_market/models/seller.dart';
+import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/screens/cart_screen.dart';
+import 'package:green_market/screens/chat_screen.dart';
+import 'package:green_market/screens/seller_shop_screen.dart';
+import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/utils/constants.dart';
+import 'package:green_market/widgets/product_card.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class ProductDetailScreen extends StatefulWidget {
+  final Product product;
+
+  const ProductDetailScreen({super.key, required this.product});
+
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  Widget _buildEcoScoreIndicator(EcoLevel level, BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: level.color.withAlpha((0.15 * 255).round()),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: level.color, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            level == EcoLevel.hero
+                ? Icons.shield_outlined
+                : level == EcoLevel.smart
+                    ? Icons.eco_outlined
+                    : Icons.energy_savings_leaf_outlined,
+            color: level.color,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            level.name,
+            style: AppTextStyles.body.copyWith(
+              color: level.color,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addToCart(BuildContext context, Product product) {
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      cartProvider.addItem(product);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} ถูกเพิ่มในตะกร้าแล้ว'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'ดูตะกร้า',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => const CartScreen(),
+                ));
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error adding to cart: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการเพิ่มไปยังตะกร้า'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _buyNow(BuildContext context, Product product) {
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      cartProvider.addItem(product);
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => const CartScreen(navigateToCheckout: true),
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} ถูกเพิ่มในตะกร้าแล้ว'),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error in buy now: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการซื้อสินค้า'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.product.name,
+            style: AppTextStyles.title.copyWith(fontSize: 18)),
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Product Images
+            if (widget.product.imageUrls.isNotEmpty)
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: PageView.builder(
+                  itemCount: widget.product.imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.all(8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          widget.product.imageUrls[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[300],
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.grey,
+                                size: 64,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                height: 200,
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.image_not_supported,
+                  color: Colors.grey,
+                  size: 64,
+                ),
+              ),
+
+            // Product Details
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: AppTextStyles.title.copyWith(fontSize: 24),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildEcoScoreIndicator(widget.product.ecoLevel, context),
+                  const SizedBox(height: 8),
+                  Text(
+                    '฿${widget.product.price.toStringAsFixed(2)}',
+                    style: AppTextStyles.title.copyWith(
+                      fontSize: 20,
+                      color: AppColors.primaryTeal,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.product.description,
+                    style: AppTextStyles.body,
+                  ),
+                  const SizedBox(height: 16),
+                  if (widget.product.materialDescription.isNotEmpty) ...[
+                    Text(
+                      'วัสดุ:',
+                      style: AppTextStyles.bodyBold,
+                    ),
+                    Text(
+                      widget.product.materialDescription,
+                      style: AppTextStyles.body,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.product.ecoJustification.isNotEmpty) ...[
+                    Text(
+                      'เหตุผลความเป็นมิตรต่อสิ่งแวดล้อม:',
+                      style: AppTextStyles.bodyBold,
+                    ),
+                    Text(
+                      widget.product.ecoJustification,
+                      style: AppTextStyles.body,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Seller Information
+                  FutureBuilder<Seller?>(
+                    future: Provider.of<FirebaseService>(context, listen: false)
+                        .getSellerFullDetails(widget.product.sellerId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return const SizedBox();
+                      }
+                      final seller = snapshot.data!;
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ข้อมูลผู้ขาย',
+                                style: AppTextStyles.subtitle.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: AppColors.primaryTeal,
+                                    child: Text(
+                                      seller.businessName.isNotEmpty
+                                          ? seller.businessName[0].toUpperCase()
+                                          : 'S',
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          seller.businessName,
+                                          style: AppTextStyles.bodyBold,
+                                        ),
+                                        if (seller
+                                            .businessDescription.isNotEmpty)
+                                          Text(
+                                            seller.businessDescription,
+                                            style: AppTextStyles.caption,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SellerShopScreen(
+                                                  sellerId: seller.id),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('ดูร้านค้า'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _addToCart(context, widget.product),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.lightTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('เพิ่มไปยังตะกร้า'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _buyNow(context, widget.product),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('ซื้อเลย'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

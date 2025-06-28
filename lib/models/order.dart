@@ -1,13 +1,13 @@
 // lib/models/order.dart
 import 'package:cloud_firestore/cloud_firestore.dart'; // สำหรับ Timestamp
-import 'package:green_market/models/order_item.dart'; // สำหรับ OrderItem model
+import 'package:green_market/models/order_item.dart'; // สำหรับ OrderItem model (assuming this model exists)
 
 class Order {
   final String id; // Order ID (จะถูกสร้างโดย Firestore)
   final String userId;
   final Timestamp orderDate; // วันที่และเวลาที่สั่งซื้อ
   final String
-      status; // pending_payment, processing, shipped, delivered, cancelled
+      status; // pending_payment, processing, shipped, delivered, cancelled, rejected
   final String paymentMethod; // qr_code, cash_on_delivery
   final double totalAmount;
   final double shippingFee;
@@ -19,13 +19,14 @@ class Order {
   final String district; // เขต/อำเภอ
   final String province; // จังหวัด
   final String zipCode; // รหัสไปรษณีย์
-  final String? note; // หมายเหตุเพิ่มเติม
   final List<OrderItem> items; // รายการสินค้าในคำสั่งซื้อ
   final List<String> sellerIds; // เพิ่ม field นี้
+  final String? note; // หมายเหตุเพิ่มเติม
   final String? paymentSlipUrl; // URL ของสลิปการชำระเงิน
   final String? qrCodeImageUrl; // URL ของ QR Code (ถ้ามี)
   final String? trackingNumber; // หมายเลขติดตามพัสดุ
   final String? trackingUrl; // URL สำหรับติดตามพัสดุ
+  final Timestamp? updatedAt;
 
   Order({
     required this.id,
@@ -43,27 +44,20 @@ class Order {
     required this.district,
     required this.province,
     required this.zipCode,
-    this.note,
     required this.items,
     required this.sellerIds,
+    this.note,
     this.paymentSlipUrl,
     this.qrCodeImageUrl,
     this.trackingNumber,
     this.trackingUrl,
+    this.updatedAt,
   });
 
   // ใช้สำหรับแปลงจาก Map (ที่มาจาก Firestore) ไปเป็น Order object
-  factory Order.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>?;
-    if (data == null) {
-      throw StateError(
-          'Failed to parse order from Firestore: data is null for doc ${doc.id}');
-    }
-    final shippingAddress =
-        data['shippingAddress'] as Map<String, dynamic>? ?? {};
-
+  factory Order.fromMap(Map<String, dynamic> data) {
     return Order(
-      id: doc.id,
+      id: data['id'] as String? ?? '',
       userId: data['userId'] as String? ?? '',
       orderDate: (data['orderDate'] as Timestamp?) ?? Timestamp.now(),
       status: data['status'] as String? ?? 'unknown',
@@ -71,33 +65,18 @@ class Order {
       totalAmount: (data['totalAmount'] as num?)?.toDouble() ?? 0.0,
       shippingFee: (data['shippingFee'] as num?)?.toDouble() ?? 0.0,
       subTotal: (data['subTotal'] as num?)?.toDouble() ?? 0.0,
-      // Prioritize reading from the nested shippingAddress map
-      fullName: shippingAddress['fullName'] as String? ??
-          data['fullName'] as String? ??
-          '',
-      phoneNumber: shippingAddress['phoneNumber'] as String? ??
-          data['phoneNumber'] as String? ??
-          '',
-      addressLine1: shippingAddress['addressLine1'] as String? ??
-          data['addressLine1'] as String? ??
-          '',
-      subDistrict: shippingAddress['subDistrict'] as String? ??
-          data['subDistrict'] as String? ??
-          '',
-      district: shippingAddress['district'] as String? ??
-          data['district'] as String? ??
-          '',
-      province: shippingAddress['province'] as String? ??
-          data['province'] as String? ??
-          '',
-      zipCode: shippingAddress['zipCode'] as String? ??
-          data['zipCode'] as String? ??
-          '',
-      note: shippingAddress['note'] as String? ??
-          data['note'] as String?, // Note can also be in shippingAddress
+      fullName: data['fullName'] as String? ?? '',
+      phoneNumber: data['phoneNumber'] as String? ?? '',
+      addressLine1: data['addressLine1'] as String? ?? '',
+      subDistrict: data['subDistrict'] as String? ?? '',
+      district: data['district'] as String? ?? '',
+      province: data['province'] as String? ?? '',
+      zipCode: data['zipCode'] as String? ?? '',
+      note: data['note'] as String?,
       items: (data['items'] as List<dynamic>?)
-              ?.map((itemMap) =>
-                  OrderItem.fromMap(itemMap as Map<String, dynamic>))
+              ?.map(
+                (itemMap) => OrderItem.fromMap(itemMap as Map<String, dynamic>),
+              )
               .toList() ??
           [], // Default to empty list
       sellerIds: List<String>.from(data['sellerIds'] as List<dynamic>? ?? []),
@@ -105,18 +84,18 @@ class Order {
       qrCodeImageUrl: data['qrCodeImageUrl'] as String?,
       trackingNumber: data['trackingNumber'] as String?,
       trackingUrl: data['trackingUrl'] as String?,
+      updatedAt: data['updatedAt'] as Timestamp?,
     );
   }
   // OPTION 1: Implement the getter to return a formatted address string
   String get fullAddress {
     return '$addressLine1, $subDistrict, $district, $province, $zipCode';
   }
-  // OPTION 2: If not used, simply remove the line below.
-  // String? get address => null; // Remove this line if not used or implement as above
 
   // ใช้สำหรับแปลงจาก Order object ไปเป็น Map (เพื่อบันทึกลง Firestore)
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'userId': userId,
       'orderDate': orderDate,
       'status': status,
@@ -124,24 +103,74 @@ class Order {
       'totalAmount': totalAmount,
       'shippingFee': shippingFee,
       'subTotal': subTotal,
-      'shippingAddress': {
-        // เก็บเป็น Map ย่อยใน Firestore
-        'fullName': fullName,
-        'phoneNumber': phoneNumber,
-        'addressLine1': addressLine1,
-        'subDistrict': subDistrict,
-        'district': district,
-        'province': province,
-        'zipCode': zipCode,
-        'note': note,
-      },
+      'fullName': fullName,
+      'phoneNumber': phoneNumber,
+      'addressLine1': addressLine1,
+      'subDistrict': subDistrict,
+      'district': district,
+      'province': province,
+      'zipCode': zipCode,
+      'note': note,
       'items': items.map((item) => item.toMap()).toList(),
       'sellerIds': sellerIds,
       'paymentSlipUrl':
           paymentSlipUrl, // Will be updated later by payment confirmation
-      'qrCodeImageUrl': qrCodeImageUrl, // Might be set during checkout
+      'qrCodeImageUrl': qrCodeImageUrl,
       'trackingNumber': trackingNumber, // Might be set by seller/admin
       'trackingUrl': trackingUrl, // Might be set by seller/admin
+      'updatedAt': updatedAt,
     };
+  }
+
+  Order copyWith({
+    String? id,
+    String? userId,
+    Timestamp? orderDate,
+    String? status,
+    String? paymentMethod,
+    double? totalAmount,
+    double? shippingFee,
+    double? subTotal,
+    String? fullName,
+    String? phoneNumber,
+    String? addressLine1,
+    String? subDistrict,
+    String? district,
+    String? province,
+    String? zipCode,
+    String? note,
+    List<OrderItem>? items,
+    List<String>? sellerIds,
+    String? paymentSlipUrl,
+    String? qrCodeImageUrl,
+    String? trackingNumber,
+    String? trackingUrl,
+    Timestamp? updatedAt,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      orderDate: orderDate ?? this.orderDate,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      totalAmount: totalAmount ?? this.totalAmount,
+      shippingFee: shippingFee ?? this.shippingFee,
+      subTotal: subTotal ?? this.subTotal,
+      fullName: fullName ?? this.fullName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      addressLine1: addressLine1 ?? this.addressLine1,
+      subDistrict: subDistrict ?? this.subDistrict,
+      district: district ?? this.district,
+      province: province ?? this.province,
+      zipCode: zipCode ?? this.zipCode,
+      note: note ?? this.note,
+      items: items ?? this.items,
+      sellerIds: sellerIds ?? this.sellerIds,
+      paymentSlipUrl: paymentSlipUrl ?? this.paymentSlipUrl,
+      qrCodeImageUrl: qrCodeImageUrl ?? this.qrCodeImageUrl,
+      trackingNumber: trackingNumber ?? this.trackingNumber,
+      trackingUrl: trackingUrl ?? this.trackingUrl,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }
