@@ -44,17 +44,42 @@ class ProductCard extends StatelessWidget {
                           PageView.builder(
                             itemCount: product.imageUrls.length,
                             itemBuilder: (context, index) {
+                              final imageUrl = product.imageUrls[index];
+                              print(
+                                  '🖼️ DEBUG ProductCard: Loading image $index for product ${product.name}');
+                              print(
+                                  '🖼️ DEBUG ProductCard: Image URL: $imageUrl');
+
                               return Image.network(
-                                product.imageUrls[index],
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.broken_image,
-                                        size: 50,
-                                        color: AppColors.lightModernGrey),
-                                fit: BoxFit
-                                    .contain, // เปลี่ยนจาก cover เป็น contain
+                                imageUrl,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print(
+                                      '❌ DEBUG ProductCard: Error loading image $imageUrl');
+                                  print('❌ DEBUG ProductCard: Error: $error');
+                                  return Container(
+                                    color: Colors.grey[200],
+                                    child: const Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.broken_image,
+                                            size: 50, color: Colors.grey),
+                                        Text('ไม่สามารถโหลดรูปได้',
+                                            style: TextStyle(fontSize: 10)),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                fit: BoxFit.contain,
                                 loadingBuilder:
                                     (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
+                                  if (loadingProgress == null) {
+                                    print(
+                                        '✅ DEBUG ProductCard: Image loaded successfully: $imageUrl');
+                                    return child;
+                                  }
+                                  print(
+                                      '⏳ DEBUG ProductCard: Loading progress for $imageUrl: ${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}');
                                   return Center(
                                     child: CircularProgressIndicator(
                                       value:

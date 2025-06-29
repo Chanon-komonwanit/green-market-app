@@ -88,9 +88,9 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return '🌱 เริ่มต้น';
       case EcoLevel.standard:
-        return '🌿 มาตรฐาน';
+        return '✅ มาตรฐาน';
       case EcoLevel.premium:
-        return '⭐ พรีเมียม';
+        return '🛡️ พรีเมียม';
       case EcoLevel.platinum:
         return '💎 แพลตตินั่ม';
     }
@@ -181,7 +181,7 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.standard:
         return Icons.verified_outlined;
       case EcoLevel.premium:
-        return Icons.star_border;
+        return Icons.shield_outlined;
       case EcoLevel.platinum:
         return Icons.diamond_outlined;
     }
