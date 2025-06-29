@@ -470,79 +470,86 @@ class _HomeScreenState extends State<HomeScreen> {
                                         width: 10), // ลด spacing เพิ่มเติม
                                     Expanded(
                                       // เพิ่ม Expanded เพื่อป้องกัน overflow
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          ShaderMask(
-                                            shaderCallback: (bounds) =>
-                                                const LinearGradient(
-                                              colors: [
-                                                Colors.white,
-                                                Color(0xFFE8F5E8)
-                                              ],
-                                              stops: [0.0, 1.0],
-                                            ).createShader(bounds),
-                                            child: const Text(
-                                              'GREEN MARKET',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize:
-                                                    22, // เพิ่มขนาดฟอนต์จาก 20 เป็น 22
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing:
-                                                    1.3, // เพิ่ม letterSpacing จาก 1.2 เป็น 1.3
-                                                fontFamily: 'Sarabun',
-                                                shadows: [
-                                                  Shadow(
-                                                    color: Color(0xFF0D4F3C),
-                                                    blurRadius: 8,
-                                                    offset: Offset(0, 3),
-                                                  ),
-                                                  Shadow(
-                                                    color: Colors.black26,
-                                                    blurRadius: 12,
-                                                    offset: Offset(0, 6),
-                                                  ),
+                                      child: SingleChildScrollView(
+                                        // เพิ่ม ScrollView
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize
+                                              .min, // ลดขนาดให้เล็กที่สุด
+                                          children: [
+                                            ShaderMask(
+                                              shaderCallback: (bounds) =>
+                                                  const LinearGradient(
+                                                colors: [
+                                                  Colors.white,
+                                                  Color(0xFFE8F5E8)
                                                 ],
+                                                stops: [0.0, 1.0],
+                                              ).createShader(bounds),
+                                              child: const Text(
+                                                'GREEN MARKET',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize:
+                                                      20, // ลดขนาดฟอนต์จาก 22 เป็น 20
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing:
+                                                      1.2, // ลด letterSpacing จาก 1.3 เป็น 1.2
+                                                  fontFamily: 'Sarabun',
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Color(0xFF0D4F3C),
+                                                      blurRadius: 8,
+                                                      offset: Offset(0, 3),
+                                                    ),
+                                                    Shadow(
+                                                      color: Colors.black26,
+                                                      blurRadius: 12,
+                                                      offset: Offset(0, 6),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal:
-                                                    5, // ลด padding เพิ่มเติม
-                                                vertical:
-                                                    1.5), // ลด padding เพิ่มเติม
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                  0.12), // ลดความโปร่งใส
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      8), // ลดรัศมี
-                                              border: Border.all(
+                                            const SizedBox(height: 2),
+                                            Container(
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  horizontal:
+                                                      4, // ลด padding เพิ่มเติม
+                                                  vertical:
+                                                      1), // ลด padding เพิ่มเติม
+                                              decoration: BoxDecoration(
                                                 color: Colors.white.withOpacity(
-                                                    0.15), // ลดความโปร่งใส
-                                                width: 0.5,
+                                                    0.12), // ลดความโปร่งใส
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        8), // ลดรัศมี
+                                                border: Border.all(
+                                                  color: Colors.white
+                                                      .withOpacity(
+                                                          0.15), // ลดความโปร่งใส
+                                                  width: 0.5,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize:
+                                                      10, // ลดขนาดฟอนต์จาก 11 เป็น 10
+                                                  fontWeight: FontWeight.w600,
+                                                  letterSpacing:
+                                                      0.2, // ลด letter spacing จาก 0.3 เป็น 0.2
+                                                  fontFamily: 'Sarabun',
+                                                ),
+                                                overflow: TextOverflow
+                                                    .ellipsis, // เพิ่ม overflow protection
                                               ),
                                             ),
-                                            child: const Text(
-                                              'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize:
-                                                    11, // เพิ่มขนาดฟอนต์จาก 9 เป็น 11
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing:
-                                                    0.3, // เพิ่ม letter spacing จาก 0.2 เป็น 0.3
-                                                fontFamily: 'Sarabun',
-                                              ),
-                                              overflow: TextOverflow
-                                                  .ellipsis, // เพิ่ม overflow protection
-                                            ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -978,22 +985,20 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 border: Border.all(
                   width: 2,
-                  color: const Color(0xFFE0E0E0), // เงินขาวเพชร
+                  color: const Color(0xFF9C27B0), // เปลี่ยนเป็นม่วงเพชรเข้ม
                 ),
                 borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFF0F0F0)
-                        .withOpacity(0.05), // เงินขาวเพชรอ่อน
-                    const Color(0xFFE0E0E0).withOpacity(0.05),
+                    const Color(0xFFE1BEE7).withOpacity(0.05), // ม่วงอ่อนเพชร
+                    const Color(0xFF9C27B0).withOpacity(0.05), // ม่วงเข้มเพชร
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color:
-                        const Color(0xFFE0E0E0).withOpacity(0.3), // เงินขาวเพชร
+                    color: const Color(0xFF9C27B0).withOpacity(0.3), // ม่วงเพชร
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -1025,9 +1030,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [
-                              Color(0xFFF0F0F0),
-                              Color(0xFFE0E0E0)
-                            ], // เงินขาวเพชร
+                              Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
+                              Color(0xFF9C27B0), // ม่วงเข้มเพชร
+                              Color(0xFF673AB7), // ม่วงเพชรลึก
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(
                               10), // ลดรัศมีลงจาก 12 เป็น 10
@@ -1035,8 +1041,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: const Text(
                           'แนะนำสูงสุด',
                           style: TextStyle(
-                            color: Color(
-                                0xFF333333), // เปลี่ยนเป็นสีเข้มให้อ่านง่าย
+                            color: Colors.white, // เปลี่ยนเป็นสีขาวให้อ่านง่าย
                             fontSize: 9, // ลดขนาดฟอนต์ลงจาก 10 เป็น 9
                             fontWeight: FontWeight.bold,
                           ),
@@ -1050,16 +1055,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [
-                              Color(0xFFF0F0F0),
-                              Color(0xFFE0E0E0)
-                            ], // เงินขาวเพชร
+                              Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
+                              Color(0xFF9C27B0), // ม่วงเข้มเพชร
+                              Color(0xFF673AB7), // ม่วงเพชรลึก
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(
                               8), // ลดรัศมีลงจาก 10 เป็น 8
                         ),
                         child: const Icon(
                           Icons.diamond, // เปลี่ยนจาก star เป็น diamond
-                          color: Color(0xFF666666), // สีเข้มให้เห็นชัด
+                          color: Colors.white, // เปลี่ยนเป็นสีขาวให้เห็นชัด
                           size: 10, // ลดขนาดไอคอนลงจาก 12 เป็น 10
                         ),
                       ),
@@ -1081,8 +1087,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFFF0F0F0), // เงินขาวเพชร
-                          Color(0xFFE0E0E0),
+                          Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
+                          Color(0xFF9C27B0), // ม่วงเข้มเพชร
                           Colors.transparent,
                         ],
                       ),
@@ -1346,9 +1352,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return [const Color(0xFFFFE55C), const Color(0xFFFFD700)]; // ทอง
       case EcoLevel.platinum:
         return [
-          const Color(0xFFF0F0F0),
-          const Color(0xFFE0E0E0)
-        ]; // เงินขาวเพชรระยิบระยับ
+          const Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
+          const Color(0xFF9C27B0), // ม่วงเข้มเพชร
+          const Color(0xFF673AB7) // ม่วงเพชรลึก
+        ]; // เงินม่วงเพชรพิเศษสุด
     }
   }
 

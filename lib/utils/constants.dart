@@ -131,7 +131,7 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.premium:
         return const Color(0xFFFFD700); // ทอง
       case EcoLevel.platinum:
-        return const Color(0xFFE0E0E0); // เงินขาวเพชรระยิบระยับ - ดูพิเศษสุด
+        return const Color(0xFF9C27B0); // ม่วงเพชรสีเข้ม - พิเศษสุด
     }
   }
 
@@ -144,7 +144,7 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.premium:
         return const Color(0xFFFFF8DC); // ทองอ่อน
       case EcoLevel.platinum:
-        return const Color(0xFFF8F8FF); // เงินขาวเพชรอ่อน - ดูหรูหรา
+        return const Color(0xFFF3E5F5); // ม่วงเพชรอ่อนสวยหรู - ดูหรูหรา
     }
   }
 
@@ -157,7 +157,7 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.premium:
         return const Color(0xFFFFE55C); // ทองสว่าง
       case EcoLevel.platinum:
-        return const Color(0xFFF0F0F0); // เงินขาวเพชรสว่าง - ระยิบระยับ
+        return const Color(0xFFAD7BE9); // เงินม่วงเพชรสว่าง - ระยิบระยับ
     }
   }
 
@@ -170,7 +170,7 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.premium:
         return const Color(0xFFFFD700); // ทอง
       case EcoLevel.platinum:
-        return const Color(0xFFE0E0E0); // เงินขาวเพชร - ระยิบระยับ
+        return const Color(0xFF8E44AD); // เงินม่วงเพชร - ระยิบระยับ
     }
   }
 
