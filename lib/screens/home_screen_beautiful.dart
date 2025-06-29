@@ -382,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 180, // เพิ่มความสูงเล็กน้อย
+      expandedHeight: 200, // เพิ่มความสูงให้มากขึ้นสำหรับ GREEN MARKET
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
@@ -481,10 +481,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                               'GREEN MARKET',
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 20, // ลดขนาดฟอนต์
+                                                fontSize:
+                                                    26, // เพิ่มขนาดฟอนต์ให้ใหญ่ขึ้น
                                                 fontWeight: FontWeight.w900,
                                                 letterSpacing:
-                                                    1.5, // ลด letterSpacing
+                                                    2.0, // เพิ่ม letterSpacing
                                                 fontFamily: 'Sarabun',
                                                 shadows: [
                                                   Shadow(
@@ -983,12 +984,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Text(
                         '💎 ',
-                        style: TextStyle(fontSize: 18),
+                        style: TextStyle(fontSize: 16), // ลดขนาดลง
                       ),
                       const Text(
                         'แพลตตินั่มฮีโร่',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18, // ลดขนาดลง
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32),
                           letterSpacing: 0.5,
@@ -1036,7 +1037,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'สินค้าระดับสูงสุดสุดยอดแห่งความยั่งยืน • ${platinumProducts.length} รายการ',
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 11, // ลดขนาดลง
                       color: Color(0xFF757575),
                       fontWeight: FontWeight.w400,
                     ),
@@ -1114,7 +1115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Text(
                     'หมวดหมู่สินค้า',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 16, // ลดขนาดลง
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2E7D32),
                     ),
@@ -1189,12 +1190,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               'ทั้งหมด',
                               style: TextStyle(
-                                fontSize: _selectedCategory == null ? 14 : 12,
+                                fontSize: _selectedCategory == null
+                                    ? 16
+                                    : 14, // เพิ่มขนาดให้เด่นขึ้น
                                 fontWeight: _selectedCategory == null
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
+                                    ? FontWeight.w900 // เพิ่มความหนาให้เด่นขึ้น
+                                    : FontWeight.w600,
                                 color: _selectedCategory == null
-                                    ? const Color(0xFF2E7D32)
+                                    ? const Color(
+                                        0xFF1B5E20) // เปลี่ยนสีให้เข้มขึ้น
                                     : const Color(0xFF333333),
                               ),
                               textAlign: TextAlign.center,
@@ -1349,7 +1353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Text(
                   'EcoLevel',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16, // ลดขนาดลง
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2E2E2E),
                   ),
@@ -1362,7 +1366,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 'สินค้าตรวจสอบจาก Greenmarket',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12, // ลดขนาดลง
                   color: Color(0xFF757575),
                   fontWeight: FontWeight.w400,
                 ),
@@ -1442,7 +1446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // "ทั้งหมด" button
                   _buildCompactEcoLevelButton(
-                    title: '📱 ทั้งหมด',
+                    title: '🌟 ทั้งหมด', // เปลี่ยนไอคอนให้เด่นกว่า
                     count: filteredProducts.length,
                     isSelected: _selectedEcoLevel == null,
                     colors: [const Color(0xFF2196F3), const Color(0xFF21CBF3)],
@@ -1554,7 +1558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         _getSearchResultTitle(),
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 16, // ลดขนาดลง
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32),
                         ),
@@ -1813,8 +1817,14 @@ class _HomeScreenState extends State<HomeScreen> {
               title,
               style: TextStyle(
                 color: isSelected ? Colors.white : colors[0],
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontSize: title.contains('ทั้งหมด')
+                    ? 14
+                    : 12, // เพิ่มขนาดให้ "ทั้งหมด" เด่นขึ้น
+                fontWeight: title.contains('ทั้งหมด') && isSelected
+                    ? FontWeight.w900 // เน้นพิเศษสำหรับ "ทั้งหมด" เมื่อถูกเลือก
+                    : isSelected
+                        ? FontWeight.bold
+                        : FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
