@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         slivers: [
           _buildAppBarWithEcoCoins(),
           SliverToBoxAdapter(
-            child: SizedBox(
+            child: Container(
               height: 400,
               child: const Center(
                 child: CircularProgressIndicator(),
@@ -268,10 +268,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 Expanded(
                   flex: 4,
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: const [
                       Text(
                         'GREEN MARKET',
                         style: TextStyle(
@@ -314,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         border: Border.all(color: Colors.white, width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -348,8 +348,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                             color: Colors.white, width: 1.5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.3),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.3),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(25.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         spreadRadius: 1,
                         blurRadius: 5,
                         offset: const Offset(0, 2),
@@ -477,16 +477,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // 3. Categories (หมวดหมู่สินค้า)
           if (categories.isNotEmpty) _buildCategoriesSection(categories),
 
-          // 4. All Products Section (รวมสินค้าทั้งหมด)
-          if (products.isNotEmpty) _buildAllProductsSection(products),
-
-          // 5. Products by Eco Level (สินค้าแยกระดับ Eco)
+          // 4. Products by Eco Level รวมกับสินค้าทั้งหมด (สินค้าแยกระดับ Eco 4 ระดับ)
           _buildEcoLevelProductsSection(products),
 
           // Empty state
           if (products.isEmpty && categories.isEmpty && promotions.isEmpty) ...[
             SliverToBoxAdapter(
-              child: SizedBox(
+              child: Container(
                 height: 300,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -526,8 +523,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 10.0),
-            child: const Row(
-              children: [
+            child: Row(
+              children: const [
                 Icon(Icons.category, color: AppColors.primaryGreen, size: 20),
                 SizedBox(width: 8),
                 Text(
@@ -568,11 +565,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withOpacity(0.1),
+                            color:
+                                AppColors.primaryGreen.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
+                                color: Colors.grey.withValues(alpha: 0.3),
                                 spreadRadius: 1,
                                 blurRadius: 3,
                                 offset: const Offset(0, 1),
@@ -615,71 +613,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 4. All Products Section
-  Widget _buildAllProductsSection(List<Product> products) {
-    return SliverToBoxAdapter(
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
-            child: Row(
-              children: [
-                Icon(Icons.inventory_2,
-                    color: AppColors.primaryGreen, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '🛒 สินค้าทั้งหมด',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryGreen,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${products.length} รายการ',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Products Grid
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.75,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return ProductCard(
-                  product: product,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(product: product),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // สร้าง Eco Level Products Section Widget (สินค้าแยกระดับ Eco)
+  // สร้าง Eco Level Products Section Widget (สินค้าแยกระดับ Eco รวมกับสินค้าทั้งหมด)
   Widget _buildEcoLevelProductsSection(List<Product> products) {
     return SliverToBoxAdapter(
       child: Container(
@@ -692,10 +626,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: const Row(
                 children: [
-                  Icon(Icons.eco, color: AppColors.primaryGreen, size: 20),
+                  Icon(Icons.inventory_2,
+                      color: AppColors.primaryGreen, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    '🌱 สินค้าแยกตามระดับ Eco',
+                    '🛒 สินค้าทั้งหมดและแยกระดับ Eco',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -707,16 +642,150 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 16),
 
-            // Eco Level Selection Cards
+            // All Products Button + Eco Level Selection Cards
             Container(
               height: 100,
               margin: const EdgeInsets.only(bottom: 20),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: EcoLevel.values.length,
+                itemCount:
+                    EcoLevel.values.length + 1, // +1 สำหรับปุ่มสินค้าทั้งหมด
                 itemBuilder: (context, index) {
-                  final ecoLevel = EcoLevel.values[index];
+                  // ปุ่มสินค้าทั้งหมดแรกสุด
+                  if (index == 0) {
+                    return GestureDetector(
+                      onTap: () {
+                        // Navigate to all products screen หรือแสดงสินค้าทั้งหมด
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar: AppBar(
+                                title: const Text('สินค้าทั้งหมด'),
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                              ),
+                              body: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 0.75,
+                                  ),
+                                  itemCount: products.length,
+                                  itemBuilder: (context, index) {
+                                    final product = products[index];
+                                    return ProductCard(
+                                      product: product,
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ProductDetailScreen(
+                                              product: product),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 140,
+                        margin: const EdgeInsets.only(right: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primaryGreen,
+                              AppColors.primaryGreen.withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: AppColors.primaryGreen, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  AppColors.primaryGreen.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Icon with background
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: AppColors.primaryGreen, width: 2),
+                              ),
+                              child: Icon(
+                                Icons.inventory_2,
+                                color: AppColors.primaryGreen,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // All products text
+                            const Text(
+                              'สินค้าทั้งหมด',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black26,
+                                    offset: Offset(1, 1),
+                                    blurRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 4),
+                            // Product count
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${products.length} สินค้า',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Eco Level Cards (เฉพาะ 4 ระดับ)
+                  final ecoLevel = EcoLevel.values[
+                      index - 1]; // -1 เพราะ index 0 เป็นปุ่มสินค้าทั้งหมด
                   final levelProductCount =
                       products.where((p) => p.ecoLevel == ecoLevel).length;
 
@@ -747,7 +816,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         border: Border.all(color: ecoLevel.color, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: ecoLevel.color.withOpacity(0.3),
+                            color: ecoLevel.color.withValues(alpha: 0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -797,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -860,7 +929,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: ecoLevel.color.withOpacity(0.3),
+                            color: ecoLevel.color.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -899,7 +968,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.3),
+                                          color: Colors.white
+                                              .withValues(alpha: 0.3),
                                           borderRadius:
                                               BorderRadius.circular(8),
                                           border: Border.all(
@@ -947,7 +1017,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               );
                             },
                             style: TextButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.2),
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.2),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -965,7 +1036,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
+                    Container(
                       height: 250,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -993,7 +1064,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               );
-            }),
+            }).toList(),
           ],
         ),
       ),
@@ -1016,7 +1087,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.1),
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -1039,7 +1110,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withOpacity(0.1),
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -1055,7 +1126,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             // Banner แสดงข่าวสาร/โฆษณา พร้อม PageView
-            SizedBox(
+            Container(
               height: 200,
               child: PageView.builder(
                 itemCount: promotions.length,
@@ -1069,7 +1140,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -1097,11 +1168,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.black
-                                        .withOpacity(hasImage ? 0.6 : 0.3),
+                                    Colors.black.withValues(
+                                        alpha: hasImage ? 0.6 : 0.3),
                                     Colors.transparent,
-                                    Colors.black
-                                        .withOpacity(hasImage ? 0.4 : 0.1),
+                                    Colors.black.withValues(
+                                        alpha: hasImage ? 0.4 : 0.1),
                                   ],
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
@@ -1125,10 +1196,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.95),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.95),
                                       borderRadius: BorderRadius.circular(15),
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
+                                        color:
+                                            Colors.white.withValues(alpha: 0.3),
                                         width: 1,
                                       ),
                                     ),
@@ -1150,7 +1223,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.3),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.3),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -1175,11 +1249,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             child: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(25),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -1187,13 +1261,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
-                                children: const [
+                                children: [
                                   Icon(
                                     Icons.local_offer,
                                     color: AppColors.primaryGreen,
                                     size: 16,
                                   ),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 4),
                                   Text(
                                     'HOT',
                                     style: TextStyle(
@@ -1215,7 +1289,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -1246,24 +1320,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final gradients = [
       LinearGradient(
         colors: [
-          AppColors.primaryGreen.withOpacity(0.8),
-          Colors.teal.shade400.withOpacity(0.9),
+          AppColors.primaryGreen.withValues(alpha: 0.8),
+          Colors.teal.shade400.withValues(alpha: 0.9),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       LinearGradient(
         colors: [
-          Colors.blue.shade500.withOpacity(0.8),
-          Colors.indigo.shade400.withOpacity(0.9),
+          Colors.blue.shade500.withValues(alpha: 0.8),
+          Colors.indigo.shade400.withValues(alpha: 0.9),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       LinearGradient(
         colors: [
-          Colors.purple.shade500.withOpacity(0.8),
-          Colors.pink.shade400.withOpacity(0.9),
+          Colors.purple.shade500.withValues(alpha: 0.8),
+          Colors.pink.shade400.withValues(alpha: 0.9),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -1308,7 +1382,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: EcoLevel.platinum.color.withOpacity(0.4),
+                    color: EcoLevel.platinum.color.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -1351,7 +1425,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(12),
                                 border:
                                     Border.all(color: Colors.white, width: 1.5),
@@ -1390,7 +1464,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1407,7 +1481,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 16),
             // Products horizontal list
-            SizedBox(
+            Container(
               height: 280,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
@@ -1429,12 +1503,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         end: Alignment.bottomCenter,
                       ),
                       border: Border.all(
-                        color: EcoLevel.platinum.color.withOpacity(0.3),
+                        color: EcoLevel.platinum.color.withValues(alpha: 0.3),
                         width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: EcoLevel.platinum.color.withOpacity(0.2),
+                          color: EcoLevel.platinum.color.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

@@ -1072,7 +1072,7 @@ class _DynamicAppConfigScreenState extends State<DynamicAppConfigScreen>
                   : 1,
             ),
           );
-        }),
+        }).toList(),
       ],
     );
   }

@@ -1713,8 +1713,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSelectedEcoLevelProducts(List<Product> products) {
-    if (_selectedEcoLevel == null)
+    if (_selectedEcoLevel == null) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     // กรองสินค้าตามหมวดหมู่และ EcoLevel ที่เลือก
     List<Product> filteredProducts =

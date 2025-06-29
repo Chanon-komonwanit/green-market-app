@@ -75,12 +75,10 @@ class EcoCoinsWidget extends StatelessWidget {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Text(
-                '🪙',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                ),
+              child: const Icon(
+                Icons.eco,
+                color: Colors.white,
+                size: 16,
               ),
             ),
             const SizedBox(width: 6),

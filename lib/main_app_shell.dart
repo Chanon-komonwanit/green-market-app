@@ -42,7 +42,7 @@ class _MainAppShellState extends State<MainAppShell> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     List<Widget> pages = [
-      const HomeScreen(), // 0. ตลาด (ทุกคน) - ใช้ Beautiful Edition
+      const HomeScreen(), // 0. ตลาด (ทุกคน)
       const CartScreen(), // 1. ตะกร้าสินค้า (ทุกคน)
       const OrdersScreen(), // 2. คำสั่งซื้อ (ทุกคน)
       const SimpleChatListScreen(), // 3. แชท (ทุกคน)

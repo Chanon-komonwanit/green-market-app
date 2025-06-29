@@ -673,11 +673,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           .getTotalProductsCount(); // Corrected: Already returns Future // Corrected: Already returns Future
     } catch (e) {
       print("Error initializing dashboard streams, using placeholders: $e");
-      pendingProductsStream = Stream.value(0);
-      pendingSellersStream = Stream.value(0);
-      totalOrdersFuture = Future.value(0);
-      totalUsersFuture = Future.value(0);
-      totalProductsFuture = Future.value(0);
+      // กำหนดค่า placeholder ที่เหมาะสมเมื่อเกิด error
+      pendingProductsStream = Stream<int>.value(0);
+      pendingSellersStream = Stream<int>.value(0);
+      totalOrdersFuture = Future<int>.value(0);
+      totalUsersFuture = Future<int>.value(0);
+      totalProductsFuture = Future<int>.value(0);
     }
 
     return SingleChildScrollView(
@@ -1361,6 +1362,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           .doc('ui_customization')
           .set({
         'floating_button_icon': _selectedIcon?.codePoint,
+        // ใช้ .value แทน .toArgb() เพื่อรองรับทุกเวอร์ชัน Flutter
         'floating_button_color': _selectedColor?.value,
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
