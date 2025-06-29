@@ -286,10 +286,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text(
                       'GREEN MARKET',
                       style: TextStyle(
-                        fontSize: 36,
+                        fontSize: 40, // เพิ่มขนาดจาก 36 เป็น 40
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1B5E20),
-                        letterSpacing: 2,
+                        letterSpacing: 2.2, // เพิ่ม letterSpacing เล็กน้อย
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -310,9 +310,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       child: const Text(
-                        '🌍 ตลาดออนไลน์เพื่อสิ่งแวดล้อม',
+                        '🌍 ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16, // เพิ่มขนาดจาก 14 เป็น 16
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -382,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 200, // เพิ่มความสูงให้มากขึ้นสำหรับ GREEN MARKET
+      expandedHeight: 120, // ลดความสูงลงอีกจาก 140 เป็น 120
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
@@ -413,7 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SafeArea(
             // เพิ่ม SafeArea เพื่อหลีกเลี่ยง overflow
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12), // ลด padding
+              padding:
+                  const EdgeInsets.fromLTRB(16, 8, 16, 6), // ลด padding ลงอีก
               child: Column(
                 children: [
                   Expanded(
@@ -430,21 +431,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Row(
                                   children: [
                                     Container(
-                                      padding:
-                                          const EdgeInsets.all(8), // ลด padding
+                                      padding: const EdgeInsets.all(
+                                          6), // ลด padding เพิ่มเติม
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
-                                            Colors.white.withOpacity(0.3),
-                                            Colors.white.withOpacity(0.15),
+                                            Colors.white.withOpacity(
+                                                0.25), // ลดความโปร่งใส
+                                            Colors.white.withOpacity(0.12),
                                           ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(
+                                            12), // ลดรัศมี
                                         border: Border.all(
-                                          color: Colors.white.withOpacity(0.5),
-                                          width: 2,
+                                          color: Colors.white.withOpacity(
+                                              0.4), // ลดความโปร่งใส
+                                          width: 1.5, // ลดความหนาของเส้นขอบ
                                         ),
                                         boxShadow: [
                                           BoxShadow(
@@ -458,10 +462,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: const Text(
                                         '🌱',
                                         style: TextStyle(
-                                            fontSize: 22), // ลดขนาดฟอนต์
+                                            fontSize:
+                                                14), // ลดขนาดอีโมจิลงจาก 18 เป็น 14
                                       ),
                                     ),
-                                    const SizedBox(width: 12), // ลด spacing
+                                    const SizedBox(
+                                        width: 10), // ลด spacing เพิ่มเติม
                                     Expanded(
                                       // เพิ่ม Expanded เพื่อป้องกัน overflow
                                       child: Column(
@@ -482,10 +488,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize:
-                                                    26, // เพิ่มขนาดฟอนต์ให้ใหญ่ขึ้น
+                                                    22, // เพิ่มขนาดฟอนต์จาก 20 เป็น 22
                                                 fontWeight: FontWeight.w900,
                                                 letterSpacing:
-                                                    2.0, // เพิ่ม letterSpacing
+                                                    1.3, // เพิ่ม letterSpacing จาก 1.2 เป็น 1.3
                                                 fontFamily: 'Sarabun',
                                                 shadows: [
                                                   Shadow(
@@ -505,26 +511,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                           const SizedBox(height: 2),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2), // ลด padding
+                                                horizontal:
+                                                    5, // ลด padding เพิ่มเติม
+                                                vertical:
+                                                    1.5), // ลด padding เพิ่มเติม
                                             decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withOpacity(0.15),
+                                              color: Colors.white.withOpacity(
+                                                  0.12), // ลดความโปร่งใส
                                               borderRadius:
-                                                  BorderRadius.circular(10),
+                                                  BorderRadius.circular(
+                                                      8), // ลดรัศมี
                                               border: Border.all(
-                                                color: Colors.white
-                                                    .withOpacity(0.2),
+                                                color: Colors.white.withOpacity(
+                                                    0.15), // ลดความโปร่งใส
                                                 width: 0.5,
                                               ),
                                             ),
                                             child: const Text(
-                                              'ตลาดออนไลน์เพื่อโลกแห่งความยั่งยืน',
+                                              'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 10, // ลดขนาดฟอนต์
+                                                fontSize:
+                                                    11, // เพิ่มขนาดฟอนต์จาก 9 เป็น 11
                                                 fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.3,
+                                                letterSpacing:
+                                                    0.3, // เพิ่ม letter spacing จาก 0.2 เป็น 0.3
                                                 fontFamily: 'Sarabun',
                                               ),
                                               overflow: TextOverflow
@@ -595,9 +606,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 'The World\'s First Eco Market',
                                                 style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 9, // ลดขนาดฟอนต์
+                                                  fontSize:
+                                                      8, // ลดขนาดฟอนต์จาก 9 เป็น 8
                                                   fontWeight: FontWeight.w700,
-                                                  letterSpacing: 0.5,
+                                                  letterSpacing:
+                                                      0.4, // ลด letterSpacing
                                                   fontFamily: 'Sarabun',
                                                 ),
                                               ),
@@ -618,8 +631,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 3), // ลด padding
+                                            horizontal:
+                                                5, // ลด padding เพิ่มเติม
+                                            vertical:
+                                                2), // ลด padding เพิ่มเติม
                                         decoration: BoxDecoration(
                                           gradient: const LinearGradient(
                                             colors: [
@@ -627,14 +642,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                               Color(0xFF8BC34A)
                                             ],
                                           ),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                              8), // ลดรัศมี
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  Colors.green.withOpacity(0.3),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
+                                              color: Colors.green.withOpacity(
+                                                  0.25), // ลดความเข้ม
+                                              blurRadius: 4, // ลด blur
+                                              offset: const Offset(
+                                                  0, 1), // ลด offset
                                             ),
                                           ],
                                         ),
@@ -642,9 +658,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                           'LIVE',
                                           style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 8, // ลดขนาดฟอนต์
+                                            fontSize: 7, // ลดขนาดฟอนต์เพิ่มเติม
                                             fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.3,
+                                            letterSpacing:
+                                                0.2, // ลด letter spacing
                                           ),
                                         ),
                                       ),
@@ -693,12 +710,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchBar() {
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 16.0, vertical: 6.0), // ลด padding
         child: Container(
-          height: 48, // ลดความสูง
+          height: 42, // ลดความสูงลงจาก 48 เป็น 42
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24.0), // ลดรัศมี
+            borderRadius:
+                BorderRadius.circular(21.0), // ลดรัศมีลงจาก 24 เป็น 21
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.1),
@@ -720,30 +739,31 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13, // ลดขนาดฟอนต์ลงจาก 14 เป็น 13
               color: Color(0xFF333333),
             ),
             decoration: InputDecoration(
               hintText: 'ค้นหาสินค้าเพื่อสิ่งแวดล้อม...',
               hintStyle: const TextStyle(
                 color: Color(0xFF999999),
-                fontSize: 14,
+                fontSize: 13, // ลดขนาดฟอนต์ลงจาก 14 เป็น 13
                 fontWeight: FontWeight.w400,
               ),
               prefixIcon: Container(
-                margin: const EdgeInsets.all(6),
-                width: 36,
-                height: 36,
+                margin: const EdgeInsets.all(5), // ลด margin ลงจาก 6 เป็น 5
+                width: 32, // ลดขนาดลงจาก 36 เป็น 32
+                height: 32, // ลดขนาดลงจาก 36 เป็น 32
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
                   ),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius:
+                      BorderRadius.circular(16), // ลดรัศมีลงจาก 18 เป็น 16
                 ),
                 child: const Icon(
                   Icons.search,
                   color: Colors.white,
-                  size: 18,
+                  size: 16, // ลดขนาดไอคอนลงจาก 18 เป็น 16
                 ),
               ),
               suffixIcon: _searchQuery.isNotEmpty
@@ -751,7 +771,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(
                         Icons.clear,
                         color: Color(0xFF999999),
-                        size: 18,
+                        size: 16, // ลดขนาดไอคอนลงจาก 18 เป็น 16
                       ),
                       onPressed: () {
                         setState(() {
@@ -823,7 +843,7 @@ class _HomeScreenState extends State<HomeScreen> {
               '📢 พื้นที่โฆษณาและข่าวสาร',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 18, // ลดขนาดลงจาก 20 เป็น 18
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -952,26 +972,28 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with gold border frame
+            // Header with diamond platinum border frame
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border.all(
                   width: 2,
-                  color: const Color(0xFFFFD700),
+                  color: const Color(0xFFE0E0E0), // เงินขาวเพชร
                 ),
                 borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFFFD700).withOpacity(0.05),
-                    const Color(0xFFFFA500).withOpacity(0.05),
+                    const Color(0xFFF0F0F0)
+                        .withOpacity(0.05), // เงินขาวเพชรอ่อน
+                    const Color(0xFFE0E0E0).withOpacity(0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.3),
+                    color:
+                        const Color(0xFFE0E0E0).withOpacity(0.3), // เงินขาวเพชร
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -984,73 +1006,83 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Text(
                         '💎 ',
-                        style: TextStyle(fontSize: 16), // ลดขนาดลง
+                        style: TextStyle(
+                            fontSize: 12), // ลดขนาดลงอีกจาก 14 เป็น 12
                       ),
                       const Text(
                         'แพลตตินั่มฮีโร่',
                         style: TextStyle(
-                          fontSize: 18, // ลดขนาดลง
+                          fontSize: 16, // ลดขนาดลงอีกจาก 18 เป็น 16
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32),
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6), // ลด spacing ลงจาก 8 เป็น 6
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                            horizontal: 6, vertical: 1), // ลด padding ลง
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                            colors: [
+                              Color(0xFFF0F0F0),
+                              Color(0xFFE0E0E0)
+                            ], // เงินขาวเพชร
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                              10), // ลดรัศมีลงจาก 12 เป็น 10
                         ),
                         child: const Text(
                           'แนะนำสูงสุด',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
+                            color: Color(
+                                0xFF333333), // เปลี่ยนเป็นสีเข้มให้อ่านง่าย
+                            fontSize: 9, // ลดขนาดฟอนต์ลงจาก 10 เป็น 9
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       const Spacer(),
-                      // Gold corner decoration
+                      // Diamond platinum corner decoration
                       Container(
-                        width: 20,
-                        height: 20,
+                        width: 16, // ลดขนาดลงจาก 20 เป็น 16
+                        height: 16, // ลดขนาดลงจาก 20 เป็น 16
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                            colors: [
+                              Color(0xFFF0F0F0),
+                              Color(0xFFE0E0E0)
+                            ], // เงินขาวเพชร
                           ),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(
+                              8), // ลดรัศมีลงจาก 10 เป็น 8
                         ),
                         child: const Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 12,
+                          Icons.diamond, // เปลี่ยนจาก star เป็น diamond
+                          color: Color(0xFF666666), // สีเข้มให้เห็นชัด
+                          size: 10, // ลดขนาดไอคอนลงจาก 12 เป็น 10
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6), // ลด spacing ลงจาก 8 เป็น 6
                   Text(
                     'สินค้าระดับสูงสุดสุดยอดแห่งความยั่งยืน • ${platinumProducts.length} รายการ',
                     style: const TextStyle(
-                      fontSize: 11, // ลดขนาดลง
+                      fontSize: 10, // ลดขนาดลงอีกจาก 11 เป็น 10
                       color: Color(0xFF757575),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // Gold accent line
+                  const SizedBox(height: 3), // ลด spacing ลงจาก 4 เป็น 3
+                  // Diamond platinum accent line
                   Container(
                     height: 1,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFFFFD700),
-                          Color(0xFFFFA500),
+                          Color(0xFFF0F0F0), // เงินขาวเพชร
+                          Color(0xFFE0E0E0),
                           Colors.transparent,
                         ],
                       ),
@@ -1059,9 +1091,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10), // ลด spacing ลงจาก 12 เป็น 10
             SizedBox(
-              height: 200,
+              height: 180, // ลดความสูงลงจาก 200 เป็น 180
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: platinumProducts.take(6).length,
@@ -1125,7 +1157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 120,
+              height: 90, // ลดความสูงลงอีก จาก 100 เป็น 90
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
@@ -1134,8 +1166,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (index == 0) {
                     // ปุ่ม "ทั้งหมด"
                     return Container(
-                      width: 100,
-                      margin: const EdgeInsets.only(right: 16),
+                      width: 75, // ลดความกว้างลงอีก
+                      margin: const EdgeInsets.only(right: 10), // ลด margin
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
@@ -1145,8 +1177,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           children: [
                             Container(
-                              width: 80,
-                              height: 80,
+                              width: 55, // ลดขนาดลงอีก
+                              height: 55, // ลดขนาดลงอีก
                               decoration: BoxDecoration(
                                 gradient: _selectedCategory == null
                                     ? const LinearGradient(
@@ -1183,16 +1215,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: _selectedCategory == null
                                     ? Colors.white
                                     : AppColors.primaryTeal,
-                                size: 35,
+                                size: 24, // ลดขนาดไอคอนลงอีก
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6), // ลด spacing
                             Text(
                               'ทั้งหมด',
                               style: TextStyle(
                                 fontSize: _selectedCategory == null
-                                    ? 16
-                                    : 14, // เพิ่มขนาดให้เด่นขึ้น
+                                    ? 12 // ลดขนาดลงอีก
+                                    : 11, // ลดขนาดลง
                                 fontWeight: _selectedCategory == null
                                     ? FontWeight.w900 // เพิ่มความหนาให้เด่นขึ้น
                                     : FontWeight.w600,
@@ -1216,8 +1248,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   final isSelected = _selectedCategory?.id == category.id;
 
                   return Container(
-                    width: 100,
-                    margin: const EdgeInsets.only(right: 16),
+                    width: 75, // ลดความกว้างลงอีก
+                    margin: const EdgeInsets.only(right: 10), // ลด margin
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -1227,8 +1259,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         children: [
                           Container(
-                            width: 60,
-                            height: 60,
+                            width: 45, // ลดขนาดลงอีก
+                            height: 45, // ลดขนาดลงอีก
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? AppColors.primaryTeal.withOpacity(0.2)
@@ -1260,7 +1292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           child: const Icon(
                                             Icons.eco,
                                             color: AppColors.primaryTeal,
-                                            size: 30,
+                                            size: 24, // ลดขนาดไอคอนลง
                                           ),
                                         );
                                       },
@@ -1270,16 +1302,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: const Icon(
                                         Icons.eco,
                                         color: AppColors.primaryTeal,
-                                        size: 30,
+                                        size: 20, // ลดขนาดไอคอนลง
                                       ),
                                     ),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6), // ลด spacing
                           Text(
                             category.name,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11, // ลดขนาดฟอนต์ลง
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.w500,
@@ -1307,22 +1339,16 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Color> _getEcoLevelGradient(EcoLevel level) {
     switch (level) {
       case EcoLevel.basic:
-        return [const Color(0xFF4CAF50), const Color(0xFF8BC34A)]; // Green
+        return [const Color(0xFF66BB6A), const Color(0xFF4CAF50)]; // เขียว
       case EcoLevel.standard:
-        return [
-          const Color(0xFF2196F3),
-          const Color(0xFF03DAC6)
-        ]; // Blue to Teal
+        return [const Color(0xFFBDBDBD), const Color(0xFF9E9E9E)]; // เงิน
       case EcoLevel.premium:
-        return [
-          const Color(0xFF9C27B0),
-          const Color(0xFFE91E63)
-        ]; // Purple to Pink
+        return [const Color(0xFFFFE55C), const Color(0xFFFFD700)]; // ทอง
       case EcoLevel.platinum:
         return [
-          const Color(0xFFFF9800),
-          const Color(0xFFFFC107)
-        ]; // Orange to Amber
+          const Color(0xFFF0F0F0),
+          const Color(0xFFE0E0E0)
+        ]; // เงินขาวเพชรระยิบระยับ
     }
   }
 
@@ -1404,7 +1430,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Color(0xFF333333),
                 ),
                 decoration: InputDecoration(
-                  hintText: 'ค้นหาสินค้า หมวดหมู่ หรือชื่อผู้ขาย...', // เปลี่ยนข้อความ
+                  hintText:
+                      'ค้นหาสินค้า หมวดหมู่ หรือชื่อผู้ขาย...', // เปลี่ยนข้อความ
                   hintStyle: const TextStyle(
                     color: Color(0xFF999999),
                     fontSize: 12, // ลดขนาดฟอนต์
@@ -1449,8 +1476,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // ลด padding
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8), // ลด padding
                 ),
               ),
             ),
@@ -1458,7 +1485,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Single row of compact buttons
             SizedBox(
-              height: 80,
+              height: 42, // เพิ่มความสูงขึ้นจาก 36 เป็น 42
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
@@ -1474,7 +1501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 6), // ลด spacing ลงอีก
 
                   // EcoLevel buttons
                   ...EcoLevel.values.map((level) {
@@ -1483,7 +1510,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         .toList();
                     final isSelected = _selectedEcoLevel == level;
                     return Padding(
-                      padding: const EdgeInsets.only(right: 12),
+                      padding:
+                          const EdgeInsets.only(right: 6), // ลด spacing ลงอีก
                       child: _buildCompactEcoLevelButton(
                         title:
                             '${_getEcoLevelEmoji(level)} ${_getEcoLevelThaiName(level)}',
@@ -1775,13 +1803,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _getEcoLevelEmoji(EcoLevel level) {
     switch (level) {
       case EcoLevel.basic:
-        return '🌱'; // เริ่มต้น - ต้นอ่อน
+        return '🌱'; // เริ่มต้น - ต้นอ่อน (เขียว)
       case EcoLevel.standard:
-        return '🌿'; // มาตราฐาน - ใบไผ่
+        return '🛡️'; // มาตรฐาน - โล่เงิน
       case EcoLevel.premium:
-        return '🌳'; // พรีเมี่ยม - ต้นไม้ใหญ่
+        return '🏆'; // พรีเมียม - โล่ทอง (ถ้วยทอง)
       case EcoLevel.platinum:
-        return '💎'; // แพลตินั่ม - เพชร
+        return '💎'; // แพลตตินั่ม - เพชรระยิบระยับ (เงินขาวทอง)
     }
   }
 
@@ -1805,26 +1833,45 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Color> colors,
     required VoidCallback onTap,
   }) {
+    // ปรับสีขอบให้เหมาะสมกับแต่ละระดับ
+    Color borderColor;
+    if (title.contains('🌱')) {
+      // Basic level - ใช้สีเทาเข้มสำหรับขอบ
+      borderColor = isSelected ? Colors.transparent : const Color(0xFF9E9E9E);
+    } else {
+      borderColor =
+          isSelected ? Colors.transparent : colors[0].withOpacity(0.3);
+    }
+
+    // ตรวจสอบว่าเป็น platinum หรือไม่ (สีเงินขาวเพชร)
+    bool isPlatinum = title.contains('💎');
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 5), // เพิ่ม padding ให้ใหญ่ขึ้น
         decoration: BoxDecoration(
           gradient: isSelected
               ? LinearGradient(colors: colors)
-              : LinearGradient(colors: [Colors.white, Colors.grey.shade50]),
-          borderRadius: BorderRadius.circular(20),
+              : LinearGradient(colors: [
+                  title.contains('🌱') ? Colors.white : Colors.white,
+                  title.contains('🌱')
+                      ? Colors.grey.shade50
+                      : Colors.grey.shade50
+                ]),
+          borderRadius: BorderRadius.circular(12), // เพิ่มรัศมีขึ้น
           border: Border.all(
-            color: isSelected ? Colors.transparent : colors[0].withOpacity(0.3),
+            color: borderColor,
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? colors[0].withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.1),
-              blurRadius: isSelected ? 8 : 4,
-              offset: const Offset(0, 2),
+                  ? colors[0].withOpacity(0.2)
+                  : Colors.grey.withOpacity(0.08),
+              blurRadius: isSelected ? 4 : 2, // ลด blur ลงอีก
+              offset: const Offset(0, 1), // ลด offset
             ),
           ],
         ),
@@ -1834,10 +1881,16 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               title,
               style: TextStyle(
-                color: isSelected ? Colors.white : colors[0],
-                fontSize: title.contains('ทั้งหมด')
-                    ? 14
-                    : 12, // เพิ่มขนาดให้ "ทั้งหมด" เด่นขึ้น
+                color: isSelected
+                    ? (title.contains('🌱') || isPlatinum
+                        ? const Color(0xFF333333) // เงินขาว/basic ใช้สีเข้ม
+                        : Colors.white) // สีอื่นใช้สีขาว
+                    : colors[0] == Colors.white ||
+                            colors[0] == const Color(0xFFE0E0E0)
+                        ? const Color(0xFF333333) // เงินขาว/basic ใช้สีเข้ม
+                        : colors[0],
+                fontSize:
+                    title.contains('ทั้งหมด') ? 11 : 10, // เพิ่มขนาดฟอนต์ขึ้น
                 fontWeight: title.contains('ทั้งหมด') && isSelected
                     ? FontWeight.w900 // เน้นพิเศษสำหรับ "ทั้งหมด" เมื่อถูกเลือก
                     : isSelected
@@ -1846,14 +1899,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1), // เพิ่ม spacing
             Text(
               '$count รายการ',
               style: TextStyle(
                 color: isSelected
-                    ? Colors.white.withOpacity(0.9)
+                    ? (title.contains('🌱') || isPlatinum
+                        ? const Color(0xFF666666) // เงินขาว/basic ใช้สีเข้ม
+                        : Colors.white.withOpacity(0.9)) // สีอื่นใช้สีขาว
                     : Colors.grey.shade600,
-                fontSize: 10,
+                fontSize: 8, // เพิ่มขนาดฟอนต์ขึ้น
                 fontWeight: FontWeight.w400,
               ),
               textAlign: TextAlign.center,
@@ -1907,9 +1962,12 @@ class _HomeScreenState extends State<HomeScreen> {
             product.materialDescription.toLowerCase().contains(query) ||
             product.ecoJustification.toLowerCase().contains(query) ||
             (product.categoryName?.toLowerCase().contains(query) ?? false) ||
-            product.sellerId.toLowerCase().contains(query) || // ค้นหาตาม sellerId
-            (product.keywords?.any((keyword) => 
-                keyword.toLowerCase().contains(query)) ?? false); // ค้นหาตาม keywords
+            product.sellerId
+                .toLowerCase()
+                .contains(query) || // ค้นหาตาม sellerId
+            (product.keywords
+                    ?.any((keyword) => keyword.toLowerCase().contains(query)) ??
+                false); // ค้นหาตาม keywords
       }).toList();
     }
 

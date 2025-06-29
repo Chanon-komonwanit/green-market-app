@@ -43,8 +43,10 @@ class EcoCoinsWidget extends StatelessWidget {
     return GestureDetector(
       onTap: onTap ?? () => _navigateToEcoCoinsScreen(context),
       child: Container(
-        height: 48, // Fixed height to ensure visibility
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        height: 28, // ลดความสูงลงอีกจาก 32 เป็น 28
+        width: 55, // ลดความกว้างลงอีกจาก 60 เป็น 55
+        padding: const EdgeInsets.symmetric(
+            horizontal: 2, vertical: 1), // ลด padding อีก
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -54,7 +56,7 @@ class EcoCoinsWidget extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20), // ลดรัศมีลงจาก 24 เป็น 20
           boxShadow: [
             BoxShadow(
               color: displayBalance.currentTier.color.withOpacity(0.3),
@@ -70,7 +72,7 @@ class EcoCoinsWidget extends StatelessWidget {
           children: [
             // Eco Coin Icon - เปลี่ยนเป็นเหรียญ
             Container(
-              padding: const EdgeInsets.all(6), // เพิ่ม padding
+              padding: const EdgeInsets.all(1), // ลด padding ลงอีกจาก 2 เป็น 1
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.25),
                 shape: BoxShape.circle,
@@ -82,44 +84,60 @@ class EcoCoinsWidget extends StatelessWidget {
               child: const Text(
                 '🪙', // เปลี่ยนเป็นเหรียญ
                 style: TextStyle(
-                  fontSize: 20, // เพิ่มขนาดให้เด่น
+                  fontSize: 10, // ลดขนาดลงอีกจาก 12 เป็น 10
                 ),
               ),
             ),
-            const SizedBox(width: 8), // เพิ่ม spacing
+            const SizedBox(width: 2), // ลด spacing ลงอีกจาก 3 เป็น 2
 
             // Balance
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${displayBalance.availableCoins}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16, // เพิ่มขนาดตัวเลข
-                    fontWeight: FontWeight.w900, // เพิ่มความหนา
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                if (displayBalance.coinsToNextTier > 0)
-                  Text(
-                    '+${displayBalance.coinsToNextTier}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 11, // เพิ่มขนาดเล็กน้อย
-                      fontWeight: FontWeight.w600,
+            Expanded(
+              // เปลี่ยนจาก Flexible เป็น Expanded เพื่อใช้พื้นที่ที่เหลือ
+              child: ClipRect(
+                // เพิ่ม ClipRect เพื่อป้องกัน overflow
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment:
+                      MainAxisAlignment.center, // จัดกึ่งกลางแนวตั้ง
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      // ใช้ FittedBox สำหรับ text หลัก
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${displayBalance.availableCoins}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9, // ลดขนาดลงอีกจาก 11 เป็น 9
+                          fontWeight: FontWeight.w900, // เพิ่มความหนา
+                          letterSpacing: 0.2, // ลด letterSpacing อีก
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                    if (displayBalance.coinsToNextTier > 0)
+                      FittedBox(
+                        // ใช้ FittedBox สำหรับ text ย่อย
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '+${displayBalance.coinsToNextTier}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 6, // ลดขนาดลงอีกจาก 7 เป็น 6
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
 
             // Arrow
-            const SizedBox(width: 4),
+            const SizedBox(width: 1), // ลด spacing ลงอีกจาก 2 เป็น 1
             Icon(
               Icons.keyboard_arrow_right,
               color: Colors.white.withOpacity(0.8),
-              size: 16,
+              size: 8, // ลดขนาดลงอีกจาก 10 เป็น 8
             ),
           ],
         ),

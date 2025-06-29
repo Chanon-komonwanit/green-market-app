@@ -88,11 +88,11 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return '🌱 เริ่มต้น';
       case EcoLevel.standard:
-        return '✅ มาตรฐาน';
+        return '🛡️ มาตรฐาน'; // โล่เงิน
       case EcoLevel.premium:
-        return '🛡️ พรีเมียม';
+        return '🏆 พรีเมียม'; // โล่ทอง (ถ้วยทอง)
       case EcoLevel.platinum:
-        return '💎 แพลตตินั่ม';
+        return '💎 แพลตตินั่ม'; // เพชร
     }
   }
 
@@ -125,52 +125,52 @@ extension EcoLevelExtension on EcoLevel {
   Color get color {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF4CAF50); // Green
+        return const Color(0xFF4CAF50); // เขียว
       case EcoLevel.standard:
-        return const Color(0xFF2196F3); // Blue
+        return const Color(0xFF9E9E9E); // เงิน
       case EcoLevel.premium:
-        return const Color(0xFF9C27B0); // Purple
+        return const Color(0xFFFFD700); // ทอง
       case EcoLevel.platinum:
-        return const Color(0xFFFF9800); // Orange (combining hero and platinum)
+        return const Color(0xFFE0E0E0); // เงินขาวเพชรระยิบระยับ - ดูพิเศษสุด
     }
   }
 
   Color get backgroundColor {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFE8F5E8);
+        return const Color(0xFFE8F5E8); // เขียวอ่อน
       case EcoLevel.standard:
-        return const Color(0xFFE3F2FD);
+        return const Color(0xFFF5F5F5); // เงินอ่อน
       case EcoLevel.premium:
-        return const Color(0xFFF3E5F5);
+        return const Color(0xFFFFF8DC); // ทองอ่อน
       case EcoLevel.platinum:
-        return const Color(0xFFFFF3E0);
+        return const Color(0xFFF8F8FF); // เงินขาวเพชรอ่อน - ดูหรูหรา
     }
   }
 
   Color get gradientStart {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF66BB6A);
+        return const Color(0xFF66BB6A); // เขียวสว่าง
       case EcoLevel.standard:
-        return const Color(0xFF42A5F5);
+        return const Color(0xFFBDBDBD); // เงินสว่าง
       case EcoLevel.premium:
-        return const Color(0xFFAB47BC);
+        return const Color(0xFFFFE55C); // ทองสว่าง
       case EcoLevel.platinum:
-        return const Color(0xFFFFB74D);
+        return const Color(0xFFF0F0F0); // เงินขาวเพชรสว่าง - ระยิบระยับ
     }
   }
 
   Color get gradientEnd {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF4CAF50);
+        return const Color(0xFF4CAF50); // เขียว
       case EcoLevel.standard:
-        return const Color(0xFF2196F3);
+        return const Color(0xFF9E9E9E); // เงิน
       case EcoLevel.premium:
-        return const Color(0xFF9C27B0);
+        return const Color(0xFFFFD700); // ทอง
       case EcoLevel.platinum:
-        return const Color(0xFFFF9800);
+        return const Color(0xFFE0E0E0); // เงินขาวเพชร - ระยิบระยับ
     }
   }
 
