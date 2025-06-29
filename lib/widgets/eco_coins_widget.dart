@@ -68,20 +68,25 @@ class EcoCoinsWidget extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Eco Coin Icon
+            // Eco Coin Icon - เปลี่ยนเป็นเหรียญ
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(6), // เพิ่ม padding
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withOpacity(0.25),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.4),
+                  width: 1,
+                ),
               ),
-              child: const Icon(
-                Icons.eco,
-                color: Colors.white,
-                size: 16,
+              child: const Text(
+                '🪙', // เปลี่ยนเป็นเหรียญ
+                style: TextStyle(
+                  fontSize: 20, // เพิ่มขนาดให้เด่น
+                ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8), // เพิ่ม spacing
 
             // Balance
             Column(
@@ -92,17 +97,18 @@ class EcoCoinsWidget extends StatelessWidget {
                   '${displayBalance.availableCoins}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // เพิ่มขนาดตัวเลข
+                    fontWeight: FontWeight.w900, // เพิ่มความหนา
+                    letterSpacing: 0.5,
                   ),
                 ),
                 if (displayBalance.coinsToNextTier > 0)
                   Text(
                     '+${displayBalance.coinsToNextTier}',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 11, // เพิ่มขนาดเล็กน้อย
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
               ],

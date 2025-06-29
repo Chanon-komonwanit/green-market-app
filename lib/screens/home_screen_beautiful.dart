@@ -1374,21 +1374,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // แถบค้นหาเล็กๆ ที่ใช้งานได้จริง
+            // แถบค้นหาเล็กๆ สำหรับค้นหาสินค้าทั้งหมด
             Container(
-              height: 45,
+              height: 38, // ลดความสูงลง
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(20), // ลดรัศมี
                 border: Border.all(
                   color: const Color(0xFF4CAF50).withOpacity(0.3),
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
@@ -1399,40 +1399,58 @@ class _HomeScreenState extends State<HomeScreen> {
                     _ecoSearchQuery = value;
                   });
                 },
+                style: const TextStyle(
+                  fontSize: 13, // ลดขนาดฟอนต์
+                  color: Color(0xFF333333),
+                ),
                 decoration: InputDecoration(
-                  hintText: 'ค้นหาสินค้าใน EcoLevel...',
+                  hintText: 'ค้นหาสินค้า หมวดหมู่ หรือชื่อผู้ขาย...', // เปลี่ยนข้อความ
                   hintStyle: const TextStyle(
-                    color: Color(0xFF757575),
-                    fontSize: 14,
+                    color: Color(0xFF999999),
+                    fontSize: 12, // ลดขนาดฟอนต์
                     fontWeight: FontWeight.w400,
                   ),
                   prefixIcon: const Icon(
                     Icons.search,
                     color: Color(0xFF4CAF50),
-                    size: 20,
+                    size: 16, // ลดขนาดไอคอน
                   ),
-                  suffixIcon: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'ECO',
-                        style: TextStyle(
-                          color: Color(0xFF4CAF50),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                  suffixIcon: _ecoSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: Color(0xFF999999),
+                            size: 14,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _ecoSearchController.clear();
+                              _ecoSearchQuery = '';
+                            });
+                          },
+                        )
+                      : Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2), // ลด padding
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8), // ลดรัศมี
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'ALL', // เปลี่ยนข้อความ
+                              style: TextStyle(
+                                fontSize: 9, // ลดขนาดฟอนต์
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                   border: InputBorder.none,
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // ลด padding
                 ),
               ),
             ),
@@ -1879,18 +1897,19 @@ class _HomeScreenState extends State<HomeScreen> {
       }).toList();
     }
 
-    // Filter by eco search query
+    // Filter by eco search query - ขยายการค้นหาให้ครอบคลุมมากขึ้น
     if (_ecoSearchQuery.isNotEmpty) {
       filtered = filtered.where((product) {
-        return product.name
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase()) ||
-            product.description
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase()) ||
-            product.ecoLevel.name
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase());
+        final query = _ecoSearchQuery.toLowerCase();
+        return product.name.toLowerCase().contains(query) ||
+            product.description.toLowerCase().contains(query) ||
+            product.ecoLevel.name.toLowerCase().contains(query) ||
+            product.materialDescription.toLowerCase().contains(query) ||
+            product.ecoJustification.toLowerCase().contains(query) ||
+            (product.categoryName?.toLowerCase().contains(query) ?? false) ||
+            product.sellerId.toLowerCase().contains(query) || // ค้นหาตาม sellerId
+            (product.keywords?.any((keyword) => 
+                keyword.toLowerCase().contains(query)) ?? false); // ค้นหาตาม keywords
       }).toList();
     }
 
