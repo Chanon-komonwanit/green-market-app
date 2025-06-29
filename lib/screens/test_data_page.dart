@@ -72,9 +72,6 @@ class TestDataPage extends StatelessWidget {
 
   Future<void> _createTestProducts(BuildContext context) async {
     try {
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
-
       // สร้างข้อมูลทดสอบ
       print('Creating test products...');
 

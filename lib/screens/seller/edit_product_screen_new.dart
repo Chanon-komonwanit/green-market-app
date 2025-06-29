@@ -19,7 +19,7 @@ class EditProductScreen extends StatefulWidget {
   const EditProductScreen({super.key, required this.product});
 
   @override
-  _EditProductScreenState createState() => _EditProductScreenState();
+  State<EditProductScreen> createState() => _EditProductScreenState();
 }
 
 class _EditProductScreenState extends State<EditProductScreen> {

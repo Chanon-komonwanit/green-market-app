@@ -35,7 +35,7 @@ class GreenWorldHubScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               children: [
@@ -85,63 +85,63 @@ class GreenWorldHubScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 // Two Main Features
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Investment Section
-                      Expanded(
-                        child: _buildFeatureCard(
-                          context: context,
-                          title: 'ลงทุนความยั่งยืน',
-                          subtitle: 'สร้างผลตอบแทนพร้อมดูแลโลก',
-                          description:
-                              'ลงทุนในโครงการที่เป็นมิตรกับสิ่งแวดล้อม\nและสร้างผลตอบแทนที่ยั่งยืน',
-                          icon: Icons.trending_up,
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.primaryGreen,
-                              AppColors.primaryTeal,
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const InvestmentHubScreen(),
-                              ),
-                            );
-                          },
+                Column(
+                  children: [
+                    // Investment Section
+                    SizedBox(
+                      height: 280, // กำหนดความสูงคงที่
+                      child: _buildFeatureCard(
+                        context: context,
+                        title: 'ลงทุนความยั่งยืน',
+                        subtitle: 'สร้างผลตอบแทนพร้อมดูแลโลก',
+                        description:
+                            'ลงทุนในโครงการที่เป็นมิตรกับสิ่งแวดล้อม\nและสร้างผลตอบแทนที่ยั่งยืน',
+                        icon: Icons.trending_up,
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.primaryGreen,
+                            AppColors.primaryTeal,
+                          ],
                         ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const InvestmentHubScreen(),
+                            ),
+                          );
+                        },
                       ),
-                      const SizedBox(height: 20),
-                      // Activities Section
-                      Expanded(
-                        child: _buildFeatureCard(
-                          context: context,
-                          title: 'กิจกรรมเพื่อสังคม',
-                          subtitle: 'ร่วมเป็นส่วนหนึ่งของการเปลี่ยนแปลง',
-                          description:
-                              'เข้าร่วมกิจกรรมอนุรักษ์สิ่งแวดล้อม\nและสร้างผลกระทบเชิงบวกให้สังคม',
-                          icon: Icons.volunteer_activism,
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.lightTeal,
-                              AppColors.primaryGreen,
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const SustainableActivitiesHubScreen(),
-                              ),
-                            );
-                          },
+                    ),
+                    const SizedBox(height: 20),
+                    // Activities Section
+                    SizedBox(
+                      height: 280, // กำหนดความสูงคงที่
+                      child: _buildFeatureCard(
+                        context: context,
+                        title: 'กิจกรรมเพื่อสังคม',
+                        subtitle: 'ร่วมเป็นส่วนหนึ่งของการเปลี่ยนแปลง',
+                        description:
+                            'เข้าร่วมกิจกรรมอนุรักษ์สิ่งแวดล้อม\nและสร้างผลกระทบเชิงบวกให้สังคม',
+                        icon: Icons.volunteer_activism,
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.lightTeal,
+                            AppColors.primaryGreen,
+                          ],
                         ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const SustainableActivitiesHubScreen(),
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 // Footer Info
@@ -218,6 +218,7 @@ class GreenWorldHubScreen extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // เพิ่มบรรทัดนี้
             children: [
               Row(
                 children: [
@@ -262,18 +263,16 @@ class GreenWorldHubScreen extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const Spacer(),
-              Expanded(
-                child: Text(
-                  description,
-                  style: AppTextStyles.body.copyWith(
-                    color: Colors.white.withAlpha((0.8 * 255).round()),
-                    height: 1.3,
-                    fontSize: 12,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 12), // ลดจาก Spacer เป็น SizedBox
+              Text(
+                description,
+                style: AppTextStyles.body.copyWith(
+                  color: Colors.white.withAlpha((0.8 * 255).round()),
+                  height: 1.3,
+                  fontSize: 12,
                 ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
