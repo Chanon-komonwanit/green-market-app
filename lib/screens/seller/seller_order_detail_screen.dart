@@ -7,6 +7,7 @@ import 'package:green_market/utils/order_status_utils.dart'
     as order_status_utils;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:green_market/utils/notification_helper.dart';
 
 class SellerOrderDetailScreen extends StatefulWidget {
   final app_order.Order order;
@@ -36,6 +37,44 @@ class _SellerOrderDetailScreenState extends State<SellerOrderDetailScreen> {
         Provider.of<FirebaseService>(context, listen: false);
     try {
       await firebaseService.updateOrderStatus(widget.order.id, newStatus);
+
+      // Send notification to buyer based on status change
+      try {
+        switch (newStatus.toLowerCase()) {
+          case 'shipped':
+          case 'out_for_delivery':
+            await NotificationHelper.orderShipped(
+              userId: widget.order.userId,
+              orderId: widget.order.id,
+              trackingNumber: 'TRK${widget.order.id.substring(0, 8)}',
+              courierName: 'Green Market Express',
+              estimatedDelivery: DateFormat('dd/MM/yyyy')
+                  .format(DateTime.now().add(const Duration(days: 3))),
+            );
+            break;
+          case 'delivered':
+            await NotificationHelper.orderDelivered(
+              userId: widget.order.userId,
+              orderId: widget.order.id,
+              deliveryDate:
+                  DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now()),
+            );
+            break;
+          case 'confirmed':
+          case 'processing':
+            await NotificationHelper.orderConfirmed(
+              userId: widget.order.userId,
+              orderId: widget.order.id,
+              orderTotal: widget.order.totalAmount.toStringAsFixed(2),
+              productNames:
+                  widget.order.items.map((item) => item.productName).toList(),
+            );
+            break;
+        }
+      } catch (notificationError) {
+        print('Failed to send notification: $notificationError');
+      }
+
       if (mounted) {
         setState(() {
           _currentStatus = newStatus;

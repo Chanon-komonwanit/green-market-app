@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:green_market/screens/search_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:green_market/models/category.dart';
@@ -8,11 +9,13 @@ import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/screens/category_products_screen.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
-import 'package:green_market/screens/eco_level_products_screen.dart';
+// import 'package:green_market/screens/eco_level_products_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/admin_panel_screen.dart';
 import 'package:green_market/widgets/eco_coins_widget.dart';
+import 'package:green_market/widgets/green_world_icon.dart';
 import 'package:green_market/utils/constants.dart';
+import 'package:green_market/utils/thai_fuzzy_search.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +24,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
   late Future<Map<String, dynamic>> _homeDataFuture;
   Category? _selectedCategory; // สำหรับเก็บหมวดหมู่ที่เลือก
   EcoLevel? _selectedEcoLevel; // สำหรับเก็บ EcoLevel ที่เลือก
@@ -29,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _ecoSearchController =
       TextEditingController(); // สำหรับ EcoLevel search
   String _searchQuery = '';
-  String _ecoSearchQuery = ''; // สำหรับ EcoLevel search
+  final String _ecoSearchQuery = ''; // สำหรับ EcoLevel search
 
   @override
   void initState() {
@@ -123,7 +127,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  bool get wantKeepAlive => true; // เก็บ state ไว้
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // เรียก super.build()
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FDF8),
       body: FutureBuilder<Map<String, dynamic>>(
@@ -266,8 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child:
-                    const Icon(Icons.eco, size: 120, color: Color(0xFF2E7D32)),
+                child: GreenWorldIcon(size: 120),
               ),
               const SizedBox(height: 40),
               Container(
@@ -310,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       child: const Text(
-                        '🌍 ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
+                        'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
                         style: TextStyle(
                           fontSize: 16, // เพิ่มขนาดจาก 14 เป็น 16
                           fontWeight: FontWeight.w600,
@@ -356,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMainContent(List<Category> categories,
       List<Promotion> promotions, List<Product> products) {
+    // ใช้โครงสร้างแบบ home_screen.dart: เหลือแค่ Banner, Platinum, EcoLevel
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {
@@ -367,13 +376,70 @@ class _HomeScreenState extends State<HomeScreen> {
       child: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          _buildSearchBar(),
+          // Shopee-style Search Bar (real-time search)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Color(0xFF4CAF50)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        style: const TextStyle(
+                            color: Color(0xFF333333), fontSize: 15),
+                        decoration: const InputDecoration(
+                          hintText: 'ค้นหาสินค้าทุกอย่าง เช่น "ต้นไม้"',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear,
+                            color: Color(0xFF999999), size: 18),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                        tooltip: 'ล้างคำค้นหา',
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Banner ข่าวสาร/โปรโมชั่น (ถ้ามี)
           if (promotions.isNotEmpty) _buildPromotionBanner(promotions),
+          // Platinum Hero Section (โชว์สินค้าแพลตตินั่ม)
           _buildPlatinumHeroSection(products),
-          if (categories.isNotEmpty) _buildCategoriesSection(categories),
-          _buildEcoLevelNavigationButtons(products),
+          // Eco Level Section (โชว์สินค้าแต่ละระดับ)
           _buildCategoryProductsWithEcoLevel(products),
-          _buildPopularProductsSection(products),
+          // Spacing ด้านล่าง
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -714,91 +780,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 16.0, vertical: 6.0), // ลด padding
-        child: Container(
-          height: 42, // ลดความสูงลงจาก 48 เป็น 42
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(21.0), // ลดรัศมีลงจาก 24 เป็น 21
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 0.5,
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: const Color(0xFF4CAF50).withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: TextFormField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-            style: const TextStyle(
-              fontSize: 13, // ลดขนาดฟอนต์ลงจาก 14 เป็น 13
-              color: Color(0xFF333333),
-            ),
-            decoration: InputDecoration(
-              hintText: 'ค้นหาสินค้าเพื่อสิ่งแวดล้อม...',
-              hintStyle: const TextStyle(
-                color: Color(0xFF999999),
-                fontSize: 13, // ลดขนาดฟอนต์ลงจาก 14 เป็น 13
-                fontWeight: FontWeight.w400,
-              ),
-              prefixIcon: Container(
-                margin: const EdgeInsets.all(5), // ลด margin ลงจาก 6 เป็น 5
-                width: 32, // ลดขนาดลงจาก 36 เป็น 32
-                height: 32, // ลดขนาดลงจาก 36 เป็น 32
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(16), // ลดรัศมีลงจาก 18 เป็น 16
-                ),
-                child: const Icon(
-                  Icons.search,
-                  color: Colors.white,
-                  size: 16, // ลดขนาดไอคอนลงจาก 18 เป็น 16
-                ),
-              ),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.clear,
-                        color: Color(0xFF999999),
-                        size: 16, // ลดขนาดไอคอนลงจาก 18 เป็น 16
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // ลบ _buildSearchBar ออก (แทนที่ด้วยของ home_screen.dart)
 
   Widget _buildPromotionBanner(List<Promotion> promotions) {
     return SliverToBoxAdapter(
@@ -1015,7 +997,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 12), // ลดขนาดลงอีกจาก 14 เป็น 12
                       ),
                       const Text(
-                        'แพลตตินั่มฮีโร่',
+                        'แพลตตินัมฮีโร่',
                         style: TextStyle(
                           fontSize: 16, // ลดขนาดลงอีกจาก 18 เป็น 16
                           fontWeight: FontWeight.bold,
@@ -1130,580 +1112,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoriesSection(List<Category> categories) {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'หมวดหมู่สินค้า',
-                    style: TextStyle(
-                      fontSize: 16, // ลดขนาดลง
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2E7D32),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 90, // ลดความสูงลงอีก จาก 100 เป็น 90
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length + 1, // +1 สำหรับปุ่ม "ทั้งหมด"
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // ปุ่ม "ทั้งหมด"
-                    return Container(
-                      width: 75, // ลดความกว้างลงอีก
-                      margin: const EdgeInsets.only(right: 10), // ลด margin
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = null; // เลือกทั้งหมด
-                          });
-                        },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 55, // ลดขนาดลงอีก
-                              height: 55, // ลดขนาดลงอีก
-                              decoration: BoxDecoration(
-                                gradient: _selectedCategory == null
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xFF4CAF50),
-                                          Color(0xFF66BB6A)
-                                        ],
-                                      )
-                                    : null,
-                                color: _selectedCategory == null
-                                    ? null
-                                    : Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _selectedCategory == null
-                                      ? Colors.transparent
-                                      : AppColors.primaryTeal.withOpacity(0.3),
-                                  width: _selectedCategory == null ? 0 : 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _selectedCategory == null
-                                        ? Colors.green.withOpacity(0.3)
-                                        : AppColors.primaryTeal
-                                            .withOpacity(0.1),
-                                    blurRadius:
-                                        _selectedCategory == null ? 15 : 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.apps,
-                                color: _selectedCategory == null
-                                    ? Colors.white
-                                    : AppColors.primaryTeal,
-                                size: 24, // ลดขนาดไอคอนลงอีก
-                              ),
-                            ),
-                            const SizedBox(height: 6), // ลด spacing
-                            Text(
-                              'ทั้งหมด',
-                              style: TextStyle(
-                                fontSize: _selectedCategory == null
-                                    ? 12 // ลดขนาดลงอีก
-                                    : 11, // ลดขนาดลง
-                                fontWeight: _selectedCategory == null
-                                    ? FontWeight.w900 // เพิ่มความหนาให้เด่นขึ้น
-                                    : FontWeight.w600,
-                                color: _selectedCategory == null
-                                    ? const Color(
-                                        0xFF1B5E20) // เปลี่ยนสีให้เข้มขึ้น
-                                    : const Color(0xFF333333),
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final category =
-                      categories[index - 1]; // -1 เพราะ index 0 เป็น "ทั้งหมด"
-                  final isSelected = _selectedCategory?.id == category.id;
-
-                  return Container(
-                    width: 75, // ลดความกว้างลงอีก
-                    margin: const EdgeInsets.only(right: 10), // ลด margin
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedCategory = category; // เลือกหมวดหมู่
-                        });
-                      },
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 45, // ลดขนาดลงอีก
-                            height: 45, // ลดขนาดลงอีก
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primaryTeal.withOpacity(0.2)
-                                  : Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primaryTeal
-                                    : AppColors.primaryTeal.withOpacity(0.3),
-                                width: isSelected ? 2 : 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryTeal.withOpacity(0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: category.imageUrl.isNotEmpty
-                                  ? Image.network(
-                                      category.imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.transparent,
-                                          child: const Icon(
-                                            Icons.eco,
-                                            color: AppColors.primaryTeal,
-                                            size: 24, // ลดขนาดไอคอนลง
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: Colors.transparent,
-                                      child: const Icon(
-                                        Icons.eco,
-                                        color: AppColors.primaryTeal,
-                                        size: 20, // ลดขนาดไอคอนลง
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 6), // ลด spacing
-                          Text(
-                            category.name,
-                            style: TextStyle(
-                              fontSize: 11, // ลดขนาดฟอนต์ลง
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? AppColors.primaryTeal
-                                  : const Color(0xFF333333),
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Color> _getEcoLevelGradient(EcoLevel level) {
-    switch (level) {
-      case EcoLevel.basic:
-        return [const Color(0xFF66BB6A), const Color(0xFF4CAF50)]; // เขียว
-      case EcoLevel.standard:
-        return [const Color(0xFFBDBDBD), const Color(0xFF9E9E9E)]; // เงิน
-      case EcoLevel.premium:
-        return [const Color(0xFFFFE55C), const Color(0xFFFFD700)]; // ทอง
-      case EcoLevel.platinum:
-        return [
-          const Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
-          const Color(0xFF9C27B0), // ม่วงเข้มเพชร
-          const Color(0xFF673AB7) // ม่วงเพชรลึก
-        ]; // เงินม่วงเพชรพิเศษสุด
-    }
-  }
-
-  Widget _buildEcoLevelNavigationButtons(List<Product> products) {
-    // กรองสินค้าตามหมวดหมู่ที่เลือก
-    final filteredProducts = _selectedCategory == null
-        ? products
-        : products.where((p) => p.categoryId == _selectedCategory!.id).toList();
-
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'EcoLevel',
-                  style: TextStyle(
-                    fontSize: 16, // ลดขนาดลง
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E2E2E),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.only(left: 16),
-              child: Text(
-                'สินค้าตรวจสอบจาก Greenmarket',
-                style: TextStyle(
-                  fontSize: 12, // ลดขนาดลง
-                  color: Color(0xFF757575),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // แถบค้นหาเล็กๆ สำหรับค้นหาสินค้าทั้งหมด
-            Container(
-              height: 38, // ลดความสูงลง
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20), // ลดรัศมี
-                border: Border.all(
-                  color: const Color(0xFF4CAF50).withOpacity(0.3),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: TextFormField(
-                controller: _ecoSearchController,
-                onChanged: (value) {
-                  setState(() {
-                    _ecoSearchQuery = value;
-                  });
-                },
-                style: const TextStyle(
-                  fontSize: 13, // ลดขนาดฟอนต์
-                  color: Color(0xFF333333),
-                ),
-                decoration: InputDecoration(
-                  hintText:
-                      'ค้นหาสินค้า หมวดหมู่ หรือชื่อผู้ขาย...', // เปลี่ยนข้อความ
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF999999),
-                    fontSize: 12, // ลดขนาดฟอนต์
-                    fontWeight: FontWeight.w400,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: Color(0xFF4CAF50),
-                    size: 16, // ลดขนาดไอคอน
-                  ),
-                  suffixIcon: _ecoSearchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.clear,
-                            color: Color(0xFF999999),
-                            size: 14,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _ecoSearchController.clear();
-                              _ecoSearchQuery = '';
-                            });
-                          },
-                        )
-                      : Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2), // ลด padding
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8), // ลดรัศมี
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'ALL', // เปลี่ยนข้อความ
-                              style: TextStyle(
-                                fontSize: 9, // ลดขนาดฟอนต์
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF4CAF50),
-                              ),
-                            ),
-                          ),
-                        ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8), // ลด padding
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Single row of compact buttons
-            SizedBox(
-              height: 42, // เพิ่มความสูงขึ้นจาก 36 เป็น 42
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  // "ทั้งหมด" button
-                  _buildCompactEcoLevelButton(
-                    title: '🌟 ทั้งหมด', // เปลี่ยนไอคอนให้เด่นกว่า
-                    count: filteredProducts.length,
-                    isSelected: _selectedEcoLevel == null,
-                    colors: [const Color(0xFF2196F3), const Color(0xFF21CBF3)],
-                    onTap: () {
-                      setState(() {
-                        _selectedEcoLevel = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 6), // ลด spacing ลงอีก
-
-                  // EcoLevel buttons
-                  ...EcoLevel.values.map((level) {
-                    final levelProducts = filteredProducts
-                        .where((p) => p.ecoLevel == level)
-                        .toList();
-                    final isSelected = _selectedEcoLevel == level;
-                    return Padding(
-                      padding:
-                          const EdgeInsets.only(right: 6), // ลด spacing ลงอีก
-                      child: _buildCompactEcoLevelButton(
-                        title:
-                            '${_getEcoLevelEmoji(level)} ${_getEcoLevelThaiName(level)}',
-                        count: levelProducts.length,
-                        isSelected: isSelected,
-                        colors: _getEcoLevelGradient(level),
-                        onTap: () {
-                          setState(() {
-                            _selectedEcoLevel = level;
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPopularProductsSection(List<Product> products) {
-    // กรองสินค้าตามหมวดหมู่ที่เลือก
-    List<Product> filteredProducts = _selectedCategory == null
-        ? products
-        : products.where((p) => p.categoryId == _selectedCategory!.id).toList();
-
-    // กรองเพิ่มเติมตาม EcoLevel ที่เลือก
-    if (_selectedEcoLevel != null) {
-      filteredProducts = filteredProducts
-          .where((p) => p.ecoLevel == _selectedEcoLevel)
-          .toList();
-    }
-
-    // กรองเพิ่มเติมตาม main search query (แถบค้นหาด้านบน)
-    if (_searchQuery.isNotEmpty) {
-      filteredProducts = filteredProducts.where((product) {
-        return product.name
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            product.description
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            product.ecoLevel.name
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase());
-      }).toList();
-    }
-
-    // กรองเพิ่มเติมตาม EcoLevel search query
-    if (_ecoSearchQuery.isNotEmpty) {
-      filteredProducts = filteredProducts.where((product) {
-        return product.name
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase()) ||
-            product.description
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase()) ||
-            product.ecoLevel.name
-                .toLowerCase()
-                .contains(_ecoSearchQuery.toLowerCase());
-      }).toList();
-    }
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _getSearchResultTitle(),
-                        style: const TextStyle(
-                          fontSize: 16, // ลดขนาดลง
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Text(
-                      _getSearchResultSubtitle(filteredProducts.length),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF757575),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Products section
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (filteredProducts.isEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.shopping_bag_outlined,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _selectedCategory == null
-                                  ? 'ไม่พบสินค้า'
-                                  : 'ไม่พบสินค้าในหมวดหมู่ ${_selectedCategory!.name}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 280,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: filteredProducts.take(6).length,
-                        itemBuilder: (context, index) {
-                          final product = filteredProducts[index];
-                          return Container(
-                            width: 200,
-                            margin: const EdgeInsets.only(right: 16),
-                            child: ProductCard(
-                              product: product,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ProductDetailScreen(product: product),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAdminSettings(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -1750,73 +1158,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _getSearchResultTitle() {
-    bool hasMainSearch = _searchQuery.isNotEmpty;
-    bool hasEcoSearch = _ecoSearchQuery.isNotEmpty;
-    bool hasCategory = _selectedCategory != null;
-    bool hasEcoLevel = _selectedEcoLevel != null;
-
-    // สร้างข้อความตาม filter ที่เลือก
-    List<String> parts = [];
-
-    if (hasMainSearch && hasEcoSearch) {
-      parts.add('ผลการค้นหา: "$_searchQuery" + "$_ecoSearchQuery"');
-    } else if (hasMainSearch) {
-      parts.add('ผลการค้นหา: "$_searchQuery"');
-    } else if (hasEcoSearch) {
-      parts.add('ผลการค้นหา EcoLevel: "$_ecoSearchQuery"');
-    } else if (hasEcoLevel) {
-      parts.add('สินค้าระดับ ${_getEcoLevelThaiName(_selectedEcoLevel!)}');
-    } else {
-      parts.add('สินค้ายอดนิยม');
-    }
-
-    if (hasCategory) {
-      parts.add('ใน ${_selectedCategory!.name}');
-    }
-
-    return parts.join(' ');
-  }
-
-  String _getSearchResultSubtitle(int productCount) {
-    bool hasMainSearch = _searchQuery.isNotEmpty;
-    bool hasEcoSearch = _ecoSearchQuery.isNotEmpty;
-    bool hasCategory = _selectedCategory != null;
-    bool hasEcoLevel = _selectedEcoLevel != null;
-
-    // สร้างข้อความย่อยตาม filter ที่เลือก
-    if (hasMainSearch || hasEcoSearch) {
-      if (hasCategory && hasEcoLevel) {
-        return 'พบ $productCount รายการใน ${_selectedCategory!.name} • ${_getEcoLevelThaiName(_selectedEcoLevel!)}';
-      } else if (hasCategory) {
-        return 'พบ $productCount รายการใน ${_selectedCategory!.name}';
-      } else if (hasEcoLevel) {
-        return 'พบ $productCount รายการระดับ ${_getEcoLevelThaiName(_selectedEcoLevel!)}';
-      }
-      return 'พบ $productCount รายการ';
-    } else {
-      if (hasCategory && hasEcoLevel) {
-        return 'สินค้าคุณภาพใน ${_selectedCategory!.name} • ระดับ ${_getEcoLevelThaiName(_selectedEcoLevel!)}';
-      } else if (hasCategory) {
-        return 'สินค้าคุณภาพในหมวดหมู่ ${_selectedCategory!.name}';
-      } else if (hasEcoLevel) {
-        return 'สินค้าคุณภาพระดับ ${_getEcoLevelThaiName(_selectedEcoLevel!)}';
-      }
-      return 'สินค้าคุณภาพที่ได้รับความนิยม';
-    }
-  }
-
   // ฟังก์ชันสำหรับจัดการ EcoLevel
   String _getEcoLevelEmoji(EcoLevel level) {
     switch (level) {
       case EcoLevel.basic:
-        return '🌱'; // เริ่มต้น - ต้นอ่อน (เขียว)
+        return '🌱'; // Basic level
       case EcoLevel.standard:
-        return '🛡️'; // มาตรฐาน - โล่เงิน
+        return '🌿'; // Standard level
       case EcoLevel.premium:
-        return '🏆'; // พรีเมียม - โล่ทอง (ถ้วยทอง)
+        return '🏆'; // Premium level
       case EcoLevel.platinum:
-        return '💎'; // แพลตตินั่ม - เพชรระยิบระยับ (เงินขาวทอง)
+        return '💎'; // Platinum diamond
     }
   }
 
@@ -1825,105 +1177,12 @@ class _HomeScreenState extends State<HomeScreen> {
       case EcoLevel.basic:
         return 'เริ่มต้น';
       case EcoLevel.standard:
-        return 'มาตราฐาน';
+        return 'มาตรฐาน';
       case EcoLevel.premium:
-        return 'พรีเมี่ยม';
+        return 'พรีเมียม';
       case EcoLevel.platinum:
         return 'แพลตตินั่ม';
     }
-  }
-
-  Widget _buildCompactEcoLevelButton({
-    required String title,
-    required int count,
-    required bool isSelected,
-    required List<Color> colors,
-    required VoidCallback onTap,
-  }) {
-    // ปรับสีขอบให้เหมาะสมกับแต่ละระดับ
-    Color borderColor;
-    if (title.contains('🌱')) {
-      // Basic level - ใช้สีเทาเข้มสำหรับขอบ
-      borderColor = isSelected ? Colors.transparent : const Color(0xFF9E9E9E);
-    } else {
-      borderColor =
-          isSelected ? Colors.transparent : colors[0].withOpacity(0.3);
-    }
-
-    // ตรวจสอบว่าเป็น platinum หรือไม่ (สีเงินขาวเพชร)
-    bool isPlatinum = title.contains('💎');
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 5), // เพิ่ม padding ให้ใหญ่ขึ้น
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(colors: colors)
-              : LinearGradient(colors: [
-                  title.contains('🌱') ? Colors.white : Colors.white,
-                  title.contains('🌱')
-                      ? Colors.grey.shade50
-                      : Colors.grey.shade50
-                ]),
-          borderRadius: BorderRadius.circular(12), // เพิ่มรัศมีขึ้น
-          border: Border.all(
-            color: borderColor,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? colors[0].withOpacity(0.2)
-                  : Colors.grey.withOpacity(0.08),
-              blurRadius: isSelected ? 4 : 2, // ลด blur ลงอีก
-              offset: const Offset(0, 1), // ลด offset
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected
-                    ? (title.contains('🌱') || isPlatinum
-                        ? const Color(0xFF333333) // เงินขาว/basic ใช้สีเข้ม
-                        : Colors.white) // สีอื่นใช้สีขาว
-                    : colors[0] == Colors.white ||
-                            colors[0] == const Color(0xFFE0E0E0)
-                        ? const Color(0xFF333333) // เงินขาว/basic ใช้สีเข้ม
-                        : colors[0],
-                fontSize:
-                    title.contains('ทั้งหมด') ? 11 : 10, // เพิ่มขนาดฟอนต์ขึ้น
-                fontWeight: title.contains('ทั้งหมด') && isSelected
-                    ? FontWeight.w900 // เน้นพิเศษสำหรับ "ทั้งหมด" เมื่อถูกเลือก
-                    : isSelected
-                        ? FontWeight.bold
-                        : FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 1), // เพิ่ม spacing
-            Text(
-              '$count รายการ',
-              style: TextStyle(
-                color: isSelected
-                    ? (title.contains('🌱') || isPlatinum
-                        ? const Color(0xFF666666) // เงินขาว/basic ใช้สีเข้ม
-                        : Colors.white.withOpacity(0.9)) // สีอื่นใช้สีขาว
-                    : Colors.grey.shade600,
-                fontSize: 8, // เพิ่มขนาดฟอนต์ขึ้น
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // Helper function to filter products
@@ -1944,37 +1203,47 @@ class _HomeScreenState extends State<HomeScreen> {
           .toList();
     }
 
-    // Filter by search query
+    // Fuzzy filter by main search query (Thai/Eng, typo-tolerant, robust)
     if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.trim();
       filtered = filtered.where((product) {
-        return product.name
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            product.description
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ||
-            product.ecoLevel.name
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase());
+        // รวม field สำคัญทั้งหมด
+        final fields = [
+          product.name,
+          product.description,
+          product.ecoLevel.name,
+          product.materialDescription,
+          product.ecoJustification,
+          product.categoryName ?? '',
+          product.sellerId,
+          ...?product.keywords
+        ];
+        // เช็ค fuzzy match หรือ contains (สำรอง)
+        return fields.any((field) =>
+            field.trim().isNotEmpty &&
+            (isFuzzyMatch(q, field, threshold: 0.48) ||
+                field.toLowerCase().contains(q.toLowerCase())));
       }).toList();
     }
 
-    // Filter by eco search query - ขยายการค้นหาให้ครอบคลุมมากขึ้น
+    // Fuzzy filter by eco search query (Thai/Eng, typo-tolerant, robust)
     if (_ecoSearchQuery.isNotEmpty) {
+      final q = _ecoSearchQuery.trim();
       filtered = filtered.where((product) {
-        final query = _ecoSearchQuery.toLowerCase();
-        return product.name.toLowerCase().contains(query) ||
-            product.description.toLowerCase().contains(query) ||
-            product.ecoLevel.name.toLowerCase().contains(query) ||
-            product.materialDescription.toLowerCase().contains(query) ||
-            product.ecoJustification.toLowerCase().contains(query) ||
-            (product.categoryName?.toLowerCase().contains(query) ?? false) ||
-            product.sellerId
-                .toLowerCase()
-                .contains(query) || // ค้นหาตาม sellerId
-            (product.keywords
-                    ?.any((keyword) => keyword.toLowerCase().contains(query)) ??
-                false); // ค้นหาตาม keywords
+        final fields = [
+          product.name,
+          product.description,
+          product.ecoLevel.name,
+          product.materialDescription,
+          product.ecoJustification,
+          product.categoryName ?? '',
+          product.sellerId,
+          ...?product.keywords
+        ];
+        return fields.any((field) =>
+            field.trim().isNotEmpty &&
+            (isFuzzyMatch(q, field, threshold: 0.48) ||
+                field.toLowerCase().contains(q.toLowerCase())));
       }).toList();
     }
 
@@ -1984,6 +1253,16 @@ class _HomeScreenState extends State<HomeScreen> {
   // Enhanced section to show products by category with eco level grouping
   Widget _buildCategoryProductsWithEcoLevel(List<Product> products) {
     final filteredProducts = _getFilteredProducts(products);
+
+    // DEBUG: Log eco level information
+    print('� ECO DEBUG: Total products: ${products.length}');
+    print('� ECO DEBUG: Filtered products: ${filteredProducts.length}');
+
+    // Check eco scores and levels for ALL products (not just filtered)
+    for (var product in products.take(20)) {
+      print(
+          '� ECO Product: "${product.name}" | EcoScore: ${product.ecoScore} | EcoLevel: ${product.ecoLevel}');
+    }
 
     if (filteredProducts.isEmpty) {
       return SliverToBoxAdapter(
@@ -2034,69 +1313,97 @@ class _HomeScreenState extends State<HomeScreen> {
       productsByEcoLevel.putIfAbsent(product.ecoLevel, () => []).add(product);
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final ecoLevel = EcoLevel.values[index];
-          final levelProducts = productsByEcoLevel[ecoLevel] ?? [];
+    // DEBUG: Log products by eco level
+    print('🔥 ECO DEBUG: Products by level:');
+    productsByEcoLevel.forEach((level, products) {
+      print('🔥 ECO  - ${level.name}: ${products.length} products');
+    });
 
-          if (levelProducts.isEmpty) {
-            return const SizedBox.shrink();
-          }
+    // แสดงทุกระดับแม้ว่าจะไม่มีสินค้า (เพื่อ debug)
+    List<Widget> ecoSections = [];
 
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Eco level header
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: [
-                      Text(
-                        _getEcoLevelEmoji(ecoLevel),
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ระดับ ${_getEcoLevelThaiName(ecoLevel)}',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: ecoLevel.color,
-                              ),
+    for (var ecoLevel in EcoLevel.values) {
+      final levelProducts = productsByEcoLevel[ecoLevel] ?? [];
+
+      print(
+          '🔥 ECO Building section for ${ecoLevel.name}: ${levelProducts.length} products');
+
+      // แสดงแม้ไม่มีสินค้า (เพื่อ debug)
+      ecoSections.add(
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Eco level header
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color:
+                      levelProducts.isEmpty ? Colors.grey[100] : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: levelProducts.isEmpty
+                        ? Colors.grey[300]!
+                        : ecoLevel.color,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Text(
+                      _getEcoLevelEmoji(ecoLevel),
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ระดับ ${_getEcoLevelThaiName(ecoLevel)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: levelProducts.isEmpty
+                                  ? Colors.grey
+                                  : ecoLevel.color,
                             ),
-                            Text(
-                              '${levelProducts.length} รายการ${_selectedCategory != null ? ' ใน ${_selectedCategory!.name}' : ''}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF757575),
-                              ),
+                          ),
+                          Text(
+                            levelProducts.isEmpty
+                                ? 'ไม่มีสินค้าในระดับนี้'
+                                : '${levelProducts.length} รายการ${_selectedCategory != null ? ' ใน ${_selectedCategory!.name}' : ''}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: levelProducts.isEmpty
+                                  ? Colors.grey
+                                  : const Color(0xFF757575),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
+                    if (levelProducts.isNotEmpty)
                       TextButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  EcoLevelProductsScreen(ecoLevel: ecoLevel),
-                            ),
-                          );
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     builder: (_) =>
+                          //         EcoLevelProductsScreen(ecoLevel: ecoLevel),
+                          //   ),
+                          // );
                         },
                         child: const Text('ดูทั้งหมด'),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-                // Products horizontal list
+              ),
+              // Products horizontal list
+              if (levelProducts.isNotEmpty) ...[
+                const SizedBox(height: 8),
                 SizedBox(
                   height: 220,
                   child: ListView.builder(
@@ -2123,13 +1430,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
-            ),
-          );
-        },
-        childCount: EcoLevel.values.length,
-      ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildListDelegate(ecoSections),
     );
   }
 }

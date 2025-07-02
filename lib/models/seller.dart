@@ -69,9 +69,14 @@ class Seller {
     };
   }
 
-  // OPTION 2: Get a formatted string of when the seller joined
+  // Get a formatted string of when the seller joined
   String get joinedDateFormatted {
-    // You can adjust the format as needed
     return '${createdAt.toDate().day}/${createdAt.toDate().month}/${createdAt.toDate().year}';
+  }
+
+  // Method to update seller's wallet balance
+  Future<void> updateWalletBalance(
+      String projectId, String userId, double amount) async {
+    // Implementation for updating the wallet balance
   }
 }

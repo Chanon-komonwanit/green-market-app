@@ -1,5 +1,6 @@
 // lib/screens/investment/esg_funds_coming_soon_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/utils/constants.dart';
 
 class ESGFundsComingSoonScreen extends StatefulWidget {
@@ -549,18 +550,34 @@ class _ESGFundsComingSoonScreenState extends State<ESGFundsComingSoonScreen> {
     );
   }
 
-  void _submitEmail() {
+  void _submitEmail() async {
     if (_emailController.text.trim().isNotEmpty) {
       setState(() {
         _emailSubmitted = true;
       });
-      // TODO: Implement actual email submission to backend
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ระบบจะแจ้งเตือนคุณเมื่อกองทุน ESG พร้อมให้บริการ'),
-          backgroundColor: AppColors.primaryGreen,
-        ),
-      );
+
+      try {
+        // บันทึกอีเมลไว้ใน Firestore เพื่อแจ้งเตือนในอนาคต
+        await FirebaseFirestore.instance.collection('esg_fund_waitlist').add({
+          'email': _emailController.text.trim(),
+          'created_at': FieldValue.serverTimestamp(),
+          'notified': false,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ระบบจะแจ้งเตือนคุณเมื่อกองทุน ESG พร้อมให้บริการ'),
+            backgroundColor: AppColors.primaryGreen,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการบันทึกอีเมล: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

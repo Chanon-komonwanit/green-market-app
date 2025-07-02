@@ -11,6 +11,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies: # Corrected: Already correct
+  string_similarity: ^2.0.0
   flutter:
     sdk: flutter
 
@@ -20,6 +21,7 @@ dependencies: # Corrected: Already correct
   cloud_firestore: ^5.0.2 # Keep this version for now
   firebase_auth: ^5.1.1 # Keep this version for now
   firebase_storage: ^12.1.0 # Keep this version for now
+  firebase_messaging: ^15.0.2 # For FCM notifications
 
   provider: ^6.1.2 # Using a slightly older version for broader compatibility
   image_picker: ^1.1.2 # Latest stable

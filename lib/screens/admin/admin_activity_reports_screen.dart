@@ -248,7 +248,7 @@ class _AdminActivityReportsScreenState
                       title: 'รายงานของคุณได้รับการอัปเดต',
                       body:
                           'สถานะรายงานกิจกรรม "${report['activityTitle'] ?? 'ไม่ระบุ'}" ของคุณได้เปลี่ยนเป็น "${_getReportStatusDisplay(selectedStatus)}"',
-                      type: 'activity_report_update',
+                      type: NotificationType.activityUpdate,
                       relatedId: report['activityId'] ?? '',
                       createdAt: Timestamp.now(),
                     );
@@ -329,7 +329,7 @@ class _AdminActivityReportsScreenState
           title: 'กิจกรรมของคุณถูกลบ',
           body:
               'กิจกรรม "${activity['title'] ?? 'ไม่ระบุ'}" ของคุณถูกลบเนื่องจากมีการรายงานปัญหา โปรดตรวจสอบรายงานในหน้าจัดการกิจกรรม',
-          type: 'activity_deleted',
+          type: NotificationType.activityCancelled,
           relatedId: activity['id'] ?? '',
           createdAt: Timestamp.now(),
         );

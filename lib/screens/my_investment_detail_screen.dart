@@ -17,9 +17,8 @@ class MyInvestmentDetailPage extends StatelessWidget {
     final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
     final double currentReturn =
         investment.amount * 0.05; // Placeholder 5% return
-    final double returnPercentage = (investment.amount > 0)
-        ? (currentReturn / investment.amount) * 100
-        : 0;
+    final double returnPercentage =
+        (investment.amount > 0) ? (currentReturn / investment.amount) * 100 : 0;
 
     return Scaffold(
       appBar: AppBar(

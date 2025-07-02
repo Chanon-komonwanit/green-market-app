@@ -143,8 +143,10 @@ class NotificationsScreen extends StatelessWidget {
                           .markNotificationAsRead(notification.id);
                     }
                     // Optionally navigate to related content based on notification.type and notification.relatedId
-                    if (notification.type == 'investment_project_approved' ||
-                        notification.type == 'investment_project_rejected') {
+                    if (notification.type ==
+                            NotificationType.investmentApproved ||
+                        notification.type ==
+                            NotificationType.investmentRejected) {
                       // Corrected: Already correct
                       final project = await firebaseService
                           .getInvestmentProjectById(notification.relatedId!);
@@ -159,9 +161,12 @@ class NotificationsScreen extends StatelessWidget {
                         showAppSnackBar(context, 'ไม่พบโครงการที่เกี่ยวข้อง',
                             isError: true);
                       }
-                    } else if (notification.type == 'activity_approved' ||
-                        notification.type == 'activity_rejected' ||
-                        notification.type == 'activity_deleted') {
+                    } else if (notification.type ==
+                            NotificationType.activityApproved ||
+                        notification.type ==
+                            NotificationType.activityRejected ||
+                        notification.type ==
+                            NotificationType.activityCancelled) {
                       // Corrected: Already correct
                       final activity = await firebaseService
                           .getSustainableActivityById(notification.relatedId!);

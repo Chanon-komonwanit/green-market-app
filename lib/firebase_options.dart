@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'green-market-32046.firebasestorage.app',
     measurementId: 'G-NGC2J69QC1',
   );
-
 }

@@ -9,6 +9,7 @@ import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
+// import 'package:green_market/utils/app_text_styles.dart';
 import 'package:provider/provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {

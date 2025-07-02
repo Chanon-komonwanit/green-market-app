@@ -29,7 +29,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await initializeDateFormatting('th', null);
-  await NotificationService().init();
+  await NotificationService().initialize();
   runApp(MyApp());
 }
 

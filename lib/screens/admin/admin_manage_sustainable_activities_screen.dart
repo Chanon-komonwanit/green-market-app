@@ -204,7 +204,7 @@ class _AdminManageSustainableActivitiesScreenState
           title: 'กิจกรรมของคุณได้รับการอนุมัติ',
           body:
               'กิจกรรม "${activityDoc.title}" ของคุณได้รับการอนุมัติแล้ว และจะแสดงในแอปพลิเคชัน',
-          type: 'activity_approved',
+          type: NotificationType.activityApproved,
           relatedId: activityId,
           createdAt: Timestamp.now(),
         );
@@ -287,7 +287,7 @@ class _AdminManageSustainableActivitiesScreenState
                       title: 'กิจกรรมของคุณถูกปฏิเสธ',
                       body:
                           'กิจกรรม "${activityDoc.title}" ของคุณถูกปฏิเสธด้วยเหตุผล: ${reasonController.text.trim()}',
-                      type: 'activity_rejected',
+                      type: NotificationType.activityRejected,
                       relatedId: activityId,
                       createdAt: Timestamp.now(),
                     );

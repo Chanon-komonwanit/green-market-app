@@ -876,12 +876,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement image delete
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('ลบโลโก้สำเร็จ')),
-                        );
-                      },
+                      onPressed: _isLoading ? null : _deleteLogo,
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('ลบ'),
                       style: ElevatedButton.styleFrom(
@@ -929,12 +924,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement hero image delete
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('ลบรูปปกสำเร็จ')),
-                        );
-                      },
+                      onPressed: _isLoading ? null : _deleteHeroImage,
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('ลบ'),
                       style: ElevatedButton.styleFrom(
@@ -1002,14 +992,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                               color: AppColors.primaryTeal,
                             ),
                             IconButton(
-                              onPressed: () {
-                                // TODO: Implement banner delete
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          'ลบแบนเนอร์ ${index + 1} สำเร็จ')),
-                                );
-                              },
+                              onPressed: () => _deleteBannerByIndex(index),
                               icon: const Icon(Icons.delete_outline),
                               color: Colors.red,
                             ),
@@ -1023,14 +1006,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement add new banner
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('ฟีเจอร์เพิ่มแบนเนอร์ใหม่ กำลังพัฒนา')),
-                      );
-                    },
+                    onPressed: _addNewBanner,
                     icon: const Icon(Icons.add_photo_alternate_outlined),
                     label: const Text('เพิ่มแบนเนอร์ใหม่'),
                     style: ElevatedButton.styleFrom(
@@ -1072,7 +1048,15 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
         // อัปเดตการตั้งค่าแอป
         if (mounted) {
-          // TODO: อัปเดต app config ใน Firestore ด้วย logoUrl
+          // อัปเดต app config ใน Firestore ด้วย logoUrl
+          await FirebaseFirestore.instance
+              .collection('app_settings')
+              .doc('app_config')
+              .update({
+            'logoUrl': logoUrl,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+
           print('Logo uploaded to: $logoUrl');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('อัปโหลดโลโก้สำเร็จ!')),
@@ -1164,6 +1148,239 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // ฟังก์ชันลบโลโก้
+  Future<void> _deleteLogo() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการลบโลโก้'),
+        content: const Text('คุณต้องการลบโลโก้แอปพลิเคชันหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() => _isLoading = true);
+
+        // ลบโลโก้จาก app config ใน Firestore
+        await FirebaseFirestore.instance
+            .collection('app_settings')
+            .doc('app_config')
+            .update({
+          'logoUrl': FieldValue.delete(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ลบโลโก้สำเร็จ!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการลบโลโก้: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  // ฟังก์ชันลบรูปปก (Hero Image)
+  Future<void> _deleteHeroImage() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการลบรูปปก'),
+        content: const Text('คุณต้องการลบรูปปกหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() => _isLoading = true);
+
+        // ลบรูปปกจาก app config ใน Firestore
+        await FirebaseFirestore.instance
+            .collection('app_settings')
+            .doc('app_config')
+            .update({
+          'heroImageUrl': FieldValue.delete(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ลบรูปปกสำเร็จ!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการลบรูปปก: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  // ฟังก์ชันลบแบนเนอร์
+  Future<void> _deleteBannerByIndex(int bannerIndex) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการลบแบนเนอร์'),
+        content: Text('คุณต้องการลบแบนเนอร์ ${bannerIndex + 1} หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() => _isLoading = true);
+
+        // ลบแบนเนอร์จาก app config ใน Firestore
+        await FirebaseFirestore.instance
+            .collection('app_settings')
+            .doc('app_config')
+            .update({
+          'banner${bannerIndex}Url': FieldValue.delete(),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ลบแบนเนอร์ ${bannerIndex + 1} สำเร็จ!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการลบแบนเนอร์: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  // ฟังก์ชันเพิ่มแบนเนอร์ใหม่
+  Future<void> _addNewBanner() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() => _isLoading = true);
+
+        final firebaseService =
+            Provider.of<FirebaseService>(context, listen: false);
+        String fileName =
+            'new_banner_${DateTime.now().millisecondsSinceEpoch}.${pickedFile.name.split('.').last}';
+
+        String bannerUrl;
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          bannerUrl = await firebaseService.uploadImageBytes(
+              'app_images', fileName, bytes);
+        } else {
+          bannerUrl = await firebaseService
+              .uploadImage('app_images', pickedFile.path, fileName: fileName);
+        }
+
+        // บันทึกแบนเนอร์ใหม่ลงใน Firestore
+        await FirebaseFirestore.instance
+            .collection('app_settings')
+            .doc('banners')
+            .collection('active_banners')
+            .add({
+          'imageUrl': bannerUrl,
+          'order': DateTime.now().millisecondsSinceEpoch,
+          'isActive': true,
+          'created_at': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('เพิ่มแบนเนอร์ใหม่สำเร็จ!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการเพิ่มแบนเนอร์: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

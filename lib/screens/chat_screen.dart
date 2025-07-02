@@ -32,27 +32,47 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late FirebaseService _firebaseService;
-  late User _currentUser;
+  FirebaseService? _firebaseService;
+  User? _currentUser;
   String _otherUserName = "ผู้ขาย";
+  String? _initError;
 
   @override
   void initState() {
     super.initState();
-    _currentUser = FirebaseAuth.instance.currentUser!;
-    _firebaseService = Provider.of<FirebaseService>(context, listen: false);
-    _fetchOtherUserName();
-    String effectiveChatId = widget.chatId ?? '';
-
-    if (effectiveChatId.isNotEmpty) {
-      _firebaseService.markChatRoomAsRead(effectiveChatId, _currentUser.uid);
+    try {
+      _currentUser = FirebaseAuth.instance.currentUser;
+      if (_currentUser == null) {
+        _initError = 'ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่';
+        return;
+      }
+      _firebaseService = Provider.of<FirebaseService>(context, listen: false);
+      if (_firebaseService == null) {
+        _initError = 'FirebaseService ไม่พร้อมใช้งาน';
+        return;
+      }
+      if (widget.buyerId.isEmpty ||
+          widget.sellerId.isEmpty ||
+          widget.productId.isEmpty) {
+        _initError = 'ข้อมูลแชทไม่ครบถ้วน';
+        return;
+      }
+      _fetchOtherUserName();
+      String effectiveChatId = widget.chatId ?? '';
+      if (effectiveChatId.isNotEmpty) {
+        _firebaseService!
+            .markChatRoomAsRead(effectiveChatId, _currentUser!.uid);
+      }
+    } catch (e) {
+      _initError = 'เกิดข้อผิดพลาด: ' + e.toString();
     }
   }
 
   Future<void> _fetchOtherUserName() async {
+    if (_currentUser == null || _firebaseService == null) return;
     String otherUserId =
-        _currentUser.uid == widget.buyerId ? widget.sellerId : widget.buyerId;
-    String? name = await _firebaseService.getUserDisplayName(otherUserId);
+        _currentUser!.uid == widget.buyerId ? widget.sellerId : widget.buyerId;
+    String? name = await _firebaseService!.getUserDisplayName(otherUserId);
     if (mounted && name != null) {
       setState(() {
         _otherUserName = name;
@@ -64,13 +84,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messageController.text.trim().isEmpty) {
       return;
     }
+    if (_currentUser == null || _firebaseService == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('ไม่สามารถส่งข้อความได้: ไม่พบผู้ใช้หรือบริการ Firebase')),
+      );
+      return;
+    }
     final messageText = _messageController.text.trim();
     _messageController.clear();
 
     try {
       final messageData = {
         'text': messageText,
-        'senderId': _currentUser.uid,
+        'senderId': _currentUser!.uid,
         'timestamp': FieldValue.serverTimestamp(),
         'productId': widget.productId,
         'productName': widget.productName,
@@ -81,7 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final chatRoomId =
           '${widget.buyerId}_${widget.sellerId}_${widget.productId}';
 
-      await _firebaseService.sendMessage(chatRoomId, messageData);
+      await _firebaseService!.sendMessage(chatRoomId, messageData);
     } catch (e) {
       if (mounted) {
         _messageController.text = messageText;
@@ -112,6 +140,31 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final DateFormat messageTimeFormat = DateFormat('HH:mm');
+
+    if (_initError != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('แชท'),
+          backgroundColor: AppColors.primaryGreen,
+        ),
+        body: Center(
+          child: Text(_initError!,
+              style: const TextStyle(color: Colors.red, fontSize: 16)),
+        ),
+      );
+    }
+    if (_currentUser == null || _firebaseService == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('แชท'),
+          backgroundColor: AppColors.primaryGreen,
+        ),
+        body: const Center(
+          child: Text('ไม่พบข้อมูลผู้ใช้หรือบริการ Firebase',
+              style: TextStyle(color: Colors.red, fontSize: 16)),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -144,9 +197,15 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _firebaseService.getChatMessages(
+              stream: _firebaseService!.getChatMessages(
                   '${widget.buyerId}_${widget.sellerId}_${widget.productId}'),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('เกิดข้อผิดพลาด: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red)),
+                  );
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child: CircularProgressIndicator(
@@ -172,7 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final bool isMe = message['senderId'] == _currentUser.uid;
+                    final bool isMe = message['senderId'] == _currentUser!.uid;
                     final Timestamp? timestamp = message['timestamp'];
                     final String displayTime = timestamp != null
                         ? messageTimeFormat.format(timestamp.toDate().toLocal())
@@ -207,7 +266,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               : CrossAxisAlignment.start,
                           children: [
                             Text(
-                              message['message'] ?? '',
+                              (message['text'] ?? message['message'] ?? ''),
                               style: AppTextStyles.body.copyWith(
                                   color: isMe
                                       ? AppColors.white

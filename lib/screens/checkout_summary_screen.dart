@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/screens/order_confirmation_screen.dart';
 import 'package:green_market/screens/payment_confirmation_screen.dart';
+import 'package:green_market/utils/notification_helper.dart';
 
 class CheckoutSummaryScreen extends StatefulWidget {
   final Map<String, dynamic> shippingAddress;
@@ -142,6 +143,51 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
       );
 
       await firebaseService.placeOrder(newOrder);
+
+      // Send notifications after successful order placement
+      try {
+        // Send notification to buyer for payment confirmation
+        if (_selectedPaymentMethod == 'qr_code') {
+          await NotificationHelper.paymentSuccess(
+            userId: currentUser.uid,
+            orderId: newOrder.id,
+            amount: totalAmount.toStringAsFixed(2),
+            paymentMethod: _selectedPaymentMethod!,
+          );
+        } else {
+          await NotificationHelper.orderConfirmed(
+            userId: currentUser.uid,
+            orderId: newOrder.id,
+            orderTotal: totalAmount.toStringAsFixed(2),
+            productNames: orderItems.map((item) => item.productName).toList(),
+          );
+        }
+
+        // Send notifications to all sellers involved
+        for (String sellerId in sellerIds) {
+          final sellerProducts =
+              orderItems.where((item) => item.sellerId == sellerId).toList();
+          final sellerTotal = sellerProducts.fold(
+              0.0, (sum, item) => sum + (item.pricePerUnit * item.quantity));
+
+          await NotificationHelper.newOrder(
+            sellerId: sellerId,
+            orderId: newOrder.id,
+            customerName: widget.shippingAddress['fullName'],
+            orderTotal: sellerTotal.toStringAsFixed(2),
+            products: sellerProducts
+                .map((item) => {
+                      'name': item.productName,
+                      'quantity': item.quantity,
+                      'price': item.pricePerUnit,
+                    })
+                .toList(),
+          );
+        }
+      } catch (notificationError) {
+        // Don't fail the order if notification fails
+        print('Failed to send notifications: $notificationError');
+      }
 
       cartProvider.clearCart();
 

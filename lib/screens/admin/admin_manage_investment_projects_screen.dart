@@ -209,7 +209,7 @@ class _AdminManageInvestmentProjectsScreenState
         title: 'โครงการลงทุนของคุณได้รับการอนุมัติ',
         body:
             'โครงการ "${project.title}" ของคุณได้รับการอนุมัติแล้ว และจะแสดงในแอปพลิเคชัน',
-        type: 'investment_project_approved',
+        type: NotificationType.investmentApproved,
         relatedId: projectId,
         createdAt: Timestamp.now(),
       );
@@ -287,7 +287,7 @@ class _AdminManageInvestmentProjectsScreenState
                     title: 'โครงการลงทุนของคุณถูกปฏิเสธ',
                     body:
                         'โครงการ "${project.title}" ของคุณถูกปฏิเสธด้วยเหตุผล: ${reasonController.text.trim()}',
-                    type: 'investment_project_rejected',
+                    type: NotificationType.investmentRejected,
                     relatedId: projectId,
                     createdAt: Timestamp.now(),
                   );

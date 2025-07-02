@@ -22,8 +22,7 @@ class MyOrganizedActivitiesScreen extends StatelessWidget {
     );
 
     final organizerId = userProvider
-        .currentUser
-        ?.id; // Corrected: Use currentUser and correct property
+        .currentUser?.id; // Corrected: Use currentUser and correct property
 
     if (organizerId == null) {
       return Scaffold(
