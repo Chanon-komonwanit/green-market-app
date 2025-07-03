@@ -16,6 +16,7 @@ import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/widgets/smart_eco_hero_tab.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -34,9 +35,9 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 4, // เพิ่มจาก 3 เป็น 4 แท็บ
       vsync: this,
-    ); // แชท, ตะกร้า, แจ้งเตือน
+    ); // Smart Eco Hero, แชท, ตะกร้า, แจ้งเตือน
   }
 
   @override
@@ -80,11 +81,16 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                 _ModernTabBar(),
                 const SizedBox(height: 4),
 
-                // TabBarView - แชท, ตะกร้า, แจ้งเตือน
+                // TabBarView - Smart Eco Hero, แชท, ตะกร้า, แจ้งเตือน
                 Flexible(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [_ChatTab(), _CartTab(), _NotificationsTab()],
+                    children: [
+                      const SmartEcoHeroTab(), // แท็บใหม่
+                      _ChatTab(),
+                      _CartTab(),
+                      _NotificationsTab()
+                    ],
                   ),
                 ),
               ],
@@ -122,16 +128,17 @@ class _MyHomeScreenState extends State<MyHomeScreen>
           borderRadius: BorderRadius.circular(16),
         ),
         indicatorWeight: 0,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         tabs: const [
-          Tab(text: 'แชท', icon: Icon(Icons.chat_bubble_outline, size: 22)),
+          Tab(text: 'Eco Hero', icon: Icon(Icons.auto_awesome, size: 20)),
+          Tab(text: 'แชท', icon: Icon(Icons.chat_bubble_outline, size: 20)),
           Tab(
             text: 'ตะกร้า',
-            icon: Icon(Icons.shopping_cart_outlined, size: 22),
+            icon: Icon(Icons.shopping_cart_outlined, size: 20),
           ),
           Tab(
             text: 'แจ้งเตือน',
-            icon: Icon(Icons.notifications_outlined, size: 22),
+            icon: Icon(Icons.notifications_outlined, size: 20),
           ),
         ],
       ),
@@ -876,8 +883,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child:
-                        currentUser?.photoUrl != null &&
+                    child: currentUser?.photoUrl != null &&
                             currentUser!.photoUrl!.isNotEmpty
                         ? Image.network(
                             currentUser.photoUrl!,
@@ -900,7 +906,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
                               currentUser?.displayName?.isNotEmpty == true
                                   ? currentUser!.displayName!
                                   : currentUser?.email.split('@').first ??
-                                        'ผู้ใช้งาน',
+                                      'ผู้ใช้งาน',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
