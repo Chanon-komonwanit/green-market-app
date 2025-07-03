@@ -15,6 +15,7 @@ import 'package:green_market/screens/admin/admin_order_management_screen.dart';
 import 'package:green_market/screens/admin/admin_seller_application_screen.dart';
 import 'package:green_market/screens/admin/admin_user_management_screen.dart';
 import 'package:green_market/screens/admin/admin_promotion_management_screen.dart';
+import 'package:green_market/screens/admin/admin_rewards_management_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -210,7 +211,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final firebaseService = Provider.of<FirebaseService>(context);
 
     return DefaultTabController(
-      length: 11, // แก้ไขจำนวน tabs ให้ตรงกับที่มีจริง
+      length: 12, // แก้ไขจำนวน tabs ให้ตรงกับที่มีจริง (เพิ่มแท็บรางวัล)
       child: Scaffold(
         appBar: AppBar(
           title: Text('แผงควบคุมผู้ดูแลระบบ',
@@ -243,6 +244,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   text: 'กิจกรรมยั่งยืน',
                   icon: Icon(Icons.nature_people_outlined)),
               Tab(
+                  text: 'รางวัล Eco Coins',
+                  icon: Icon(Icons.card_giftcard_outlined)),
+              Tab(
                   text: 'ตั้งค่าแอป',
                   icon: Icon(Icons.settings_applications_outlined)),
               Tab(
@@ -271,9 +275,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             const AdminManageInvestmentProjectsScreen(),
             // Tab 8: Sustainable Activities
             const AdminManageSustainableActivitiesScreen(),
-            // Tab 9: App Settings
+            // Tab 9: Eco Rewards Management
+            const AdminRewardsManagementScreen(),
+            // Tab 10: App Settings
             const DynamicAppConfigScreen(),
-            // Tab 10: System Management
+            // Tab 11: System Management
             _buildSystemManagementTab(),
           ],
         ),

@@ -45,8 +45,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     try {
       await userProvider.updateUserProfile(
-        _displayNameController.text.trim(),
-        _phoneController.text.trim(),
+        displayName: _displayNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
       );
       if (mounted) {
         showAppSnackBar(context, 'Profile updated successfully!',

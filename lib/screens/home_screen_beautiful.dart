@@ -13,7 +13,9 @@ import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
 import 'package:green_market/widgets/eco_coins_widget.dart';
+import 'package:green_market/widgets/enhanced_eco_coins_widget.dart';
 import 'package:green_market/widgets/green_world_icon.dart';
+import 'package:green_market/widgets/animated_green_world_button.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/thai_fuzzy_search.dart';
 
@@ -25,7 +27,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   late Future<Map<String, dynamic>> _homeDataFuture;
   Category? _selectedCategory; // สำหรับเก็บหมวดหมู่ที่เลือก
   EcoLevel? _selectedEcoLevel; // สำหรับเก็บ EcoLevel ที่เลือก
@@ -35,16 +37,22 @@ class _HomeScreenState extends State<HomeScreen>
   String _searchQuery = '';
   final String _ecoSearchQuery = ''; // สำหรับ EcoLevel search
 
+  // เพิ่ม TabController สำหรับระดับสินค้า
+  late TabController _ecoLevelTabController;
+
   @override
   void initState() {
     super.initState();
     _homeDataFuture = _fetchHomeData();
+    // สร้าง TabController สำหรับระดับสินค้า (ทั้งหมด + 4 ระดับ = 5 tabs)
+    _ecoLevelTabController = TabController(length: 5, vsync: this);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _ecoSearchController.dispose();
+    _ecoLevelTabController.dispose();
     super.dispose();
   }
 
@@ -262,20 +270,40 @@ class _HomeScreenState extends State<HomeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryTeal.withOpacity(0.2),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
+              // Enhanced animated icon container
+              TweenAnimationBuilder<double>(
+                duration: const Duration(seconds: 2),
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.8 + (0.2 * value),
+                    child: Container(
+                      padding: const EdgeInsets.all(40),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                AppColors.primaryTeal.withOpacity(0.3 * value),
+                            blurRadius: 40 * value,
+                            offset: const Offset(0, 20),
+                          ),
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.2 * value),
+                            blurRadius: 60 * value,
+                            offset: const Offset(0, 30),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: AppColors.primaryTeal.withOpacity(0.1),
+                          width: 3,
+                        ),
+                      ),
+                      child: const GreenWorldIcon(size: 140),
                     ),
-                  ],
-                ),
-                child: GreenWorldIcon(size: 120),
+                  );
+                },
               ),
               const SizedBox(height: 40),
               Container(
@@ -294,33 +322,40 @@ class _HomeScreenState extends State<HomeScreen>
                     const Text(
                       'GREEN MARKET',
                       style: TextStyle(
-                        fontSize: 40, // เพิ่มขนาดจาก 36 เป็น 40
+                        fontSize: 48, // เพิ่มขนาดจาก 40 เป็น 48
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1B5E20),
-                        letterSpacing: 2.2, // เพิ่ม letterSpacing เล็กน้อย
+                        letterSpacing: 3.0, // เพิ่ม letterSpacing
+                        shadows: [
+                          Shadow(
+                            offset: Offset(2, 2),
+                            blurRadius: 4,
+                            color: Color(0x40000000),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                          horizontal: 32, vertical: 16),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
                         ),
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.green.withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
+                            color: Colors.green.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
                       child: const Text(
                         'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
                         style: TextStyle(
-                          fontSize: 16, // เพิ่มขนาดจาก 14 เป็น 16
+                          fontSize: 20, // เพิ่มขนาดจาก 16 เป็น 20
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -328,30 +363,8 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     const SizedBox(height: 48),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const GreenWorldHubScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.explore, size: 24),
-                      label: const Text('เริ่มสำรวจ'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 16),
-                        textStyle: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25)),
-                        elevation: 8,
-                        shadowColor: Colors.green.withOpacity(0.4),
-                      ),
-                    ),
+                    // Enhanced Animated Green World Button
+                    const AnimatedGreenWorldButton(),
                   ],
                 ),
               ),
@@ -435,10 +448,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           // Banner ข่าวสาร/โปรโมชั่น (ถ้ามี)
           if (promotions.isNotEmpty) _buildPromotionBanner(promotions),
-          // Platinum Hero Section (โชว์สินค้าแพลตตินั่ม)
-          _buildPlatinumHeroSection(products),
-          // Eco Level Section (โชว์สินค้าแต่ละระดับ)
-          _buildCategoryProductsWithEcoLevel(products),
+          // Eco Level Tabs และ Products
+          _buildEcoLevelTabsSection(products),
           // Spacing ด้านล่าง
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
@@ -448,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 120, // ลดความสูงลงอีกจาก 140 เป็น 120
+      expandedHeight: 80,
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
@@ -459,317 +470,125 @@ class _HomeScreenState extends State<HomeScreen>
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF0D4F3C), // Deep Forest Green
-                Color(0xFF1B5E20), // Forest Green
-                Color(0xFF2E7D32), // Medium Green
-                Color(0xFF388E3C), // Bright Green
+                Color(0xFF2E7D32),
+                Color(0xFF388E3C),
+                Color(0xFF43A047),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              stops: [0.0, 0.3, 0.7, 1.0],
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF0D4F3C),
-                blurRadius: 15,
-                offset: Offset(0, 8),
+                color: Color(0xFF2E7D32),
+                blurRadius: 10,
+                offset: Offset(0, 5),
               ),
             ],
           ),
           child: SafeArea(
-            // เพิ่ม SafeArea เพื่อหลีกเลี่ยง overflow
             child: Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 8, 16, 6), // ลด padding ลงอีก
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+              child: Row(
                 children: [
                   Expanded(
-                    child: Row(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          flex: 5,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Flexible(
-                                // เพิ่ม Flexible เพื่อป้องกัน overflow
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(
-                                          6), // ลด padding เพิ่มเติม
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.white.withOpacity(
-                                                0.25), // ลดความโปร่งใส
-                                            Colors.white.withOpacity(0.12),
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                            12), // ลดรัศมี
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(
-                                              0.4), // ลดความโปร่งใส
-                                          width: 1.5, // ลดความหนาของเส้นขอบ
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.1),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Text(
-                                        '🌱',
-                                        style: TextStyle(
-                                            fontSize:
-                                                14), // ลดขนาดอีโมจิลงจาก 18 เป็น 14
-                                      ),
-                                    ),
-                                    const SizedBox(
-                                        width: 10), // ลด spacing เพิ่มเติม
-                                    Expanded(
-                                      // เพิ่ม Expanded เพื่อป้องกัน overflow
-                                      child: SingleChildScrollView(
-                                        // เพิ่ม ScrollView
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize
-                                              .min, // ลดขนาดให้เล็กที่สุด
-                                          children: [
-                                            ShaderMask(
-                                              shaderCallback: (bounds) =>
-                                                  const LinearGradient(
-                                                colors: [
-                                                  Colors.white,
-                                                  Color(0xFFE8F5E8)
-                                                ],
-                                                stops: [0.0, 1.0],
-                                              ).createShader(bounds),
-                                              child: const Text(
-                                                'GREEN MARKET',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize:
-                                                      20, // ลดขนาดฟอนต์จาก 22 เป็น 20
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing:
-                                                      1.2, // ลด letterSpacing จาก 1.3 เป็น 1.2
-                                                  fontFamily: 'Sarabun',
-                                                  shadows: [
-                                                    Shadow(
-                                                      color: Color(0xFF0D4F3C),
-                                                      blurRadius: 8,
-                                                      offset: Offset(0, 3),
-                                                    ),
-                                                    Shadow(
-                                                      color: Colors.black26,
-                                                      blurRadius: 12,
-                                                      offset: Offset(0, 6),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Container(
-                                              padding: const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal:
-                                                      4, // ลด padding เพิ่มเติม
-                                                  vertical:
-                                                      1), // ลด padding เพิ่มเติม
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(
-                                                    0.12), // ลดความโปร่งใส
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        8), // ลดรัศมี
-                                                border: Border.all(
-                                                  color: Colors.white
-                                                      .withOpacity(
-                                                          0.15), // ลดความโปร่งใส
-                                                  width: 0.5,
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize:
-                                                      10, // ลดขนาดฟอนต์จาก 11 เป็น 10
-                                                  fontWeight: FontWeight.w600,
-                                                  letterSpacing:
-                                                      0.2, // ลด letter spacing จาก 0.3 เป็น 0.2
-                                                  fontFamily: 'Sarabun',
-                                                ),
-                                                overflow: TextOverflow
-                                                    .ellipsis, // เพิ่ม overflow protection
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white.withOpacity(0.3),
+                                    Colors.white.withOpacity(0.1),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 6), // ลด spacing
-                              Flexible(
-                                // เพิ่ม Flexible
-                                child: SingleChildScrollView(
-                                  // เพิ่ม scroll protection
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4), // ลด padding
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.white.withOpacity(0.25),
-                                              Colors.white.withOpacity(0.15),
-                                            ],
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color:
-                                                Colors.white.withOpacity(0.3),
-                                            width: 1,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.1),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Text(
-                                              '🌍',
-                                              style: TextStyle(
-                                                  fontSize: 12), // ลดขนาด
-                                            ),
-                                            const SizedBox(width: 4),
-                                            ShaderMask(
-                                              shaderCallback: (bounds) =>
-                                                  const LinearGradient(
-                                                colors: [
-                                                  Colors.white,
-                                                  Color(0xFFB8E6B8)
-                                                ],
-                                              ).createShader(bounds),
-                                              child: const Text(
-                                                'The World\'s First Eco Market',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize:
-                                                      8, // ลดขนาดฟอนต์จาก 9 เป็น 8
-                                                  fontWeight: FontWeight.w700,
-                                                  letterSpacing:
-                                                      0.4, // ลด letterSpacing
-                                                  fontFamily: 'Sarabun',
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Container(
-                                              width: 3,
-                                              height: 3,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white
-                                                    .withOpacity(0.8),
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal:
-                                                5, // ลด padding เพิ่มเติม
-                                            vertical:
-                                                2), // ลด padding เพิ่มเติม
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Color(0xFF4CAF50),
-                                              Color(0xFF8BC34A)
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                              8), // ลดรัศมี
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.green.withOpacity(
-                                                  0.25), // ลดความเข้ม
-                                              blurRadius: 4, // ลด blur
-                                              offset: const Offset(
-                                                  0, 1), // ลด offset
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Text(
-                                          'LIVE',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 7, // ลดขนาดฟอนต์เพิ่มเติม
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing:
-                                                0.2, // ลด letter spacing
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.4),
+                                  width: 1.5,
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                        // Admin Settings Button (visible for admins)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1,
+                              child: const GreenWorldIcon(size: 24),
                             ),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              _showAdminSettings(context);
-                            },
-                            icon: const Icon(Icons.admin_panel_settings,
-                                color: Colors.white, size: 18), // ลดขนาดไอคอน
-                            tooltip: 'การตั้งค่าแอดมิน',
-                            padding: const EdgeInsets.all(8), // ลด padding
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'GREEN MARKET',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28, // เพิ่มจาก 24
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2.0, // เพิ่มจาก 1.5
+                                      fontFamily: 'Sarabun',
+                                      shadows: [
+                                        Shadow(
+                                          color: Color(0xFF1B5E20),
+                                          blurRadius: 8, // เพิ่มจาก 6
+                                          offset: Offset(0, 3), // เพิ่มจาก 2
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4), // เพิ่มจาก 2
+                                  Text(
+                                    'ตลาดสินค้าเพื่อโลกที่ยั่งยืน',
+                                    style: TextStyle(
+                                      color: Colors.white
+                                          .withOpacity(0.95), // เพิ่มจาก 0.9
+                                      fontSize: 14, // เพิ่มจาก 12
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.8, // เพิ่มจาก 0.5
+                                      fontFamily: 'Sarabun',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        // Eco Coins Widget
-                        const EcoCoinsWidget(),
                       ],
                     ),
+                  ),
+                  // Admin Settings Button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        _showAdminSettings(context);
+                      },
+                      icon: const Icon(Icons.admin_panel_settings,
+                          color: Colors.white, size: 20),
+                      tooltip: 'การตั้งค่าแอดมิน',
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Enhanced Eco Coins Widget
+                  const EnhancedEcoCoinsWidget(
+                    size: 20,
+                    showLabel: false,
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                 ],
               ),
@@ -947,171 +766,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildPlatinumHeroSection(List<Product> products) {
-    final platinumProducts =
-        products.where((p) => p.ecoLevel == EcoLevel.platinum).toList();
-
-    if (platinumProducts.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with diamond platinum border frame
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  width: 2,
-                  color: const Color(0xFF9C27B0), // เปลี่ยนเป็นม่วงเพชรเข้ม
-                ),
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFE1BEE7).withOpacity(0.05), // ม่วงอ่อนเพชร
-                    const Color(0xFF9C27B0).withOpacity(0.05), // ม่วงเข้มเพชร
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF9C27B0).withOpacity(0.3), // ม่วงเพชร
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        '💎 ',
-                        style: TextStyle(
-                            fontSize: 12), // ลดขนาดลงอีกจาก 14 เป็น 12
-                      ),
-                      const Text(
-                        'แพลตตินัมฮีโร่',
-                        style: TextStyle(
-                          fontSize: 16, // ลดขนาดลงอีกจาก 18 เป็น 16
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 6), // ลด spacing ลงจาก 8 เป็น 6
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1), // ลด padding ลง
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
-                              Color(0xFF9C27B0), // ม่วงเข้มเพชร
-                              Color(0xFF673AB7), // ม่วงเพชรลึก
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(
-                              10), // ลดรัศมีลงจาก 12 เป็น 10
-                        ),
-                        child: const Text(
-                          'แนะนำสูงสุด',
-                          style: TextStyle(
-                            color: Colors.white, // เปลี่ยนเป็นสีขาวให้อ่านง่าย
-                            fontSize: 9, // ลดขนาดฟอนต์ลงจาก 10 เป็น 9
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Diamond platinum corner decoration
-                      Container(
-                        width: 16, // ลดขนาดลงจาก 20 เป็น 16
-                        height: 16, // ลดขนาดลงจาก 20 เป็น 16
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
-                              Color(0xFF9C27B0), // ม่วงเข้มเพชร
-                              Color(0xFF673AB7), // ม่วงเพชรลึก
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(
-                              8), // ลดรัศมีลงจาก 10 เป็น 8
-                        ),
-                        child: const Icon(
-                          Icons.diamond, // เปลี่ยนจาก star เป็น diamond
-                          color: Colors.white, // เปลี่ยนเป็นสีขาวให้เห็นชัด
-                          size: 10, // ลดขนาดไอคอนลงจาก 12 เป็น 10
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6), // ลด spacing ลงจาก 8 เป็น 6
-                  Text(
-                    'สินค้าระดับสูงสุดสุดยอดแห่งความยั่งยืน • ${platinumProducts.length} รายการ',
-                    style: const TextStyle(
-                      fontSize: 10, // ลดขนาดลงอีกจาก 11 เป็น 10
-                      color: Color(0xFF757575),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 3), // ลด spacing ลงจาก 4 เป็น 3
-                  // Diamond platinum accent line
-                  Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFFE1BEE7), // ม่วงอ่อนเพชร
-                          Color(0xFF9C27B0), // ม่วงเข้มเพชร
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10), // ลด spacing ลงจาก 12 เป็น 10
-            SizedBox(
-              height: 180, // ลดความสูงลงจาก 200 เป็น 180
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: platinumProducts.take(6).length,
-                itemBuilder: (context, index) {
-                  final product = platinumProducts[index];
-                  return Container(
-                    width: 140,
-                    margin: const EdgeInsets.only(right: 12),
-                    child: ProductCard(
-                      product: product,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ProductDetailScreen(product: product),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAdminSettings(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -1155,33 +809,6 @@ class _HomeScreenState extends State<HomeScreen>
           backgroundColor: Colors.red,
         ),
       );
-    }
-  }
-
-  // ฟังก์ชันสำหรับจัดการ EcoLevel
-  String _getEcoLevelEmoji(EcoLevel level) {
-    switch (level) {
-      case EcoLevel.basic:
-        return '🌱'; // Basic level
-      case EcoLevel.standard:
-        return '🌿'; // Standard level
-      case EcoLevel.premium:
-        return '🏆'; // Premium level
-      case EcoLevel.platinum:
-        return '💎'; // Platinum diamond
-    }
-  }
-
-  String _getEcoLevelThaiName(EcoLevel level) {
-    switch (level) {
-      case EcoLevel.basic:
-        return 'เริ่มต้น';
-      case EcoLevel.standard:
-        return 'มาตรฐาน';
-      case EcoLevel.premium:
-        return 'พรีเมียม';
-      case EcoLevel.platinum:
-        return 'แพลตตินั่ม';
     }
   }
 
@@ -1250,196 +877,376 @@ class _HomeScreenState extends State<HomeScreen>
     return filtered;
   }
 
-  // Enhanced section to show products by category with eco level grouping
-  Widget _buildCategoryProductsWithEcoLevel(List<Product> products) {
-    final filteredProducts = _getFilteredProducts(products);
-
-    // DEBUG: Log eco level information
-    print('[ECO_DEBUG] Total products: ${products.length}');
-    print('[ECO_DEBUG] Filtered products: ${filteredProducts.length}');
-
-    // Check eco scores and levels for ALL products (not just filtered)
-    for (var product in products.take(20)) {
-      print(
-          '[ECO] Product: "${product.name}" | EcoScore: ${product.ecoScore} | EcoLevel: ${product.ecoLevel}');
-    }
-
-    if (filteredProducts.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.shopping_bag_outlined,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _selectedCategory == null
-                      ? 'ไม่พบสินค้า'
-                      : 'ไม่พบสินค้าในหมวดหมู่ ${_selectedCategory!.name}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+  // Eco Level Tabs Section
+  Widget _buildEcoLevelTabsSection(List<Product> products) {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  const Text(
+                    'สินค้าตามระดับความยั่งยืน',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            // Tab Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TabBar(
+                controller: _ecoLevelTabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                indicator: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                indicatorPadding: const EdgeInsets.all(4),
+                labelColor: Colors.white,
+                unselectedLabelColor: const Color(0xFF666666),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+                tabs: const [
+                  Tab(text: 'ทั้งหมด'),
+                  Tab(text: 'เริ่มต้น'),
+                  Tab(text: 'มาตรฐาน'),
+                  Tab(text: 'พรีเมี่ยม'),
+                  Tab(text: 'Eco Hero'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Tab Bar View
+            SizedBox(
+              height: 400, // กำหนดความสูงสำหรับ TabBarView
+              child: TabBarView(
+                controller: _ecoLevelTabController,
+                children: [
+                  _buildProductGrid(_getFilteredProducts(products)), // ทั้งหมด
+                  _buildProductGrid(_getProductsByLevel(
+                      products, EcoLevel.basic)), // เริ่มต้น
+                  _buildProductGrid(_getProductsByLevel(
+                      products, EcoLevel.standard)), // มาตรฐาน
+                  _buildProductGrid(_getProductsByLevel(
+                      products, EcoLevel.premium)), // พรีเมี่ยม
+                  _buildProductGrid(
+                      _getProductsByLevel(products, EcoLevel.hero)), // Eco Hero
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method สำหรับกรองสินค้าตามระดับ
+  List<Product> _getProductsByLevel(List<Product> products, EcoLevel level) {
+    return products.where((product) => product.ecoLevel == level).toList();
+  }
+
+  // Helper method สำหรับสร้าง Product Grid (แบบ Shopee)
+  Widget _buildProductGrid(List<Product> products) {
+    if (products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ไม่มีสินค้าในระดับนี้',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ลองเลือกระดับอื่นดูครับ',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    // Group products by eco level
-    Map<EcoLevel, List<Product>> productsByEcoLevel = {};
-    for (var product in filteredProducts) {
-      productsByEcoLevel.putIfAbsent(product.ecoLevel, () => []).add(product);
-    }
-
-    // DEBUG: Log products by eco level
-    print('[ECO_DEBUG] Products by level:');
-    productsByEcoLevel.forEach((level, products) {
-      print('[ECO]  - ${level.name}: ${products.length} products');
-    });
-
-    // แสดงทุกระดับแม้ว่าจะไม่มีสินค้า (เพื่อ debug)
-    List<Widget> ecoSections = [];
-
-    for (var ecoLevel in EcoLevel.values) {
-      final levelProducts = productsByEcoLevel[ecoLevel] ?? [];
-
-      print(
-          '[ECO] Building section for ${ecoLevel.name}: ${levelProducts.length} products');
-
-      // แสดงแม้ไม่มีสินค้า (เพื่อ debug)
-      ecoSections.add(
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Eco level header
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color:
-                      levelProducts.isEmpty ? Colors.grey[100] : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: levelProducts.isEmpty
-                        ? Colors.grey[300]!
-                        : ecoLevel.color,
-                    width: 2,
-                  ),
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.65, // ปรับให้เหมือน Shopee มากขึ้น (ลดลงจาก 0.7)
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: products.take(6).length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductDetailScreen(product: product),
+              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12), // เพิ่มจาก 8
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08), // เพิ่มเงาเล็กน้อย
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    Text(
-                      _getEcoLevelEmoji(ecoLevel),
-                      style: const TextStyle(fontSize: 24),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Image
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12), // เปลี่ยนจาก 8
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
+                      child: Stack(
                         children: [
-                          Text(
-                            'ระดับ ${_getEcoLevelThaiName(ecoLevel)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: levelProducts.isEmpty
-                                  ? Colors.grey
-                                  : ecoLevel.color,
-                            ),
-                          ),
-                          Text(
-                            levelProducts.isEmpty
-                                ? 'ไม่มีสินค้าในระดับนี้'
-                                : '${levelProducts.length} รายการ${_selectedCategory != null ? ' ใน ${_selectedCategory!.name}' : ''}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: levelProducts.isEmpty
-                                  ? Colors.grey
-                                  : const Color(0xFF757575),
+                          // Main Image
+                          product.imageUrls.isNotEmpty
+                              ? Image.network(
+                                  product.imageUrls.first,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (c, o, s) => Container(
+                                    color: Colors.grey[100],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: Colors.grey[100],
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                          // Eco Level Badge
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: product.ecoLevel.color.withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        product.ecoLevel.color.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                product.ecoLevel.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (levelProducts.isNotEmpty)
-                      TextButton(
-                        onPressed: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(
-                          //     builder: (_) =>
-                          //         EcoLevelProductsScreen(ecoLevel: ecoLevel),
-                          //   ),
-                          // );
-                        },
-                        child: const Text('ดูทั้งหมด'),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-              // Products horizontal list
-              if (levelProducts.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 220,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: levelProducts.take(5).length,
-                    itemBuilder: (context, productIndex) {
-                      final product = levelProducts[productIndex];
-                      return Container(
-                        width: 160,
-                        margin: const EdgeInsets.only(right: 12),
-                        child: ProductCard(
-                          product: product,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ProductDetailScreen(product: product),
-                              ),
-                            );
-                          },
+                // Product Details
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product Name
+                        Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontSize: 13, // เพิ่มจาก 12
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF333333),
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      );
-                    },
+                        const SizedBox(height: 6), // เพิ่มจาก 4
+                        // Price
+                        Row(
+                          children: [
+                            Text(
+                              '฿${product.price.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 16, // เพิ่มจาก 14
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEE4D2D), // Shopee orange
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // ราคาเดิม (ถ้ามี)
+                            Text(
+                              '฿${(product.price * 1.2).toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // Bottom Row (Rating, Sales, etc.)
+                        Row(
+                          children: [
+                            // Rating
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  size: 12, // เพิ่มจาก 10
+                                  color: Colors.amber[600],
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '4.8',
+                                  style: TextStyle(
+                                    fontSize: 10, // เพิ่มจาก 9
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 6),
+                            // Sales Count
+                            Expanded(
+                              child: Text(
+                                'ขายแล้ว ${(product.ecoScore * 3).toInt()}', // ใช้ ecoScore สร้าง mock data
+                                style: TextStyle(
+                                  fontSize: 10, // เพิ่มจาก 9
+                                  color: Colors.grey[500],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // Discount Badge (ถ้ามี)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red[50],
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(
+                                  color: Colors.red[300]!,
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                '-20%',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.red[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
-        ),
-      );
-    }
-
-    return SliverList(
-      delegate: SliverChildListDelegate(ecoSections),
+        );
+      },
     );
   }
 }

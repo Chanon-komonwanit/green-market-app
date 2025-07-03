@@ -49,11 +49,12 @@ class AppColors {
 }
 
 // Professional 4-level Eco Rating System (ระบบประเมินสินค้าเพื่อสิ่งแวดล้อม 4 ระดับ)
+// ระดับสินค้าใหม่: เริ่มต้น 20-39%, มาตรฐาน 40-59%, พรีเมี่ยม 60-89%, Eco Hero 90%+
 enum EcoLevel {
-  basic, // ระดับเริ่มต้น (0-24%)
-  standard, // ระดับมาตรฐาน (25-49%)
-  premium, // ระดับพรีเมียม (50-74%)
-  platinum // ระดับแพลตตินั่ม (75-100%)
+  basic, // ระดับเริ่มต้น (20-39%)
+  standard, // ระดับมาตรฐาน (40-59%)
+  premium, // ระดับพรีเมี่ยม (60-89%)
+  hero // ระดับ Eco Hero (90-100%)
 }
 
 extension EcoLevelExtension on EcoLevel {
@@ -64,9 +65,22 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.standard:
         return 'มาตรฐาน';
       case EcoLevel.premium:
-        return 'พรีเมียม';
-      case EcoLevel.platinum:
-        return 'แพลตตินั่ม';
+        return 'พรีเมี่ยม';
+      case EcoLevel.hero:
+        return 'Eco Hero';
+    }
+  }
+
+  String get thaiName {
+    switch (this) {
+      case EcoLevel.basic:
+        return 'เริ่มต้น';
+      case EcoLevel.standard:
+        return 'มาตรฐาน';
+      case EcoLevel.premium:
+        return 'พรีเมี่ยม';
+      case EcoLevel.hero:
+        return 'Eco Hero';
     }
   }
 
@@ -77,9 +91,9 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.standard:
         return 'ระดับมาตรฐาน';
       case EcoLevel.premium:
-        return 'ระดับพรีเมียม';
-      case EcoLevel.platinum:
-        return 'ระดับแพลตตินั่ม';
+        return 'ระดับพรีเมี่ยม';
+      case EcoLevel.hero:
+        return 'ระดับ Eco Hero';
     }
   }
 
@@ -88,11 +102,11 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.basic:
         return '🌱 เริ่มต้น';
       case EcoLevel.standard:
-        return '🛡️ มาตรฐาน'; // โล่เงิน
+        return '🌿 มาตรฐาน';
       case EcoLevel.premium:
-        return '🏆 พรีเมียม'; // โล่ทอง (ถ้วยทอง)
-      case EcoLevel.platinum:
-        return '💎 แพลตตินั่ม'; // เพชร
+        return '🏆 พรีเมี่ยม';
+      case EcoLevel.hero:
+        return '💎 Eco Hero';
     }
   }
 
@@ -103,9 +117,9 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.standard:
         return 'สินค้าระดับมาตรฐานที่เริ่มใส่ใจสิ่งแวดล้อม';
       case EcoLevel.premium:
-        return 'สินค้าระดับพรีเมียมที่มีคุณภาพสูงและเป็นมิตรกับสิ่งแวดล้อม';
-      case EcoLevel.platinum:
-        return 'สินค้าระดับแพลตตินั่มที่เป็นจุดสุดยอดของความยั่งยืนและนวัตกรรมสีเขียว';
+        return 'สินค้าระดับพรีเมี่ยมที่มีคุณภาพสูงและเป็นมิตรกับสิ่งแวดล้อม';
+      case EcoLevel.hero:
+        return 'สินค้าระดับ Eco Hero ที่เป็นจุดสุดยอดของความยั่งยืนและนวัตกรรมสีเขียว';
     }
   }
 
@@ -117,7 +131,7 @@ extension EcoLevelExtension on EcoLevel {
         return 'ตัวเลือกคุณภาพที่เชื่อถือได้';
       case EcoLevel.premium:
         return 'คุณภาพสูง เพื่อโลกที่ดีกว่า';
-      case EcoLevel.platinum:
+      case EcoLevel.hero:
         return 'จุดสุดยอดแห่งความเป็นเลิศ สำหรับผู้ที่ต้องการสิ่งที่ดีที่สุด';
     }
   }
@@ -125,52 +139,52 @@ extension EcoLevelExtension on EcoLevel {
   Color get color {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF4CAF50); // เขียว
+        return const Color(0xFFC8E6C9); // เขียวอ่อนมาก
       case EcoLevel.standard:
-        return const Color(0xFF9E9E9E); // เงิน
+        return const Color(0xFF2E7D32); // เขียวเข้มพอดี
       case EcoLevel.premium:
-        return const Color(0xFFFFD700); // ทอง
-      case EcoLevel.platinum:
-        return const Color(0xFF9C27B0); // ม่วงเพชรสีเข้ม - พิเศษสุด
+        return const Color(0xFFFFD700); // สีทอง
+      case EcoLevel.hero:
+        return const Color(0xFF6A1B9A); // สีเพชร/ไพลิน (ม่วงเข้ม)
     }
   }
 
   Color get backgroundColor {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFE8F5E8); // เขียวอ่อน
+        return const Color(0xFFF1F8E9); // เขียวอ่อนมากพื้นหลัง
       case EcoLevel.standard:
-        return const Color(0xFFF5F5F5); // เงินอ่อน
+        return const Color(0xFFE8F5E9); // เขียวเข้มพื้นหลัง
       case EcoLevel.premium:
         return const Color(0xFFFFF8DC); // ทองอ่อน
-      case EcoLevel.platinum:
-        return const Color(0xFFF3E5F5); // ม่วงเพชรอ่อนสวยหรู - ดูหรูหรา
+      case EcoLevel.hero:
+        return const Color(0xFFF3E5F5); // ม่วงเพชรอ่อนสวยหรู
     }
   }
 
   Color get gradientStart {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF66BB6A); // เขียวสว่าง
+        return const Color(0xFFDCEDC8); // เขียวอ่อนมากไล่โทน
       case EcoLevel.standard:
-        return const Color(0xFFBDBDBD); // เงินสว่าง
+        return const Color(0xFF43A047); // เขียวเข้มไล่โทน
       case EcoLevel.premium:
         return const Color(0xFFFFE55C); // ทองสว่าง
-      case EcoLevel.platinum:
-        return const Color(0xFFAD7BE9); // เงินม่วงเพชรสว่าง - ระยิบระยับ
+      case EcoLevel.hero:
+        return const Color(0xFF9C27B0); // เพชรไล่โทน
     }
   }
 
   Color get gradientEnd {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFF4CAF50); // เขียว
+        return const Color(0xFFC8E6C9); // เขียวอ่อนมาก
       case EcoLevel.standard:
-        return const Color(0xFF9E9E9E); // เงิน
+        return const Color(0xFF2E7D32); // เขียวเข้ม
       case EcoLevel.premium:
         return const Color(0xFFFFD700); // ทอง
-      case EcoLevel.platinum:
-        return const Color(0xFF8E44AD); // เงินม่วงเพชร - ระยิบระยับ
+      case EcoLevel.hero:
+        return const Color(0xFF6A1B9A); // เพชร/ไพลิน
     }
   }
 
@@ -181,31 +195,32 @@ extension EcoLevelExtension on EcoLevel {
       case EcoLevel.standard:
         return Icons.verified_outlined;
       case EcoLevel.premium:
-        return Icons.shield_outlined;
-      case EcoLevel.platinum:
+        return Icons.star_outlined;
+      case EcoLevel.hero:
         return Icons.diamond_outlined;
     }
   }
 
-  // Map eco score (0-100) to eco level (4-tier system)
+  // Map eco score (20-100) to eco level (4-tier system) - ไม่มีสินค้าต่ำกว่า 20%
   static EcoLevel fromScore(int score) {
-    if (score < 25) return EcoLevel.basic;
-    if (score < 50) return EcoLevel.standard;
-    if (score < 75) return EcoLevel.premium;
-    return EcoLevel.platinum;
+    if (score < 20) return EcoLevel.basic; // fallback สำหรับ edge case
+    if (score < 40) return EcoLevel.basic; // 20-39%
+    if (score < 60) return EcoLevel.standard; // 40-59%
+    if (score < 90) return EcoLevel.premium; // 60-89%
+    return EcoLevel.hero; // 90-100%
   }
 
   // Get percentage range for display
   String get scoreRange {
     switch (this) {
       case EcoLevel.basic:
-        return '0-24%';
+        return '20-39%';
       case EcoLevel.standard:
-        return '25-49%';
+        return '40-59%';
       case EcoLevel.premium:
-        return '50-74%';
-      case EcoLevel.platinum:
-        return '75-100%';
+        return '60-89%';
+      case EcoLevel.hero:
+        return '90-100%';
     }
   }
 
@@ -218,7 +233,7 @@ extension EcoLevelExtension on EcoLevel {
         return 2;
       case EcoLevel.premium:
         return 3;
-      case EcoLevel.platinum:
+      case EcoLevel.hero:
         return 4;
     }
   }

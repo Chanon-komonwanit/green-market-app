@@ -78,6 +78,10 @@ class UserProvider extends ChangeNotifier {
         if (_currentUser != null) {
           _firebaseService.logger.i(
               "[SUCCESS] User data loaded successfully: ${_currentUser!.email}");
+
+          // ตรวจสอบและให้รางวัลการเข้าสู่ระบบประจำวัน
+          _firebaseService.checkDailyLoginReward(uid);
+
           break; // สำเร็จ, ออกจาก retry loop
         } else {
           _firebaseService.logger
@@ -162,8 +166,22 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  /// อัปเดตข้อมูลโปรไฟล์ (ชื่อ, เบอร์โทร)
-  Future<void> updateUserProfile(String displayName, String phoneNumber) async {
+  /// อัปเดตข้อมูลโปรไฟล์ (ชื่อ, เบอร์โทร และข้อมูลเพิ่มเติม)
+  Future<void> updateUserProfile({
+    required String displayName,
+    required String phoneNumber,
+    String? photoUrl,
+    String? bio,
+    String? address,
+    String? shopName,
+    String? shopDescription,
+    String? motto,
+    String? website, // เพิ่ม field ใหม่
+    String? facebook, // เพิ่ม field ใหม่
+    String? instagram, // เพิ่ม field ใหม่
+    String? lineId, // เพิ่ม field ใหม่
+    String? gender, // เพิ่ม field ใหม่
+  }) async {
     if (_currentUser == null) return;
     _isLoading = true;
     notifyListeners();
@@ -171,7 +189,21 @@ class UserProvider extends ChangeNotifier {
     try {
       final userId = _currentUser!.id;
       await _firebaseService.updateUserProfile(
-          userId, displayName, phoneNumber);
+        userId,
+        displayName,
+        phoneNumber,
+        photoUrl: photoUrl,
+        bio: bio,
+        address: address,
+        shopName: shopName,
+        shopDescription: shopDescription,
+        motto: motto,
+        website: website, // เพิ่ม field ใหม่
+        facebook: facebook, // เพิ่ม field ใหม่
+        instagram: instagram, // เพิ่ม field ใหม่
+        lineId: lineId, // เพิ่ม field ใหม่
+        gender: gender, // เพิ่ม field ใหม่
+      );
       await loadUserData(userId); // โหลดข้อมูลใหม่เพื่อให้ UI อัปเดต
     } catch (e) {
       _firebaseService.logger.e('Failed to update user profile', error: e);

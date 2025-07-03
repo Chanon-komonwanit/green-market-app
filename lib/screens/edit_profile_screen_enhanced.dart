@@ -22,11 +22,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _shopNameController = TextEditingController();
   final _shopDescriptionController = TextEditingController();
   final _mottoController = TextEditingController();
-  
+
   bool _isLoading = false;
   File? _selectedImage;
   String? _currentPhotoUrl;
-  
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       maxHeight: 512,
       imageQuality: 70,
     );
-    
+
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
@@ -78,17 +78,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<String?> _uploadImage() async {
     if (_selectedImage == null) return _currentPhotoUrl;
-    
+
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final userId = userProvider.currentUser?.id;
       if (userId == null) return null;
-      
+
       final ref = FirebaseStorage.instance
           .ref()
           .child('user_profiles')
           .child('$userId.jpg');
-      
+
       await ref.putFile(_selectedImage!);
       return await ref.getDownloadURL();
     } catch (e) {
@@ -107,9 +107,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       // Upload image first if selected
       final photoUrl = await _uploadImage();
-      
+
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      
+
       await userProvider.updateUserProfile(
         displayName: _displayNameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
@@ -248,13 +248,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Personal Information Section
               _buildSectionHeader('ข้อมูลส่วนตัว', Icons.person_outline),
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _displayNameController,
                 label: 'ชื่อที่แสดง',
@@ -266,9 +266,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _phoneController,
                 label: 'เบอร์โทรศัพท์',
@@ -281,9 +281,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _bioController,
                 label: 'แนะนำตัว',
@@ -291,9 +291,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLines: 3,
                 hintText: 'เล่าเกี่ยวกับตัวคุณให้คนอื่นรู้จัก...',
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _addressController,
                 label: 'ที่อยู่',
@@ -301,22 +301,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLines: 2,
                 hintText: 'ที่อยู่สำหรับการจัดส่ง...',
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Shop Information Section
               _buildSectionHeader('ข้อมูลร้านค้า', Icons.store_outlined),
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _shopNameController,
                 label: 'ชื่อร้านค้า',
                 icon: Icons.storefront,
                 hintText: 'ชื่อร้านที่จะแสดงให้ผู้ซื้อเห็น...',
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _shopDescriptionController,
                 label: 'คำอธิบายร้านค้า',
@@ -324,18 +324,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLines: 3,
                 hintText: 'อธิบายเกี่ยวกับร้านค้าและสินค้าของคุณ...',
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               _buildTextField(
                 controller: _mottoController,
                 label: 'คำคม/ข้อความกำกับ',
                 icon: Icons.format_quote,
                 hintText: 'คำคมที่จะแสดงในโปรไฟล์...',
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Save Button
               SizedBox(
                 width: double.infinity,
@@ -375,7 +375,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                 ),
               ),
-              
+
               const SizedBox(height: 32),
             ],
           ),
@@ -383,7 +383,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-  
+
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
@@ -411,7 +411,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ],
     );
   }
-  
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,

@@ -1,9 +1,9 @@
 // TEMPLATE - Firebase Configuration
 // ==========================================
 // นี่คือไฟล์ template สำหรับ firebase_options.dart
-// 
+//
 // วิธีใช้:
-// 1. คัดลอกไฟล์นี้เป็น firebase_options.dart  
+// 1. คัดลอกไฟล์นี้เป็น firebase_options.dart
 // 2. ไปที่ Firebase Console -> Project Settings -> General
 // 3. เลือก App ของคุณและคัดลอก Firebase Config
 // 4. แทนที่ค่า YOUR_XXX_HERE ด้วยค่าจริงจาก Firebase Console
@@ -43,7 +43,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'YOUR_WEB_API_KEY_HERE',
-    appId: 'YOUR_WEB_APP_ID_HERE', 
+    appId: 'YOUR_WEB_APP_ID_HERE',
     messagingSenderId: 'YOUR_MESSAGING_SENDER_ID_HERE',
     projectId: 'YOUR_PROJECT_ID_HERE',
     authDomain: 'YOUR_PROJECT_ID_HERE.firebaseapp.com',

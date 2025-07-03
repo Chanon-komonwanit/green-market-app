@@ -15,6 +15,7 @@ import 'package:green_market/models/app_user.dart';
 import 'package:green_market/models/cart_item.dart';
 import 'package:green_market/models/category.dart';
 import 'package:green_market/models/chat_model.dart';
+import 'package:green_market/models/eco_reward.dart';
 import 'package:green_market/models/homepage_settings.dart';
 import 'package:green_market/models/investment_project.dart';
 import 'package:green_market/models/investment_summary.dart';
@@ -235,7 +236,10 @@ class FirebaseService {
   }
 
   Stream<List<AppUser>> getAllUsers() {
-    return _firestore.collection('users').snapshots().map(
+    return _firestore
+        .collection('users')
+        .snapshots()
+        .map(
           (snapshot) => snapshot.docs
               .map((doc) => AppUser.fromMap(doc.data(), doc.id))
               .toList(),
@@ -243,22 +247,50 @@ class FirebaseService {
   }
 
   Future<void> updateUserProfilePicture(String userId, String imageUrl) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .update({'photoUrl': imageUrl});
-  }
-
-  Future<void> updateUserProfile(
-      String userId, String displayName, String phoneNumber) async {
     await _firestore.collection('users').doc(userId).update({
-      'displayName': displayName,
-      'phoneNumber': phoneNumber,
+      'photoUrl': imageUrl,
     });
   }
 
+  Future<void> updateUserProfile(
+    String userId,
+    String displayName,
+    String phoneNumber, {
+    String? photoUrl,
+    String? bio,
+    String? address,
+    String? shopName,
+    String? shopDescription,
+    String? motto,
+    String? website, // เพิ่ม field ใหม่
+    String? facebook, // เพิ่ม field ใหม่
+    String? instagram, // เพิ่ม field ใหม่
+    String? lineId, // เพิ่ม field ใหม่
+    String? gender, // เพิ่ม field ใหม่
+  }) async {
+    final updateData = {'displayName': displayName, 'phoneNumber': phoneNumber};
+
+    if (photoUrl != null) updateData['photoUrl'] = photoUrl;
+    if (bio != null) updateData['bio'] = bio;
+    if (address != null) updateData['address'] = address;
+    if (shopName != null) updateData['shopName'] = shopName;
+    if (shopDescription != null)
+      updateData['shopDescription'] = shopDescription;
+    if (motto != null) updateData['motto'] = motto;
+    if (website != null) updateData['website'] = website; // เพิ่ม field ใหม่
+    if (facebook != null) updateData['facebook'] = facebook; // เพิ่ม field ใหม่
+    if (instagram != null)
+      updateData['instagram'] = instagram; // เพิ่ม field ใหม่
+    if (lineId != null) updateData['lineId'] = lineId; // เพิ่ม field ใหม่
+    if (gender != null) updateData['gender'] = gender; // เพิ่ม field ใหม่
+
+    await _firestore.collection('users').doc(userId).update(updateData);
+  }
+
   Future<void> updateUserSuspensionStatus(
-      String userId, bool isSuspended) async {
+    String userId,
+    bool isSuspended,
+  ) async {
     try {
       await _firestore.collection('users').doc(userId).update({
         'isSuspended': isSuspended,
@@ -335,17 +367,18 @@ class FirebaseService {
         'sellerApplication.status': 'approved',
       });
       transaction.set(
-          sellerRef,
-          Seller(
-            id: userId,
-            shopName: shopName,
-            contactEmail: userData.data()?['email'] ?? '',
-            phoneNumber: userData.data()?['phoneNumber'] ?? '',
-            status: 'active',
-            rating: 0.0,
-            totalRatings: 0,
-            createdAt: Timestamp.now(),
-          ).toMap());
+        sellerRef,
+        Seller(
+          id: userId,
+          shopName: shopName,
+          contactEmail: userData.data()?['email'] ?? '',
+          phoneNumber: userData.data()?['phoneNumber'] ?? '',
+          status: 'active',
+          rating: 0.0,
+          totalRatings: 0,
+          createdAt: Timestamp.now(),
+        ).toMap(),
+      );
     });
   }
 
@@ -362,9 +395,11 @@ class FirebaseService {
         .collection('users')
         .where('sellerStatus', isEqualTo: 'pending')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => AppUser.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AppUser.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   Stream<int> getPendingSellerApplicationsCountStream() {
@@ -386,7 +421,10 @@ class FirebaseService {
   }
 
   Stream<List<Seller>> getAllSellers() {
-    return _firestore.collection('sellers').snapshots().map(
+    return _firestore
+        .collection('sellers')
+        .snapshots()
+        .map(
           (snapshot) =>
               snapshot.docs.map((doc) => Seller.fromMap(doc.data())).toList(),
         );
@@ -420,8 +458,9 @@ class FirebaseService {
 
   // --- Product Management ---
   Future<void> addProduct(Product product) async {
-    final docId =
-        product.id.isEmpty ? generateNewDocId('products') : product.id;
+    final docId = product.id.isEmpty
+        ? generateNewDocId('products')
+        : product.id;
     await _firestore
         .collection('products')
         .doc(docId)
@@ -466,13 +505,16 @@ class FirebaseService {
           }).toList(),
         )
         .handleError((error) {
-      logger.e("Error fetching approved products: $error");
-      return <Product>[];
-    });
+          logger.e("Error fetching approved products: $error");
+          return <Product>[];
+        });
   }
 
   Stream<List<Product>> getAllProductsForAdmin() {
-    return _firestore.collection('products').snapshots().map(
+    return _firestore
+        .collection('products')
+        .snapshots()
+        .map(
           (snapshot) =>
               snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
         );
@@ -481,7 +523,7 @@ class FirebaseService {
   Future<void> approveProduct(String productId, bool isApproved) async {
     await _firestore.collection('products').doc(productId).update({
       'isApproved': isApproved,
-      'status': isApproved ? 'approved' : 'pending_approval'
+      'status': isApproved ? 'approved' : 'pending_approval',
     });
     logger.i("Product $productId approval status set to $isApproved");
   }
@@ -507,7 +549,10 @@ class FirebaseService {
   }
 
   Future<void> updateCartItemQuantity(
-      String userId, String productId, int quantity) async {
+    String userId,
+    String productId,
+    int quantity,
+  ) async {
     await _firestore
         .collection('users')
         .doc(userId)
@@ -571,11 +616,14 @@ class FirebaseService {
         .doc(activity.id)
         .update(activity.toMap());
     logger.i(
-        "Sustainable activity ${activity.title} updated with ID: ${activity.id}");
+      "Sustainable activity ${activity.title} updated with ID: ${activity.id}",
+    );
   }
 
   Future<void> updateSustainableActivityByData(
-      String activityId, Map<String, dynamic> updateData) async {
+    String activityId,
+    Map<String, dynamic> updateData,
+  ) async {
     await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
@@ -605,7 +653,10 @@ class FirebaseService {
   }
 
   Stream<List<SustainableActivity>> getAllSustainableActivitiesForAdmin() {
-    return _firestore.collection('sustainable_activities').snapshots().map(
+    return _firestore
+        .collection('sustainable_activities')
+        .snapshots()
+        .map(
           (snapshot) => snapshot.docs
               .map((doc) => SustainableActivity.fromMap(doc.data()))
               .toList(),
@@ -613,7 +664,8 @@ class FirebaseService {
   }
 
   Future<SustainableActivity?> getSustainableActivityById(
-      String activityId) async {
+    String activityId,
+  ) async {
     final doc = await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
@@ -622,7 +674,8 @@ class FirebaseService {
   }
 
   Future<Map<String, dynamic>?> getSustainableActivityByIdAsMap(
-      String activityId) async {
+    String activityId,
+  ) async {
     final doc = await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
@@ -631,13 +684,13 @@ class FirebaseService {
   }
 
   Stream<ActivitySummary> getSustainableActivitySummary() {
-    return _firestore
-        .collection('sustainable_activities')
-        .snapshots()
-        .map((snapshot) {
+    return _firestore.collection('sustainable_activities').snapshots().map((
+      snapshot,
+    ) {
       final totalActivities = snapshot.docs.length;
-      final activeActivities =
-          snapshot.docs.where((doc) => doc.data()['isActive'] == true).length;
+      final activeActivities = snapshot.docs
+          .where((doc) => doc.data()['isActive'] == true)
+          .length;
       final completedActivities = snapshot.docs.where((doc) {
         final endDate = (doc.data()['endDate'] as Timestamp?)?.toDate();
         return endDate != null && endDate.isBefore(DateTime.now());
@@ -657,52 +710,64 @@ class FirebaseService {
   }
 
   Future<void> joinSustainableActivity(String activityId, String userId) async {
-    final activityRef =
-        _firestore.collection('sustainable_activities').doc(activityId);
+    final activityRef = _firestore
+        .collection('sustainable_activities')
+        .doc(activityId);
     await activityRef.update({
-      'participantIds': FieldValue.arrayUnion([userId])
+      'participantIds': FieldValue.arrayUnion([userId]),
     });
     logger.i('User  joined activity ');
   }
 
   Future<bool> hasJoinedSustainableActivity(
-      String activityId, String userId) async {
+    String activityId,
+    String userId,
+  ) async {
     final doc = await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
         .get();
     if (doc.exists) {
-      final participants =
-          List<String>.from(doc.data()?['participantIds'] ?? []);
+      final participants = List<String>.from(
+        doc.data()?['participantIds'] ?? [],
+      );
       return participants.contains(userId);
     }
     return false;
   }
 
   Stream<List<SustainableActivity>> getJoinedSustainableActivities(
-      String userId) {
+    String userId,
+  ) {
     return _firestore
         .collection('sustainable_activities')
         .where('participantIds', arrayContains: userId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SustainableActivity.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => SustainableActivity.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<SustainableActivity>> getActivitiesByOrganizer(
-      String organizerId) {
+    String organizerId,
+  ) {
     return _firestore
         .collection('sustainable_activities')
         .where('organizerId', isEqualTo: organizerId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SustainableActivity.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => SustainableActivity.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> toggleActivityActiveStatus(
-      String activityId, bool isActive) async {
+    String activityId,
+    bool isActive,
+  ) async {
     await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
@@ -715,8 +780,9 @@ class FirebaseService {
         .doc(activityId)
         .get();
     if (doc.exists) {
-      final participantIds =
-          List<String>.from(doc.data()?['participantIds'] ?? []);
+      final participantIds = List<String>.from(
+        doc.data()?['participantIds'] ?? [],
+      );
       if (participantIds.isNotEmpty) {
         final usersSnapshot = await _firestore
             .collection('users')
@@ -802,10 +868,9 @@ class FirebaseService {
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await _firestore
-        .collection('notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
+    await _firestore.collection('notifications').doc(notificationId).update({
+      'isRead': true,
+    });
     logger.i("Notification $notificationId marked as read");
   }
 
@@ -825,8 +890,9 @@ class FirebaseService {
 
   // --- Categories Management ---
   Future<void> addCategory(Category category) async {
-    final docId =
-        category.id.isEmpty ? generateNewDocId('categories') : category.id;
+    final docId = category.id.isEmpty
+        ? generateNewDocId('categories')
+        : category.id;
     await _firestore
         .collection('categories')
         .doc(docId)
@@ -852,15 +918,17 @@ class FirebaseService {
         .collection('categories')
         .orderBy('name')
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id; // Add document ID to data
-              return Category.fromMap(data);
-            }).toList())
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id; // Add document ID to data
+            return Category.fromMap(data);
+          }).toList(),
+        )
         .handleError((error) {
-      logger.e("Error fetching categories: $error");
-      return <Category>[];
-    });
+          logger.e("Error fetching categories: $error");
+          return <Category>[];
+        });
   }
 
   Stream<List<Product>> getProductsByCategoryId(String categoryId) {
@@ -869,27 +937,29 @@ class FirebaseService {
         .where('categoryId', isEqualTo: categoryId)
         .where('status', isEqualTo: 'approved')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
+        );
   }
 
   Stream<List<Product>> getProductsByEcoLevel(EcoLevel ecoLevel) {
     int minScore, maxScore;
     switch (ecoLevel) {
       case EcoLevel.basic:
-        minScore = 0;
-        maxScore = 19;
-        break;
-      case EcoLevel.standard:
         minScore = 20;
         maxScore = 39;
         break;
-      case EcoLevel.premium:
+      case EcoLevel.standard:
         minScore = 40;
-        maxScore = 79;
+        maxScore = 59;
         break;
-      case EcoLevel.platinum:
-        minScore = 80;
+      case EcoLevel.premium:
+        minScore = 60;
+        maxScore = 89;
+        break;
+      case EcoLevel.hero:
+        minScore = 90;
         maxScore = 100;
         break;
     }
@@ -900,8 +970,10 @@ class FirebaseService {
         .where('ecoScore', isGreaterThanOrEqualTo: minScore)
         .where('ecoScore', isLessThanOrEqualTo: maxScore)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
+        );
   }
 
   // --- Orders Management ---
@@ -925,9 +997,11 @@ class FirebaseService {
         .where('userId', isEqualTo: userId)
         .orderBy('orderDate', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => app_order.Order.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => app_order.Order.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<app_order.Order>> getOrdersBySellerId(String sellerId) {
@@ -936,16 +1010,17 @@ class FirebaseService {
         .where('sellerIds', arrayContains: sellerId)
         .orderBy('orderDate', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => app_order.Order.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => app_order.Order.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {
-    await _firestore
-        .collection('orders')
-        .doc(orderId)
-        .update({'status': status});
+    await _firestore.collection('orders').doc(orderId).update({
+      'status': status,
+    });
     logger.i("Order $orderId status updated to $status");
   }
 
@@ -977,31 +1052,42 @@ class FirebaseService {
   Stream<List<InvestmentProject>> getApprovedInvestmentProjects() {
     return _firestore
         .collection('investment_projects')
-        .where('submissionStatus',
-            isEqualTo: ProjectSubmissionStatus.approved.name)
+        .where(
+          'submissionStatus',
+          isEqualTo: ProjectSubmissionStatus.approved.name,
+        )
         .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => InvestmentProject.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<InvestmentProject>> getAllInvestmentProjectsForAdmin() {
-    return _firestore.collection('investment_projects').snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((doc) => InvestmentProject.fromMap(doc.data()))
-            .toList());
+    return _firestore
+        .collection('investment_projects')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<InvestmentProject>> getInvestmentProjectsByOwnerId(
-      String ownerId) {
+    String ownerId,
+  ) {
     return _firestore
         .collection('investment_projects')
         .where('projectOwnerId', isEqualTo: ownerId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => InvestmentProject.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> approveInvestmentProject(String projectId) async {
@@ -1022,8 +1108,11 @@ class FirebaseService {
   }
 
   // --- Image Upload ---
-  Future<String> uploadImage(String folderPath, String filePath,
-      {String? fileName}) async {
+  Future<String> uploadImage(
+    String folderPath,
+    String filePath, {
+    String? fileName,
+  }) async {
     try {
       final file = File(filePath);
       final String uploadFileName =
@@ -1043,7 +1132,10 @@ class FirebaseService {
   }
 
   Future<String> uploadImageBytes(
-      String folderPath, String fileName, Uint8List bytes) async {
+    String folderPath,
+    String fileName,
+    Uint8List bytes,
+  ) async {
     try {
       final ref = _storage.ref().child('$folderPath/$fileName');
       final uploadTask = ref.putData(bytes);
@@ -1108,10 +1200,14 @@ class FirebaseService {
   }
 
   Stream<List<app_order.Order>> getAllOrders() {
-    return _firestore.collection('orders').snapshots().map((snapshot) =>
-        snapshot.docs
-            .map((doc) => app_order.Order.fromMap(doc.data()))
-            .toList());
+    return _firestore
+        .collection('orders')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => app_order.Order.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<int> getTotalOrdersCount() async {
@@ -1120,7 +1216,10 @@ class FirebaseService {
   }
 
   Future<void> updateOrderStatusWithSlip(
-      String orderId, String status, String? slipImageUrl) async {
+    String orderId,
+    String status,
+    String? slipImageUrl,
+  ) async {
     try {
       await _firestore.collection('orders').doc(orderId).update({
         'status': status,
@@ -1135,8 +1234,12 @@ class FirebaseService {
   }
 
   // --- Enhanced Product Approval Methods ---
-  Future<void> approveProductWithDetails(String productId, int ecoScore,
-      {String? categoryId, String? categoryName}) async {
+  Future<void> approveProductWithDetails(
+    String productId,
+    int ecoScore, {
+    String? categoryId,
+    String? categoryName,
+  }) async {
     final Map<String, dynamic> updates = {
       'status': 'approved',
       'isApproved': true,
@@ -1157,15 +1260,19 @@ class FirebaseService {
         .collection('products')
         .where('status', isEqualTo: 'pending_approval')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
+        );
   }
 
   // --- Homepage Settings ---
   Future<HomepageSettings> getHomepageSettings() async {
     try {
-      final doc =
-          await _firestore.collection('app_settings').doc('homepage').get();
+      final doc = await _firestore
+          .collection('app_settings')
+          .doc('homepage')
+          .get();
       if (doc.exists) {
         return HomepageSettings.fromMap(doc.data()!);
       } else {
@@ -1190,23 +1297,22 @@ class FirebaseService {
     await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
-        .update({
-      'submissionStatus': 'approved',
-      'isActive': true,
-    });
+        .update({'submissionStatus': 'approved', 'isActive': true});
     logger.i("Sustainable activity $activityId approved");
   }
 
   Future<void> rejectSustainableActivity(
-      String activityId, String reason) async {
+    String activityId,
+    String reason,
+  ) async {
     await _firestore
         .collection('sustainable_activities')
         .doc(activityId)
         .update({
-      'submissionStatus': 'rejected',
-      'rejectionReason': reason,
-      'isActive': false,
-    });
+          'submissionStatus': 'rejected',
+          'rejectionReason': reason,
+          'isActive': false,
+        });
     logger.i("Sustainable activity $activityId rejected: $reason");
   }
 
@@ -1215,35 +1321,47 @@ class FirebaseService {
         .collection('sustainable_activities')
         .where('submissionStatus', isEqualTo: 'pending')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SustainableActivity.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => SustainableActivity.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<InvestmentProject>> getPendingInvestmentProjects() {
     return _firestore
         .collection('investment_projects')
-        .where('submissionStatus',
-            isEqualTo: ProjectSubmissionStatus.pending.name)
+        .where(
+          'submissionStatus',
+          isEqualTo: ProjectSubmissionStatus.pending.name,
+        )
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => InvestmentProject.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   // --- Promotion Methods ---
   Stream<List<Promotion>> getActivePromotions() {
-    return _firestore.collection('promotions').snapshots().map((snapshot) {
-      final now = DateTime.now();
-      return snapshot.docs
-          .map((doc) => Promotion.fromMap(doc.data()))
-          .where((promotion) =>
-              promotion.isActive && promotion.endDate.isAfter(now))
-          .toList();
-    }).handleError((error) {
-      logger.e("Error fetching active promotions: $error");
-      return <Promotion>[];
-    });
+    return _firestore
+        .collection('promotions')
+        .snapshots()
+        .map((snapshot) {
+          final now = DateTime.now();
+          return snapshot.docs
+              .map((doc) => Promotion.fromMap(doc.data()))
+              .where(
+                (promotion) =>
+                    promotion.isActive && promotion.endDate.isAfter(now),
+              )
+              .toList();
+        })
+        .handleError((error) {
+          logger.e("Error fetching active promotions: $error");
+          return <Promotion>[];
+        });
   }
 
   Future<void> createPromotion(Promotion promotion) async {
@@ -1283,8 +1401,14 @@ class FirebaseService {
   }
 
   Stream<List<Promotion>> getPromotions() {
-    return _firestore.collection('promotions').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Promotion.fromMap(doc.data())).toList());
+    return _firestore
+        .collection('promotions')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Promotion.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> addPromotion(Promotion promotion) async {
@@ -1332,8 +1456,10 @@ class FirebaseService {
         .collection('products')
         .where('isApproved', isEqualTo: false)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
+        );
   }
 
   // --- Search Methods ---
@@ -1342,19 +1468,26 @@ class FirebaseService {
         .collection('products')
         .where('isApproved', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Product.fromMap(doc.data()))
-            .where((product) =>
-                product.name.toLowerCase().contains(query.toLowerCase()) ||
-                product.description.toLowerCase().contains(query.toLowerCase()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Product.fromMap(doc.data()))
+              .where(
+                (product) =>
+                    product.name.toLowerCase().contains(query.toLowerCase()) ||
+                    product.description.toLowerCase().contains(
+                      query.toLowerCase(),
+                    ),
+              )
+              .toList(),
+        );
   }
 
   // --- Investment Methods ---
   Future<InvestmentSummary> getInvestmentProjectSummary() async {
     try {
-      final projectsSnapshot =
-          await _firestore.collection('investment_projects').get();
+      final projectsSnapshot = await _firestore
+          .collection('investment_projects')
+          .get();
       final totalProjects = projectsSnapshot.docs.length;
 
       double totalAmountRaised = 0;
@@ -1395,10 +1528,14 @@ class FirebaseService {
       query = query.orderBy(sortBy, descending: descending);
     }
 
-    return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) =>
-            InvestmentProject.fromMap(doc.data() as Map<String, dynamic>))
-        .toList());
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map(
+            (doc) =>
+                InvestmentProject.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList(),
+    );
   }
 
   Future<InvestmentProject?> getInvestmentProjectById(String projectId) async {
@@ -1418,7 +1555,10 @@ class FirebaseService {
   }
 
   Future<void> investInProject(
-      String projectId, String userId, double amount) async {
+    String projectId,
+    String userId,
+    double amount,
+  ) async {
     try {
       final batch = _firestore.batch();
 
@@ -1432,8 +1572,9 @@ class FirebaseService {
           projectData?['title'] as String? ?? 'Unknown Project';
 
       // Update project current amount
-      final projectRef =
-          _firestore.collection('investment_projects').doc(projectId);
+      final projectRef = _firestore
+          .collection('investment_projects')
+          .doc(projectId);
       batch.update(projectRef, {
         'currentAmount': FieldValue.increment(amount),
         'investorCount': FieldValue.increment(1),
@@ -1490,9 +1631,11 @@ class FirebaseService {
         .collection('user_investments')
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => UserInvestment.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => UserInvestment.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Stream<List<InvestmentProject>> getProjectsByProjectOwner(String ownerId) {
@@ -1500,13 +1643,17 @@ class FirebaseService {
         .collection('investment_projects')
         .where('projectOwnerId', isEqualTo: ownerId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => InvestmentProject.fromMap(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> toggleInvestmentProjectActiveStatus(
-      String projectId, bool isActive) async {
+    String projectId,
+    bool isActive,
+  ) async {
     try {
       await _firestore.collection('investment_projects').doc(projectId).update({
         'isActive': isActive,
@@ -1529,7 +1676,8 @@ class FirebaseService {
   }
 
   Future<void> updateThemeSettingsDocument(
-      Map<String, dynamic> themeData) async {
+    Map<String, dynamic> themeData,
+  ) async {
     try {
       await _firestore
           .collection('app_settings')
@@ -1544,8 +1692,10 @@ class FirebaseService {
 
   Future<Map<String, dynamic>?> getAppSettingsDocument() async {
     try {
-      final doc =
-          await _firestore.collection('app_settings').doc('general').get();
+      final doc = await _firestore
+          .collection('app_settings')
+          .doc('general')
+          .get();
       return doc.exists ? doc.data() : null;
     } catch (e) {
       logger.e("Error getting app settings: $e");
@@ -1595,8 +1745,14 @@ class FirebaseService {
   }
 
   Stream<List<StaticPage>> getStaticPages() {
-    return _firestore.collection('static_pages').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => StaticPage.fromMap(doc.data())).toList());
+    return _firestore
+        .collection('static_pages')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => StaticPage.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> saveStaticPage(StaticPage page) async {
@@ -1624,13 +1780,20 @@ class FirebaseService {
 
   // --- Activity Reports Methods ---
   Stream<List<Map<String, dynamic>>> getAllActivityReports() {
-    return _firestore.collection('activity_reports').snapshots().map(
-        (snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+    return _firestore
+        .collection('activity_reports')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   Future<void> updateActivityReport(
-      String reportId, Map<String, dynamic> data) async {
+    String reportId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       await _firestore
           .collection('activity_reports')
@@ -1655,9 +1818,14 @@ class FirebaseService {
 
   // --- Activity Reviews Methods ---
   Stream<List<Map<String, dynamic>>> getAllActivityReviews() {
-    return _firestore.collection('activity_reviews').snapshots().map(
-        (snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+    return _firestore
+        .collection('activity_reviews')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   Future<void> deleteActivityReview(String reviewId) async {
@@ -1681,7 +1849,8 @@ class FirebaseService {
   }
 
   Future<List<Map<String, dynamic>>> getReviewsForActivity(
-      String activityId) async {
+    String activityId,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('activity_reviews')
@@ -1697,8 +1866,9 @@ class FirebaseService {
   // --- Sustainable Activities Methods ---
   Future<List<Map<String, dynamic>>> getSustainableActivities() async {
     try {
-      final snapshot =
-          await _firestore.collection('sustainable_activities').get();
+      final snapshot = await _firestore
+          .collection('sustainable_activities')
+          .get();
       return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
     } catch (e) {
       logger.e("Error getting sustainable activities: $e");
@@ -1712,14 +1882,17 @@ class FirebaseService {
         .collection('chat_rooms')
         .where('participants', arrayContains: userId)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   Future<void> markChatRoomAsRead(String chatRoomId, String userId) async {
     try {
       await _firestore.collection('chat_rooms').doc(chatRoomId).update({
-        'unreadBy': FieldValue.arrayRemove([userId])
+        'unreadBy': FieldValue.arrayRemove([userId]),
       });
     } catch (e) {
       logger.e("Error marking chat room as read: $e");
@@ -1728,7 +1901,9 @@ class FirebaseService {
   }
 
   Future<void> sendMessage(
-      String chatRoomId, Map<String, dynamic> messageData) async {
+    String chatRoomId,
+    Map<String, dynamic> messageData,
+  ) async {
     try {
       await _firestore
           .collection('chat_rooms')
@@ -1754,15 +1929,20 @@ class FirebaseService {
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   // --- Shipping Address Methods ---
   Future<Map<String, dynamic>?> getUserShippingAddress(String userId) async {
     try {
-      final doc =
-          await _firestore.collection('shipping_addresses').doc(userId).get();
+      final doc = await _firestore
+          .collection('shipping_addresses')
+          .doc(userId)
+          .get();
       return doc.exists ? doc.data() : null;
     } catch (e) {
       logger.e("Error getting user shipping address: $e");
@@ -1771,7 +1951,9 @@ class FirebaseService {
   }
 
   Future<void> saveUserShippingAddress(
-      String userId, Map<String, dynamic> addressData) async {
+    String userId,
+    Map<String, dynamic> addressData,
+  ) async {
     try {
       await _firestore
           .collection('shipping_addresses')
@@ -1796,7 +1978,10 @@ class FirebaseService {
   }
 
   Future<bool> hasUserReviewedProductInOrder(
-      String userId, String productId, String orderId) async {
+    String userId,
+    String productId,
+    String orderId,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('reviews')
@@ -1839,8 +2024,11 @@ class FirebaseService {
         .where('projectId', isEqualTo: projectId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   Future<void> answerProjectQuestion(String questionId, String answer) async {
@@ -1862,8 +2050,11 @@ class FirebaseService {
         .where('projectId', isEqualTo: projectId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   Future<void> addProjectUpdate(Map<String, dynamic> updateData) async {
@@ -1886,8 +2077,10 @@ class FirebaseService {
   // --- Dynamic App Configuration Methods ---
   Future<Map<String, dynamic>?> getDynamicAppConfig() async {
     try {
-      final doc =
-          await _firestore.collection('app_settings').doc('app_config').get();
+      final doc = await _firestore
+          .collection('app_settings')
+          .doc('app_config')
+          .get();
       if (doc.exists) {
         return {'id': doc.id, ...doc.data()!};
       } else {
@@ -2054,5 +2247,654 @@ class FirebaseService {
         .doc('main')
         .snapshots()
         .map((doc) => doc.exists ? {'id': doc.id, ...doc.data()!} : null);
+  }
+
+  // ==================== ECO COINS MANAGEMENT ====================
+
+  /// เพิ่ม Eco Coins ให้กับผู้ใช้
+  Future<void> addEcoCoins(String userId, double coins, String reason) async {
+    try {
+      final userRef = _firestore.collection('users').doc(userId);
+
+      await _firestore.runTransaction((transaction) async {
+        final userDoc = await transaction.get(userRef);
+
+        if (userDoc.exists) {
+          final currentCoins = userDoc.data()?['ecoCoins'] as double? ?? 0.0;
+          final newTotal = currentCoins + coins;
+
+          // อัปเดตยอด Eco Coins
+          transaction.update(userRef, {'ecoCoins': newTotal});
+
+          // บันทึกประวัติการได้รับเหรียญ
+          final historyRef = _firestore.collection('eco_coin_history').doc();
+          transaction.set(historyRef, {
+            'userId': userId,
+            'amount': coins,
+            'type': 'earned',
+            'reason': reason,
+            'balanceAfter': newTotal,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          logger.i("Added $coins Eco Coins to user $userId. Reason: $reason");
+        }
+      });
+    } catch (e) {
+      logger.e("Error adding Eco Coins to user $userId: $e");
+      rethrow;
+    }
+  }
+
+  /// คำนวณและให้เหรียญจากการซื้อสินค้า (0.1% ของราคา)
+  Future<void> awardPurchaseCoins(String userId, double purchaseAmount) async {
+    try {
+      // คำนวณเหรียญ: 0.1% ของราคาสินค้า (ปัดลง)
+      final coins = (purchaseAmount * 0.001);
+
+      if (coins > 0) {
+        await addEcoCoins(
+          userId,
+          coins,
+          'การซื้อสินค้า ฿${purchaseAmount.toStringAsFixed(2)}',
+        );
+
+        logger.i("Awarded $coins Eco Coins for purchase of ฿$purchaseAmount");
+      }
+    } catch (e) {
+      logger.e("Error awarding purchase coins: $e");
+      rethrow;
+    }
+  }
+
+  /// ใช้ Eco Coins (หักเหรียญ)
+  Future<bool> useEcoCoins(String userId, double coins, String reason) async {
+    try {
+      final userRef = _firestore.collection('users').doc(userId);
+
+      return await _firestore.runTransaction<bool>((transaction) async {
+        final userDoc = await transaction.get(userRef);
+
+        if (userDoc.exists) {
+          final currentCoins = userDoc.data()?['ecoCoins'] as double? ?? 0.0;
+
+          if (currentCoins >= coins) {
+            final newTotal = currentCoins - coins;
+
+            // หักเหรียญ
+            transaction.update(userRef, {'ecoCoins': newTotal});
+
+            // บันทึกประวัติการใช้เหรียญ
+            final historyRef = _firestore.collection('eco_coin_history').doc();
+            transaction.set(historyRef, {
+              'userId': userId,
+              'amount': -coins,
+              'type': 'used',
+              'reason': reason,
+              'balanceAfter': newTotal,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+            logger.i(
+              "Used $coins Eco Coins from user $userId. Reason: $reason",
+            );
+            return true;
+          } else {
+            logger.w(
+              "Insufficient Eco Coins for user $userId. Has: $currentCoins, Needs: $coins",
+            );
+            return false;
+          }
+        }
+
+        return false;
+      });
+    } catch (e) {
+      logger.e("Error using Eco Coins for user $userId: $e");
+      rethrow;
+    }
+  }
+
+  /// ดึงประวัติ Eco Coins ของผู้ใช้
+  Stream<List<Map<String, dynamic>>> getEcoCoinHistory(String userId) {
+    return _firestore
+        .collection('eco_coin_history')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
+  }
+
+  /// ให้เหรียญสำหรับการเข้าสู่ระบบประจำวัน (ปรับปรุงใหม่)
+  Future<Map<String, dynamic>> checkDailyLoginReward(String userId) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        return {'rewarded': false, 'message': 'ไม่พบข้อมูลผู้ใช้'};
+      }
+
+      final userData = userDoc.data()!;
+      final lastLoginDate = userData['lastLoginDate'] != null
+          ? (userData['lastLoginDate'] as Timestamp).toDate()
+          : null;
+      final consecutiveDays = userData['consecutiveLoginDays'] as int? ?? 0;
+      final progress = userData['loginRewardProgress'] as double? ?? 0.0;
+
+      // ตรวจสอบว่าเข้าสู่ระบบแล้ววันนี้หรือยัง
+      if (lastLoginDate != null) {
+        final lastLoginDay = DateTime(
+          lastLoginDate.year,
+          lastLoginDate.month,
+          lastLoginDate.day,
+        );
+        if (lastLoginDay.isAtSameMomentAs(today)) {
+          return {'rewarded': false, 'message': 'ได้รับรางวัลแล้ววันนี้'};
+        }
+      }
+
+      // คำนวณวันต่อเนื่อง
+      int newConsecutiveDays = consecutiveDays;
+      if (lastLoginDate != null) {
+        final yesterday = today.subtract(const Duration(days: 1));
+        final lastLoginDay = DateTime(
+          lastLoginDate.year,
+          lastLoginDate.month,
+          lastLoginDate.day,
+        );
+
+        if (lastLoginDay.isAtSameMomentAs(yesterday)) {
+          // ล็อกอินต่อเนื่อง
+          newConsecutiveDays += 1;
+        } else {
+          // ขาดวัน รีเซ็ต
+          newConsecutiveDays = 1;
+        }
+      } else {
+        newConsecutiveDays = 1;
+      }
+
+      // คำนวณ progress ใหม่ (เพิ่ม 0.1 ต่อวัน จนครบ 1.0 ใน 10 วัน แต่ให้รางวัลที่ 15 วัน)
+      double newProgress =
+          progress + (1.0 / 15.0); // เพิ่ม progress แบบ 1/15 ต่อวัน
+      bool gotSpecialReward = false;
+      int coinsAwarded = 0;
+
+      // ตรวจสอบว่าครบ 15 วันหรือยัง
+      if (newProgress >= 1.0 && newConsecutiveDays >= 15) {
+        // ได้รางวัลพิเศษ 1 เหรียญ
+        coinsAwarded = 1;
+        newProgress = 0.0; // รีเซ็ต progress
+        gotSpecialReward = true;
+
+        await addEcoCoins(
+          userId,
+          coinsAwarded.toDouble(),
+          'รางวัลล็อกอิน 15 วันต่อเนื่อง',
+        );
+      }
+
+      // อัปเดตข้อมูล
+      await _firestore.collection('users').doc(userId).update({
+        'lastLoginDate': Timestamp.fromDate(today),
+        'consecutiveLoginDays': newConsecutiveDays,
+        'loginRewardProgress': newProgress,
+      });
+
+      logger.i(
+        "Daily login updated for user $userId: $newConsecutiveDays days, progress: ${(newProgress * 100).toStringAsFixed(1)}%",
+      );
+
+      return {
+        'rewarded': gotSpecialReward,
+        'coinsAwarded': coinsAwarded,
+        'consecutiveDays': newConsecutiveDays,
+        'progress': newProgress,
+        'message': gotSpecialReward
+            ? 'ยินดีด้วย! ได้รับ $coinsAwarded เหรียญจากการล็อกอิน 15 วันต่อเนื่อง!'
+            : 'ล็อกอินวันที่ $newConsecutiveDays ความคืบหน้า ${(newProgress * 100).toStringAsFixed(1)}%',
+      };
+    } catch (e) {
+      logger.e("Error checking daily login reward: $e");
+      return {'rewarded': false, 'message': 'เกิดข้อผิดพลาด: $e'};
+    }
+  }
+
+  // === รางวัล Eco Rewards ===
+
+  /// ดึงรายการรางวัลทั้งหมด
+  Stream<List<EcoReward>> getEcoRewards() {
+    return _firestore
+        .collection('eco_rewards')
+        .where('isActive', isEqualTo: true)
+        .orderBy('requiredCoins', descending: false)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return EcoReward.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  /// สร้างรางวัลใหม่ (สำหรับแอดมิน)
+  Future<String> createEcoReward(EcoReward reward) async {
+    try {
+      final docRef = await _firestore
+          .collection('eco_rewards')
+          .add(reward.toMap());
+      logger.i("Created eco reward: ${reward.title}");
+      return docRef.id;
+    } catch (e) {
+      logger.e("Error creating eco reward: $e");
+      rethrow;
+    }
+  }
+
+  /// อัปเดตรางวัล (สำหรับแอดมิน)
+  Future<void> updateEcoReward(String rewardId, dynamic data) async {
+    try {
+      if (data is EcoReward) {
+        await _firestore
+            .collection('eco_rewards')
+            .doc(rewardId)
+            .update(data.toMap());
+      } else if (data is Map<String, dynamic>) {
+        await _firestore.collection('eco_rewards').doc(rewardId).update(data);
+      } else {
+        throw ArgumentError('Data must be EcoReward or Map<String, dynamic>');
+      }
+      logger.i("Updated eco reward: $rewardId");
+    } catch (e) {
+      logger.e("Error updating eco reward: $e");
+      rethrow;
+    }
+  }
+
+  /// ลบรางวัล (สำหรับแอดมิน)
+  Future<void> deleteEcoReward(String rewardId) async {
+    try {
+      await _firestore.collection('eco_rewards').doc(rewardId).update({
+        'isActive': false,
+      });
+      logger.i("Deleted eco reward: $rewardId");
+    } catch (e) {
+      logger.e("Error deleting eco reward: $e");
+      rethrow;
+    }
+  }
+
+  /// แลกรางวัล
+  Future<String> redeemEcoReward(String userId, String rewardId) async {
+    return await _firestore.runTransaction((transaction) async {
+      // ดึงข้อมูลผู้ใช้
+      final userDoc = await transaction.get(
+        _firestore.collection('users').doc(userId),
+      );
+      if (!userDoc.exists) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      final userData = userDoc.data()!;
+      final currentCoins = userData['ecoCoins'] as double? ?? 0.0;
+
+      // ดึงข้อมูลรางวัล
+      final rewardDoc = await transaction.get(
+        _firestore.collection('eco_rewards').doc(rewardId),
+      );
+      if (!rewardDoc.exists) {
+        throw Exception('ไม่พบรางวัลที่เลือก');
+      }
+
+      final rewardData = rewardDoc.data()!;
+      final reward = EcoReward.fromMap(rewardData, rewardDoc.id);
+
+      // ตรวจสอบเงื่อนไข
+      if (!reward.isAvailable) {
+        throw Exception('รางวัลนี้ไม่สามารถแลกได้ในขณะนี้');
+      }
+
+      if (currentCoins < reward.requiredCoins) {
+        throw Exception(
+          'เหรียญไม่เพียงพอ ต้องการ ${reward.requiredCoins} เหรียญ',
+        );
+      }
+
+      if (reward.remainingQuantity <= 0) {
+        throw Exception('รางวัลหมดแล้ว');
+      }
+
+      // หักเหรียญ
+      transaction.update(_firestore.collection('users').doc(userId), {
+        'ecoCoins': currentCoins - reward.requiredCoins,
+      });
+
+      // เพิ่มจำนวนที่แลกแล้ว
+      transaction.update(_firestore.collection('eco_rewards').doc(rewardId), {
+        'redeemedCount': reward.redeemedCount + 1,
+      });
+
+      // สร้างประวัติการแลก
+      final redemptionRef = _firestore.collection('reward_redemptions').doc();
+      final redemption = RewardRedemption(
+        id: redemptionRef.id,
+        userId: userId,
+        rewardId: rewardId,
+        rewardTitle: reward.title,
+        coinsUsed: reward.requiredCoins,
+        status: 'pending',
+        redeemedAt: DateTime.now(),
+      );
+      transaction.set(redemptionRef, redemption.toMap());
+
+      logger.i("User $userId redeemed reward: ${reward.title}");
+      return redemptionRef.id;
+    });
+  }
+
+  /// ดึงประวัติการแลกรางวัลของผู้ใช้
+  Stream<List<RewardRedemption>> getUserRedemptions(String userId) {
+    return _firestore
+        .collection('reward_redemptions')
+        .where('userId', isEqualTo: userId)
+        .orderBy('redeemedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return RewardRedemption.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  /// ดึงประวัติการแลกรางวัลทั้งหมด (สำหรับแอดมิน)
+  Stream<List<RewardRedemption>> getAllRedemptions() {
+    return _firestore
+        .collection('reward_redemptions')
+        .orderBy('redeemedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return RewardRedemption.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  /// อัปเดตสถานะการแลกรางวัล (สำหรับแอดมิน)
+  Future<void> updateRedemptionStatus(
+    String redemptionId,
+    String status, {
+    String? notes,
+  }) async {
+    try {
+      final updateData = {'status': status};
+      if (notes != null) {
+        updateData['notes'] = notes;
+      }
+
+      await _firestore
+          .collection('reward_redemptions')
+          .doc(redemptionId)
+          .update(updateData);
+      logger.i("Updated redemption status: $redemptionId -> $status");
+    } catch (e) {
+      logger.e("Error updating redemption status: $e");
+      rethrow;
+    }
+  }
+
+  /// ฟังก์ชันสำหรับการรับเหรียญจากการล็อกอินประจำวัน (ปลอดภัยต่อการแฮ็ก)
+  /// ใช้ระบบความปลอดภัยแบบ server-side validation เพื่อป้องกันการโกง
+  Future<Map<String, dynamic>> claimDailyLoginReward(String userId) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      // === ความปลอดภัยขั้นที่ 1: ตรวจสอบผู้ใช้ ===
+      if (userId.isEmpty) {
+        logger.w("Attempted to claim daily reward with empty userId");
+        return {
+          'success': false,
+          'message': 'ข้อมูลผู้ใช้ไม่ถูกต้อง',
+          'error': 'INVALID_USER',
+        };
+      }
+
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        logger.w("User not found: $userId");
+        return {
+          'success': false,
+          'message': 'ไม่พบข้อมูลผู้ใช้',
+          'error': 'USER_NOT_FOUND',
+        };
+      }
+
+      final userData = userDoc.data()!;
+
+      // === ความปลอดภัยขั้นที่ 2: ตรวจสอบเวลาจริง (Time Verification) ===
+      final lastLoginDate = userData['lastLoginDate'] != null
+          ? (userData['lastLoginDate'] as Timestamp).toDate()
+          : null;
+
+      if (lastLoginDate != null) {
+        final lastLoginDay = DateTime(
+          lastLoginDate.year,
+          lastLoginDate.month,
+          lastLoginDate.day,
+        );
+
+        // ตรวจสอบว่าได้รับรางวัลแล้ววันนี้หรือยัง
+        if (lastLoginDay.isAtSameMomentAs(today)) {
+          logger.w("User $userId already claimed reward today");
+          return {
+            'success': false,
+            'message': 'วันนี้ได้รับรางวัลแล้ว กรุณากลับมาพรุ่งนี้',
+            'error': 'ALREADY_CLAIMED_TODAY',
+          };
+        }
+      }
+
+      // === ความปลอดภัยขั้นที่ 3: Rate Limiting ===
+      final lastClaimAttempt = userData['lastClaimAttempt'] != null
+          ? (userData['lastClaimAttempt'] as Timestamp).toDate()
+          : null;
+
+      if (lastClaimAttempt != null) {
+        final timeDiff = now.difference(lastClaimAttempt).inMinutes;
+        if (timeDiff < 5) {
+          // ห้ามเรียกใช้เร็วกว่า 5 นาที
+          logger.w("Rate limit exceeded for user $userId");
+          return {
+            'success': false,
+            'message': 'กรุณารอสักครู่ก่อนเรียกใช้งานอีกครั้ง',
+            'error': 'RATE_LIMIT_EXCEEDED',
+          };
+        }
+      }
+
+      // === ความปลอดภัยขั้นที่ 4: Anti-Cheat Detection ===
+      final consecutiveDays = userData['consecutiveLoginDays'] as int? ?? 0;
+      final progress = userData['loginRewardProgress'] as double? ?? 0.0;
+
+      // ตรวจสอบค่าที่ผิดปกติ
+      if (consecutiveDays < 0 || consecutiveDays > 1000) {
+        logger.e(
+          "Suspicious consecutive days detected for user $userId: $consecutiveDays",
+        );
+        return {
+          'success': false,
+          'message': 'ตรวจพบข้อมูลผิดปกติ กรุณาติดต่อฝ่ายสนับสนุน',
+          'error': 'SUSPICIOUS_DATA',
+        };
+      }
+
+      if (progress < 0.0 || progress > 1.0) {
+        logger.e("Suspicious progress detected for user $userId: $progress");
+        return {
+          'success': false,
+          'message': 'ตรวจพบข้อมูลผิดปกติ กรุณาติดต่อฝ่ายสนับสนุน',
+          'error': 'SUSPICIOUS_DATA',
+        };
+      }
+
+      // === ความปลอดภัยขั้นที่ 5: การตรวจสอบลำดับของการล็อกอิน ===
+      int newConsecutiveDays = 1;
+      if (lastLoginDate != null) {
+        final yesterday = today.subtract(const Duration(days: 1));
+        final lastLoginDay = DateTime(
+          lastLoginDate.year,
+          lastLoginDate.month,
+          lastLoginDate.day,
+        );
+
+        if (lastLoginDay.isAtSameMomentAs(yesterday)) {
+          // ล็อกอินต่อเนื่อง
+          newConsecutiveDays = consecutiveDays + 1;
+        } else if (lastLoginDay.isBefore(yesterday)) {
+          // ขาดวัน รีเซ็ต
+          newConsecutiveDays = 1;
+        } else {
+          // วันที่ผิดปกติ (อนาคต)
+          logger.e(
+            "Future date detected for user $userId: $lastLoginDay vs $today",
+          );
+          return {
+            'success': false,
+            'message': 'ตรวจพบวันที่ผิดปกติ',
+            'error': 'INVALID_DATE',
+          };
+        }
+      }
+
+      // === คำนวณรางวัล ===
+      // ให้ 0.1 เหรียญทุกวันที่ล็อกอิน
+      double dailyCoins = 0.1;
+      String rewardMessage = '';
+
+      // ให้รางวัลพิเศษเมื่อครบ 15 วัน (1 เหรียญเพิ่ม)
+      bool gotSpecialReward = false;
+      double totalCoinsAwarded = dailyCoins; // เริ่มต้นด้วย 0.1 เหรียญประจำวัน
+
+      if (newConsecutiveDays > 0 && newConsecutiveDays % 15 == 0) {
+        gotSpecialReward = true;
+        totalCoinsAwarded += 1.0; // เพิ่ม 1 เหรียญโบนัส
+        rewardMessage =
+            'ยินดีด้วย! ได้รับ ${totalCoinsAwarded.toStringAsFixed(1)} เหรียญ (0.1 ประจำวัน + 1.0 โบนัส 15 วัน)';
+      } else {
+        rewardMessage =
+            'ได้รับ 0.1 เหรียญจากการล็อกอิน (วันที่ $newConsecutiveDays)';
+      }
+
+      // คำนวณ progress สำหรับแสดงผล (0-15 วัน)
+      double newProgress = (newConsecutiveDays % 15) / 15.0;
+
+      // === ความปลอดภัยขั้นที่ 6: Transaction ป้องกัน Race Condition ===
+      final result = await _firestore.runTransaction((transaction) async {
+        // อ่านข้อมูลล่าสุดอีกครั้งใน transaction
+        final freshUserDoc = await transaction.get(
+          _firestore.collection('users').doc(userId),
+        );
+        if (!freshUserDoc.exists) {
+          throw Exception('USER_NOT_FOUND');
+        }
+
+        final freshData = freshUserDoc.data()!;
+        final freshLastLogin = freshData['lastLoginDate'] != null
+            ? (freshData['lastLoginDate'] as Timestamp).toDate()
+            : null;
+
+        // ตรวจสอบอีกครั้งว่าไม่ได้รับรางวัลแล้ววันนี้
+        if (freshLastLogin != null) {
+          final freshLastLoginDay = DateTime(
+            freshLastLogin.year,
+            freshLastLogin.month,
+            freshLastLogin.day,
+          );
+          if (freshLastLoginDay.isAtSameMomentAs(today)) {
+            throw Exception('ALREADY_CLAIMED_TODAY');
+          }
+        }
+
+        // อัปเดตข้อมูลใน transaction
+        final updateData = {
+          'lastLoginDate': Timestamp.fromDate(today),
+          'consecutiveLoginDays': newConsecutiveDays,
+          'loginRewardProgress': newProgress,
+          'lastClaimAttempt': Timestamp.fromDate(now),
+        };
+
+        // เพิ่มเหรียญทุกวัน (0.1 เหรียญ + โบนัสถ้ามี)
+        final currentCoins = freshData['ecoCoins'] as double? ?? 0.0;
+        updateData['ecoCoins'] = currentCoins + totalCoinsAwarded;
+
+        transaction.update(
+          _firestore.collection('users').doc(userId),
+          updateData,
+        );
+
+        return {
+          'success': true,
+          'rewarded': gotSpecialReward,
+          'coinsAwarded': totalCoinsAwarded,
+          'consecutiveDays': newConsecutiveDays,
+          'progress': newProgress,
+          'message': rewardMessage,
+        };
+      });
+
+      // === ความปลอดภัยขั้นที่ 7: Audit Logging ===
+      await _firestore.collection('audit_logs').add({
+        'userId': userId,
+        'action': 'CLAIM_DAILY_LOGIN_REWARD',
+        'timestamp': Timestamp.fromDate(now),
+        'success': true,
+        'details': {
+          'consecutiveDays': newConsecutiveDays,
+          'coinsAwarded': totalCoinsAwarded,
+          'rewarded': gotSpecialReward,
+        },
+        'metadata': {'userAgent': 'Flutter App', 'version': '1.0.0'},
+      });
+
+      logger.i(
+        "Daily login reward claimed for user $userId: "
+        "Days: $newConsecutiveDays, Coins: $totalCoinsAwarded, Rewarded: $gotSpecialReward",
+      );
+
+      return result;
+    } catch (e) {
+      // === ความปลอดภัยขั้นที่ 8: Error Logging ===
+      logger.e("Error claiming daily login reward for user $userId: $e");
+
+      // บันทึก error ลง audit log
+      await _firestore.collection('audit_logs').add({
+        'userId': userId,
+        'action': 'CLAIM_DAILY_LOGIN_REWARD',
+        'timestamp': Timestamp.fromDate(DateTime.now()),
+        'success': false,
+        'error': e.toString(),
+        'metadata': {'userAgent': 'Flutter App', 'version': '1.0.0'},
+      });
+
+      if (e.toString().contains('ALREADY_CLAIMED_TODAY')) {
+        return {
+          'success': false,
+          'message': 'วันนี้ได้รับรางวัลแล้ว กรุณากลับมาพรุ่งนี้',
+          'error': 'ALREADY_CLAIMED_TODAY',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง',
+        'error': 'UNKNOWN_ERROR',
+      };
+    }
   }
 }
