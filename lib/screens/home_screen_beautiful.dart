@@ -11,7 +11,7 @@ import 'package:green_market/screens/category_products_screen.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 // import 'package:green_market/screens/eco_level_products_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
-import 'package:green_market/screens/admin_panel_screen.dart';
+import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
 import 'package:green_market/widgets/eco_coins_widget.dart';
 import 'package:green_market/widgets/green_world_icon.dart';
 import 'package:green_market/utils/constants.dart';
@@ -49,32 +49,32 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<Map<String, dynamic>> _fetchHomeData() async {
-    print('🔥 DEBUG: Starting _fetchHomeData()');
+    print('[DEBUG] Starting _fetchHomeData()');
     try {
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
 
       // Fetch data with timeout
-      print('🔥 DEBUG: About to fetch data from Firebase...');
+      print('[DEBUG] About to fetch data from Firebase...');
       final futures = await Future.wait([
         firebaseService.getCategories().first.timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            print('🔥 DEBUG: Categories timeout');
+            print('[DEBUG] Categories timeout');
             return <Category>[];
           },
         ),
         firebaseService.getActivePromotions().first.timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            print('🔥 DEBUG: Promotions timeout');
+            print('[DEBUG] Promotions timeout');
             return <Promotion>[];
           },
         ),
         firebaseService.getApprovedProducts().first.timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            print('🔥 DEBUG: Products timeout');
+            print('[DEBUG] Products timeout');
             return <Product>[];
           },
         ),
@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen>
       final promotions = futures[1] as List<Promotion>;
       final products = futures[2] as List<Product>;
 
-      print('🔥 DEBUG: Data fetched successfully:');
+      print('[DEBUG] Data fetched successfully:');
       print('  - Categories: ${categories.length}');
       print('  - Promotions: ${promotions.length}');
       print('  - Products: ${products.length}');
@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen>
       // Debug first product if available
       if (products.isNotEmpty) {
         final firstProduct = products.first;
-        print('🔥 DEBUG: First product details:');
+        print('[DEBUG] First product details:');
         print('  - Name: ${firstProduct.name}');
         print('  - ID: ${firstProduct.id}');
         print('  - Image URLs: ${firstProduct.imageUrls}');
@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen>
         print('  - Status: ${firstProduct.status}');
         print('  - EcoLevel: ${firstProduct.ecoLevel}');
       } else {
-        print('🔥 DEBUG: No products found! This is the main issue.');
+        print('[DEBUG] No products found! This is the main issue.');
       }
 
       return {
@@ -114,9 +114,9 @@ class _HomeScreenState extends State<HomeScreen>
             products.isEmpty && categories.isEmpty && promotions.isEmpty,
       };
     } catch (e) {
-      print('🔥 DEBUG: Error fetching home data: $e');
-      print('🔥 DEBUG: Error type: ${e.runtimeType}');
-      print('🔥 DEBUG: Stack trace: $e');
+      print('[DEBUG] Error fetching home data: $e');
+      print('[DEBUG] Error type: ${e.runtimeType}');
+      print('[DEBUG] Stack trace: $e');
       return {
         'categories': <Category>[],
         'promotions': <Promotion>[],
@@ -1145,7 +1145,7 @@ class _HomeScreenState extends State<HomeScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const AdminPanelScreen(),
+          builder: (context) => const CompleteAdminPanelScreen(),
         ),
       );
     } catch (e) {
@@ -1255,13 +1255,13 @@ class _HomeScreenState extends State<HomeScreen>
     final filteredProducts = _getFilteredProducts(products);
 
     // DEBUG: Log eco level information
-    print('� ECO DEBUG: Total products: ${products.length}');
-    print('� ECO DEBUG: Filtered products: ${filteredProducts.length}');
+    print('[ECO_DEBUG] Total products: ${products.length}');
+    print('[ECO_DEBUG] Filtered products: ${filteredProducts.length}');
 
     // Check eco scores and levels for ALL products (not just filtered)
     for (var product in products.take(20)) {
       print(
-          '� ECO Product: "${product.name}" | EcoScore: ${product.ecoScore} | EcoLevel: ${product.ecoLevel}');
+          '[ECO] Product: "${product.name}" | EcoScore: ${product.ecoScore} | EcoLevel: ${product.ecoLevel}');
     }
 
     if (filteredProducts.isEmpty) {
@@ -1314,9 +1314,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     // DEBUG: Log products by eco level
-    print('🔥 ECO DEBUG: Products by level:');
+    print('[ECO_DEBUG] Products by level:');
     productsByEcoLevel.forEach((level, products) {
-      print('🔥 ECO  - ${level.name}: ${products.length} products');
+      print('[ECO]  - ${level.name}: ${products.length} products');
     });
 
     // แสดงทุกระดับแม้ว่าจะไม่มีสินค้า (เพื่อ debug)
@@ -1326,7 +1326,7 @@ class _HomeScreenState extends State<HomeScreen>
       final levelProducts = productsByEcoLevel[ecoLevel] ?? [];
 
       print(
-          '🔥 ECO Building section for ${ecoLevel.name}: ${levelProducts.length} products');
+          '[ECO] Building section for ${ecoLevel.name}: ${levelProducts.length} products');
 
       // แสดงแม้ไม่มีสินค้า (เพื่อ debug)
       ecoSections.add(

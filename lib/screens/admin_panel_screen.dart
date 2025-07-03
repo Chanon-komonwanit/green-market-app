@@ -210,7 +210,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final firebaseService = Provider.of<FirebaseService>(context);
 
     return DefaultTabController(
-      length: 12, // เพิ่มจาก 11 เป็น 12 สำหรับ tab ใหม่
+      length: 11, // แก้ไขจำนวน tabs ให้ตรงกับที่มีจริง
       child: Scaffold(
         appBar: AppBar(
           title: Text('แผงควบคุมผู้ดูแลระบบ',
@@ -228,9 +228,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             unselectedLabelStyle: AppTextStyles.body.copyWith(fontSize: 14),
             tabs: const [
               Tab(text: 'ภาพรวม', icon: Icon(Icons.dashboard_outlined)),
-              Tab(text: 'เพิ่มสินค้า', icon: Icon(Icons.add_box)),
               Tab(text: 'อนุมัติสินค้า', icon: Icon(Icons.check_circle)),
-              Tab(text: 'คำสั่งซื้อทั้งหมด', icon: Icon(Icons.receipt_long)),
+              Tab(text: 'คำสั่งซื้อ', icon: Icon(Icons.receipt_long)),
               Tab(text: 'จัดการหมวดหมู่', icon: Icon(Icons.category)),
               Tab(text: 'โปรโมชัน', icon: Icon(Icons.local_offer_outlined)),
               Tab(
@@ -246,11 +245,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               Tab(
                   text: 'ตั้งค่าแอป',
                   icon: Icon(Icons.settings_applications_outlined)),
-              Tab(text: 'จัดการรูปภาพ', icon: Icon(Icons.image_outlined)),
-              Tab(text: 'ปรับแต่ง UI', icon: Icon(Icons.palette_outlined)),
               Tab(
-                  text: 'จัดการโฆษณา',
-                  icon: Icon(Icons.campaign_outlined)), // Tab ใหม่สำหรับโฆษณา
+                  text: 'จัดการระบบ',
+                  icon: Icon(Icons.admin_panel_settings_outlined)),
             ],
           ),
         ),
@@ -258,373 +255,48 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           children: [
             // Tab 0: Admin Dashboard
             _buildAdminDashboard(),
-            // Tab 1: Add Product
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(children: [
-                  _buildSectionCard(
-                    title: 'ข้อมูลพื้นฐานสินค้า',
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: _inputDecoration('ชื่อสินค้า'),
-                          style: AppTextStyles.body,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'กรุณากรอกชื่อสินค้า';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        if (_isLoadingAdminAddCategories) // Corrected: Check loading state
-                          const Center(
-                              child: Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: CircularProgressIndicator(
-                                      color: AppColors.primaryTeal)))
-                        else if (_adminAddCategories.isEmpty)
-                          const Text('ไม่พบหมวดหมู่ (กรุณาเพิ่มหมวดหมู่ก่อน)')
-                        else
-                          DropdownButtonFormField<String>(
-                            value: _selectedAdminAddCategoryId,
-                            decoration: _inputDecoration('เลือกหมวดหมู่สินค้า'),
-                            hint: const Text('เลือกหมวดหมู่'),
-                            items: _adminAddCategories
-                                .map((app_category.Category category) {
-                              return DropdownMenuItem<String>(
-                                // Corrected: Ensure value is String
-                                value: category.id,
-                                child: Text(category.name,
-                                    style: AppTextStyles.body),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedAdminAddCategoryId = value;
-                                _selectedAdminAddCategoryName =
-                                    _adminAddCategories
-                                        .firstWhere(
-                                          (cat) => cat.id == value,
-                                          orElse: () => app_category.Category(
-                                              id: value ?? '',
-                                              name: 'Unknown Category',
-                                              imageUrl: '',
-                                              createdAt: Timestamp.now()),
-                                        )
-                                        .name;
-                              });
-                            },
-                            validator: (value) =>
-                                value == null ? 'กรุณาเลือกหมวดหมู่' : null,
-                            style: AppTextStyles.body,
-                          ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: _inputDecoration('รายละเอียดสินค้า'),
-                          style: AppTextStyles.body,
-                          maxLines: 3,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'กรุณากรอกรายละเอียดสินค้า';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _priceController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration('ราคา (บาท)'),
-                          style: AppTextStyles.body,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'กรุณากรอกราคา';
-                            }
-                            if (double.tryParse(value) == null) {
-                              return 'กรุณากรอกราคาเป็นตัวเลขที่ถูกต้อง';
-                            }
-                            if (double.parse(value) <= 0) {
-                              return 'ราคาต้องมากกว่า 0';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                    title: 'รายละเอียดเชิงนิเวศและความยั่งยืน',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _materialController,
-                          decoration: _inputDecoration(
-                              'วัสดุที่ใช้ (เช่น พลาสติกรีไซเคิล, ฝ้ายออร์แกนิก)'),
-                          style: AppTextStyles.body,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'กรุณากรอกวัสดุที่ใช้';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _ecoJustificationController,
-                          decoration: _inputDecoration(
-                              'เหตุผลที่สินค้านี้เป็นมิตรต่อสิ่งแวดล้อม'),
-                          style: AppTextStyles.body,
-                          maxLines: 2,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'กรุณาให้เหตุผลความเป็นมิตรต่อสิ่งแวดล้อม';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Text('ระดับ Eco Score (%): $_ecoScore',
-                            style: AppTextStyles.bodyBold
-                                .copyWith(color: AppColors.primaryTeal)),
-                        Slider(
-                          value: _ecoScore.toDouble(),
-                          min: 1.0,
-                          max: 100.0,
-                          divisions: 99,
-                          label: _ecoScore.toString(),
-                          onChanged: (value) {
-                            setState(() {
-                              _ecoScore = value.toInt();
-                            });
-                          },
-                          activeColor:
-                              EcoLevelExtension.fromScore(_ecoScore).color,
-                          inactiveColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                        ),
-                        SwitchListTile(
-                          title: Text('อนุมัติสินค้าทันที',
-                              style: AppTextStyles.bodyBold
-                                  .copyWith(color: AppColors.modernDarkGrey)),
-                          value: _approveImmediately,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _approveImmediately = value;
-                            });
-                          },
-                          activeColor: AppColors.primaryTeal,
-                          contentPadding: EdgeInsets.zero,
-                          subtitle: Text(
-                            _approveImmediately
-                                ? 'สินค้าจะแสดงในร้านค้าทันที'
-                                : 'สินค้าจะถูกส่งไปรอการอนุมัติ',
-                            style: AppTextStyles.caption
-                                .copyWith(color: AppColors.modernGrey),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                    title: 'สื่อและการยืนยัน',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _verificationVideoController,
-                          decoration: _inputDecoration(
-                              'ลิงก์วิดีโอ/รูปภาพยืนยัน (ถ้ามี)'),
-                          style: AppTextStyles.body,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.image_outlined,
-                              color: AppColors.white),
-                          label: Text('เลือกรูปภาพสินค้า',
-                              style: AppTextStyles.bodyBold
-                                  .copyWith(color: AppColors.white)),
-                          style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              backgroundColor: AppColors.lightTeal,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0))),
-                        ),
-                        if (_pickedImageFile != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: kIsWeb
-                                ? Row(
-                                    children: [
-                                      // Removed deprecated withOpacity
-                                      Icon(Icons.image_outlined,
-                                          color: AppColors.modernGrey),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                            'เลือกรูปภาพ: ${_pickedImageFile!.name}',
-                                            style: AppTextStyles.body,
-                                            overflow: TextOverflow.ellipsis),
-                                      ),
-                                    ],
-                                  )
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    child: Image.file(
-                                        File(_pickedImageFile!.path),
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover),
-                                  ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _addProduct,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryTeal,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
-                          textStyle: AppTextStyles.subtitle.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold)),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: AppColors.white,
-                                strokeWidth: 3.0,
-                              ),
-                            )
-                          : Text('เพิ่มสินค้าใหม่',
-                              style: AppTextStyles.subtitle
-                                  .copyWith(color: AppColors.white)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ]),
-              ),
-            ),
-            const ApprovalListScreen(),
-            StreamBuilder<List<app_order.Order>>(
-              // Corrected: StreamBuilder expects non-nullable List
-              stream:
-                  firebaseService.getAllOrders(), // Corrected: Already correct
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primaryTeal));
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                      child: Text(
-                          'เกิดข้อผิดพลาดในการโหลดคำสั่งซื้อ: ${snapshot.error}',
-                          style: AppTextStyles.body));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  // Corrected: Check for empty list
-                  return Center(
-                      child: Text('ยังไม่มีคำสั่งซื้อในระบบ',
-                          style: AppTextStyles.body));
-                }
-                final allOrders = snapshot.data!;
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: allOrders.length,
-                  itemBuilder: (context, index) {
-                    final order = allOrders[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          vertical: 6.0, horizontal: 8.0),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.veryLightTeal,
-                          child: const Icon(Icons.receipt_long_outlined,
-                              color: AppColors.primaryTeal),
-                        ),
-                        title: Text('คำสั่งซื้อ #${order.id.substring(0, 8)}',
-                            style: AppTextStyles.subtitle.copyWith(
-                                fontSize: 16, color: AppColors.primaryTeal)),
-                        subtitle: Text(
-                          'ผู้ซื้อ: ${order.fullName}\n'
-                          'วันที่: ${order.orderDate.toDate().toLocal().toString().split('.')[0]}\n'
-                          'สถานะ: ${order.status.replaceAll('_', ' ').toUpperCase()}\n'
-                          'รวม: ฿${order.totalAmount.toStringAsFixed(2)}',
-                          style: AppTextStyles.body.copyWith(
-                              fontSize: 12, color: AppColors.modernGrey),
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            color: AppColors.lightModernGrey),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    AdminOrderDetailScreen(order: order)),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+            // Tab 1: Product Approval
+            _buildProductApprovalTab(),
+            // Tab 2: Order Management
+            _buildOrderManagementTab(),
+            // Tab 3: Category Management
             const AdminCategoryManagementScreen(),
-            const AdminPromotionManagementScreen(), // New Promotion Screen
+            // Tab 4: Promotion Management
+            const AdminPromotionManagementScreen(),
+            // Tab 5: User Management
             const AdminUserManagementScreen(),
+            // Tab 6: Seller Applications
             const AdminSellerApplicationScreen(),
+            // Tab 7: Investment Projects
             const AdminManageInvestmentProjectsScreen(),
+            // Tab 8: Sustainable Activities
             const AdminManageSustainableActivitiesScreen(),
+            // Tab 9: App Settings
             const DynamicAppConfigScreen(),
-            // Tab ใหม่สำหรับจัดการรูปภาพ
-            _buildImageManagementTab(),
-            // Tab ใหม่สำหรับปรับแต่ง UI
-            _buildUICustomizationTab(),
-            // Tab ใหม่สำหรับจัดการโฆษณา
-            _buildAdvertisementManagementTab(),
+            // Tab 10: System Management
+            _buildSystemManagementTab(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionCard({required String title, required Widget child}) {
+  Widget _buildSectionCard({
+    required String title,
+    required Widget child,
+  }) {
     return Card(
       elevation: 2.0,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: AppTextStyles.subtitle.copyWith(
-                  color: AppColors.primaryTeal, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16.0),
+            Text(title,
+                style: AppTextStyles.subtitle
+                    .copyWith(color: AppColors.primaryTeal)),
+            const SizedBox(height: 16),
             child,
           ],
         ),
@@ -635,11 +307,568 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   InputDecoration _inputDecoration(String labelText) {
     return InputDecoration(
         labelText: labelText,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+        labelStyle: AppTextStyles.body.copyWith(color: AppColors.modernGrey),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: AppColors.lightTeal)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8.0),
             borderSide: BorderSide(color: AppColors.primaryTeal, width: 2.0)),
-        labelStyle: AppTextStyles.body.copyWith(color: AppColors.modernGrey));
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: AppColors.lightTeal)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: const BorderSide(color: Colors.red)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: AppColors.primaryTeal, width: 2.0)));
+  }
+
+  Widget _buildProductApprovalTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'อนุมัติสินค้า',
+            style: AppTextStyles.title.copyWith(fontSize: 24),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('products')
+                  .where('status', isEqualTo: 'pending_approval')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'ไม่มีสินค้าที่รออนุมัติ',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = snapshot.data!.docs[index];
+                    final product = doc.data() as Map<String, dynamic>;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      elevation: 2,
+                      child: ListTile(
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: product['imageUrls'] != null &&
+                                  (product['imageUrls'] as List).isNotEmpty
+                              ? Image.network(
+                                  (product['imageUrls'] as List)[0],
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    width: 50,
+                                    height: 50,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image),
+                                  ),
+                                )
+                              : Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image),
+                                ),
+                        ),
+                        title: Text(product['name'] ?? 'ไม่มีชื่อ'),
+                        subtitle: Text(
+                          'ราคา: ฿${product['price'] ?? 0} | Eco Score: ${product['ecoScore'] ?? 0}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () => _approveProduct(doc.id),
+                              icon:
+                                  const Icon(Icons.check, color: Colors.green),
+                            ),
+                            IconButton(
+                              onPressed: () => _rejectProduct(doc.id),
+                              icon: const Icon(Icons.close, color: Colors.red),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showProductDetails(product, doc.id),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderManagementTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'จัดการคำสั่งซื้อ',
+            style: AppTextStyles.title.copyWith(fontSize: 24),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .orderBy('createdAt', descending: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'ไม่มีคำสั่งซื้อ',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = snapshot.data!.docs[index];
+                    final order = doc.data() as Map<String, dynamic>;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: ListTile(
+                        title: Text('Order #${doc.id.substring(0, 8)}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ยอดรวม: ฿${order['totalAmount'] ?? 0}'),
+                            Text('วันที่: ${_formatDate(order['createdAt'])}'),
+                          ],
+                        ),
+                        trailing: _buildOrderStatusChip(order['status']),
+                        onTap: () => _showOrderDetails(order, doc.id),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderStatusChip(String? status) {
+    Color color;
+    String displayText;
+
+    switch (status) {
+      case 'pending':
+        color = Colors.orange;
+        displayText = 'รอชำระ';
+        break;
+      case 'confirmed':
+        color = Colors.blue;
+        displayText = 'ยืนยันแล้ว';
+        break;
+      case 'shipping':
+        color = Colors.purple;
+        displayText = 'กำลังจัดส่ง';
+        break;
+      case 'completed':
+        color = Colors.green;
+        displayText = 'เสร็จสิ้น';
+        break;
+      case 'cancelled':
+        color = Colors.red;
+        displayText = 'ยกเลิก';
+        break;
+      default:
+        color = Colors.grey;
+        displayText = 'ไม่ระบุ';
+    }
+
+    return Chip(
+      label: Text(
+        displayText,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+      backgroundColor: color,
+    );
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'ไม่ระบุ';
+    try {
+      final date = (timestamp as Timestamp).toDate();
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'ไม่ระบุ';
+    }
+  }
+
+  Future<void> _approveProduct(String productId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .update({
+        'status': 'approved',
+        'approvedAt': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('อนุมัติสินค้าเรียบร้อย'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _rejectProduct(String productId) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('เหตุผลการปฏิเสธ'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'กรุณาระบุเหตุผล...',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('ปฏิเสธ'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (reason != null && reason.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .update({
+          'status': 'rejected',
+          'rejectionReason': reason,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ปฏิเสธสินค้าเรียบร้อย'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showProductDetails(Map<String, dynamic> product, String productId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(product['name'] ?? 'ไม่มีชื่อ'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('คำอธิบาย: ${product['description'] ?? ''}'),
+              const SizedBox(height: 8),
+              Text('ราคา: ฿${product['price'] ?? 0}'),
+              const SizedBox(height: 8),
+              Text('คะแนนสิ่งแวดล้อม: ${product['ecoScore'] ?? 0}'),
+              const SizedBox(height: 8),
+              Text('หมวดหมู่: ${product['categoryName'] ?? ''}'),
+              const SizedBox(height: 8),
+              Text('วัสดุ: ${product['materialDescription'] ?? ''}'),
+              const SizedBox(height: 8),
+              Text(
+                  'เหตุผลคะแนนสิ่งแวดล้อม: ${product['ecoJustification'] ?? ''}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _approveProduct(productId);
+            },
+            child: const Text('อนุมัติ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOrderDetails(Map<String, dynamic> order, String orderId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('รายละเอียดคำสั่งซื้อ #${orderId.substring(0, 8)}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('สถานะ: ${order['status'] ?? ''}'),
+              const SizedBox(height: 8),
+              Text('ยอดรวม: ฿${order['totalAmount'] ?? 0}'),
+              const SizedBox(height: 8),
+              Text('ค่าจัดส่ง: ฿${order['shippingFee'] ?? 0}'),
+              const SizedBox(height: 8),
+              Text('ที่อยู่จัดส่ง: ${order['shippingAddress'] ?? ''}'),
+              const SizedBox(height: 16),
+              if (order['items'] != null) ...[
+                const Text('รายการสินค้า:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...((order['items'] as List).map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                          '• ${item['productName']} x${item['quantity']} = ฿${item['pricePerUnit'] * item['quantity']}'),
+                    ))),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemManagementTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'จัดการระบบ',
+            style: AppTextStyles.title.copyWith(fontSize: 24),
+          ),
+          const SizedBox(height: 24),
+
+          // Database Management
+          _buildManagementSection(
+            title: 'จัดการฐานข้อมูล',
+            icon: Icons.storage,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.backup, color: AppColors.primaryTeal),
+                title: const Text('สำรองข้อมูล'),
+                subtitle: const Text('สำรองข้อมูลระบบทั้งหมด'),
+                onTap: _performDatabaseBackup,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cleaning_services,
+                    color: AppColors.primaryTeal),
+                title: const Text('ล้างข้อมูลชั่วคราว'),
+                subtitle: const Text('ลบข้อมูลแคชและไฟล์ชั่วคราว'),
+                onTap: _cleanTemporaryData,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.analytics, color: AppColors.primaryTeal),
+                title: const Text('วิเคราะห์ประสิทธิภาพ'),
+                subtitle: const Text('ตรวจสอบประสิทธิภาพระบบ'),
+                onTap: _analyzeSystemPerformance,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Security Management
+          _buildManagementSection(
+            title: 'จัดการความปลอดภัย',
+            icon: Icons.security,
+            children: [
+              ListTile(
+                leading:
+                    const Icon(Icons.security, color: AppColors.primaryTeal),
+                title: const Text('ตรวจสอบความปลอดภัย'),
+                subtitle: const Text('สแกนหาช่องโหว่ความปลอดภัย'),
+                onTap: _performSecurityScan,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.vpn_key, color: AppColors.primaryTeal),
+                title: const Text('จัดการ API Keys'),
+                subtitle: const Text('ดู และจัดการ API Keys'),
+                onTap: _manageApiKeys,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading: const Icon(Icons.block, color: AppColors.primaryTeal),
+                title: const Text('รายการ IP ที่ถูกบล็อก'),
+                subtitle: const Text('จัดการ IP ที่ถูกบล็อก'),
+                onTap: _manageBlockedIPs,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Content Moderation
+          _buildManagementSection(
+            title: 'กลั่นกรองเนื้อหา',
+            icon: Icons.report,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.report, color: AppColors.primaryTeal),
+                title: const Text('รายงานที่รอตรวจสอบ'),
+                subtitle: const Text('ตรวจสอบรายงานจากผู้ใช้'),
+                onTap: _reviewReports,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_fix_high,
+                    color: AppColors.primaryTeal),
+                title: const Text('ตัวกรองเนื้อหาอัตโนมัติ'),
+                subtitle: const Text('ตั้งค่าการกรองเนื้อหาอัตโนมัติ'),
+                onTap: _configureContentFilter,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag, color: AppColors.primaryTeal),
+                title: const Text('คำต้องห้าม'),
+                subtitle: const Text('จัดการรายการคำต้องห้าม'),
+                onTap: _manageBannedWords,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManagementSection({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: AppColors.primaryTeal),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildAdminDashboard() {
@@ -1969,5 +2198,218 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         }
       }
     }
+  }
+
+  // System Management Methods
+  Future<void> _performDatabaseBackup() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        title: Text('สำรองข้อมูล'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('กำลังสำรองข้อมูล...'),
+          ],
+        ),
+      ),
+    );
+
+    // Simulate backup process
+    await Future.delayed(const Duration(seconds: 3));
+
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('สำรองข้อมูลเรียบร้อย'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _cleanTemporaryData() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ล้างข้อมูลชั่วคราวเรียบร้อย'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _analyzeSystemPerformance() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ผลการวิเคราะห์ประสิทธิภาพ'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('📊 สถิติระบบ:'),
+            SizedBox(height: 8),
+            Text('• CPU Usage: 45%'),
+            Text('• Memory Usage: 67%'),
+            Text('• Database Response: 125ms'),
+            Text('• Active Users: 1,234'),
+            Text('• Total Products: 5,678'),
+            Text('• Total Orders: 2,345'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performSecurityScan() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('กำลังทำการสแกนความปลอดภัย...'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  Future<void> _manageApiKeys() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('จัดการ API Keys'),
+        content: const Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _manageBlockedIPs() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('IP ที่ถูกบล็อก'),
+        content: const Text('ไม่มี IP ที่ถูกบล็อกในขณะนี้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _reviewReports() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('รายงานจากผู้ใช้'),
+            backgroundColor: AppColors.primaryTeal,
+            foregroundColor: Colors.white,
+          ),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.report_outlined, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('ยังไม่มีรายงานที่รอตรวจสอบ'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _configureContentFilter() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ตั้งค่าตัวกรองเนื้อหา'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CheckboxListTile(
+              title: const Text('กรองคำหยาบ'),
+              value: true,
+              onChanged: (value) {},
+            ),
+            CheckboxListTile(
+              title: const Text('กรองเนื้อหาไม่เหมาะสม'),
+              value: true,
+              onChanged: (value) {},
+            ),
+            CheckboxListTile(
+              title: const Text('กรองลิงก์ภายนอก'),
+              value: false,
+              onChanged: (value) {},
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _manageBannedWords() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('คำต้องห้าม'),
+        content: const SizedBox(
+          width: 300,
+          height: 200,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('รายการคำต้องห้ามปัจจุบัน:'),
+              SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• spam'),
+                      Text('• scam'),
+                      Text('• fake'),
+                      Text('• fraud'),
+                      Text('• cheat'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -15,7 +15,7 @@ import 'package:image_picker/image_picker.dart';
 // กราฟคะแนนเฉลี่ย + กรองรีวิว Shopee-style (top-level)
 class ReviewSummary extends StatelessWidget {
   final String shopId;
-  const ReviewSummary({Key? key, required this.shopId}) : super(key: key);
+  const ReviewSummary({super.key, required this.shopId});
 
   Future<Map<String, dynamic>> _getSummary() async {
     final query = await FirebaseFirestore.instance
@@ -124,8 +124,7 @@ class ShopReviewDialog extends StatefulWidget {
   final String shopId;
   final String shopName;
   const ShopReviewDialog(
-      {Key? key, required this.shopId, required this.shopName})
-      : super(key: key);
+      {super.key, required this.shopId, required this.shopName});
 
   @override
   State<ShopReviewDialog> createState() => _ShopReviewDialogState();
@@ -179,7 +178,9 @@ class _ShopReviewDialogState extends State<ShopReviewDialog> {
       if (_filterStar != null && r['rating'] != _filterStar) return false;
       if (_filterVerified && r['verified'] != true) return false;
       if (_filterHasImage &&
-          (r['images'] == null || (r['images'] as List).isEmpty)) return false;
+          (r['images'] == null || (r['images'] as List).isEmpty)) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -444,8 +445,7 @@ class EnhancedAddReviewForm extends StatefulWidget {
   final String shopId;
   final VoidCallback onReviewAdded;
   const EnhancedAddReviewForm(
-      {Key? key, required this.shopId, required this.onReviewAdded})
-      : super(key: key);
+      {super.key, required this.shopId, required this.onReviewAdded});
 
   @override
   State<EnhancedAddReviewForm> createState() => _EnhancedAddReviewFormState();
@@ -460,7 +460,7 @@ class _EnhancedAddReviewFormState extends State<EnhancedAddReviewForm> {
 
   Future<void> _pickImages() async {
     try {
-      final List<XFile>? images = await _imagePicker.pickMultiImage(
+      final List<XFile> images = await _imagePicker.pickMultiImage(
         maxWidth: 800,
         maxHeight: 800,
         imageQuality: 80,
@@ -645,7 +645,7 @@ class _EnhancedAddReviewFormState extends State<EnhancedAddReviewForm> {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('✅ เพิ่มรีวิวสำเร็จ!')),
+                                  content: Text('[SUCCESS] เพิ่มรีวิวสำเร็จ!')),
                             );
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -682,8 +682,7 @@ class _EnhancedAddReviewFormState extends State<EnhancedAddReviewForm> {
 class ReplyForm extends StatefulWidget {
   final String reviewId;
   final VoidCallback onReplied;
-  const ReplyForm({Key? key, required this.reviewId, required this.onReplied})
-      : super(key: key);
+  const ReplyForm({super.key, required this.reviewId, required this.onReplied});
 
   @override
   State<ReplyForm> createState() => _ReplyFormState();
@@ -1306,8 +1305,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
 // Enhanced Review Analytics Dashboard
 class ReviewAnalyticsDashboard extends StatefulWidget {
   final String shopId;
-  const ReviewAnalyticsDashboard({Key? key, required this.shopId})
-      : super(key: key);
+  const ReviewAnalyticsDashboard({super.key, required this.shopId});
 
   @override
   State<ReviewAnalyticsDashboard> createState() =>
@@ -1366,10 +1364,12 @@ class _ReviewAnalyticsDashboardState extends State<ReviewAnalyticsDashboard> {
         }
 
         if (review['verified'] == true) verifiedCount++;
-        if (review['images'] != null && (review['images'] as List).isNotEmpty)
+        if (review['images'] != null && (review['images'] as List).isNotEmpty) {
           withImagesCount++;
-        if (review['reply'] != null && review['reply'].toString().isNotEmpty)
+        }
+        if (review['reply'] != null && review['reply'].toString().isNotEmpty) {
           repliedCount++;
+        }
 
         final reviewDate = (review['date'] as Timestamp?)?.toDate();
         if (reviewDate != null && reviewDate.isAfter(last30Days)) recentCount++;
@@ -1443,7 +1443,7 @@ class _ReviewAnalyticsDashboardState extends State<ReviewAnalyticsDashboard> {
                 Expanded(
                   child: _buildStatCard(
                     'คะแนนเฉลี่ย',
-                    '${(_analytics!['avgRating'] as double).toStringAsFixed(2)}',
+                    (_analytics!['avgRating'] as double).toStringAsFixed(2),
                     Icons.star,
                     Colors.amber,
                   ),
@@ -1589,8 +1589,7 @@ class ReviewModerationDialog extends StatefulWidget {
   final VoidCallback onAction;
 
   const ReviewModerationDialog(
-      {Key? key, required this.review, required this.onAction})
-      : super(key: key);
+      {super.key, required this.review, required this.onAction});
 
   @override
   State<ReviewModerationDialog> createState() => _ReviewModerationDialogState();

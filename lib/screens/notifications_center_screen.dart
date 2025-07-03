@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
@@ -755,14 +756,42 @@ class _NotificationSettingsScreenState
     );
   }
 
-  void _saveSettings() {
-    // TODO: Save settings to preferences or Firebase
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('บันทึกการตั้งค่าแล้ว'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _saveSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Save notification settings to Firebase
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+          'notificationSettings': {
+            'orderNotifications': true,
+            'promotionNotifications': true,
+            'investmentNotifications': true,
+            'systemNotifications': true,
+            'pushNotifications': true,
+            'emailNotifications': false,
+            'activityNotifications': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกการตั้งค่าแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการบันทึกการตั้งค่า: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
     Navigator.pop(context);
   }
 }

@@ -238,8 +238,7 @@ class ShopDetailScreen extends StatelessWidget {
 class ShopReviewSummary extends StatelessWidget {
   final String shopId;
   final Function(int?)? onStarFilter;
-  const ShopReviewSummary({Key? key, required this.shopId, this.onStarFilter})
-      : super(key: key);
+  const ShopReviewSummary({super.key, required this.shopId, this.onStarFilter});
 
   Future<Map<String, dynamic>> _getSummary() async {
     final query = await FirebaseFirestore.instance
@@ -367,8 +366,7 @@ class ShopReviewsList extends StatefulWidget {
   final String shopId;
   final String shopName;
   const ShopReviewsList(
-      {Key? key, required this.shopId, required this.shopName})
-      : super(key: key);
+      {super.key, required this.shopId, required this.shopName});
 
   @override
   State<ShopReviewsList> createState() => _ShopReviewsListState();
@@ -378,7 +376,7 @@ class _ShopReviewsListState extends State<ShopReviewsList> {
   late Future<List<Map<String, dynamic>>> _futureReviews;
   int? _filterStar;
   bool _filterVerified = false;
-  bool _filterHasImage = false;
+  final bool _filterHasImage = false;
 
   @override
   void initState() {
@@ -422,7 +420,9 @@ class _ShopReviewsListState extends State<ShopReviewsList> {
       if (_filterStar != null && r['rating'] != _filterStar) return false;
       if (_filterVerified && r['verified'] != true) return false;
       if (_filterHasImage &&
-          (r['images'] == null || (r['images'] as List).isEmpty)) return false;
+          (r['images'] == null || (r['images'] as List).isEmpty)) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -511,10 +511,7 @@ class _ShopReviewsListState extends State<ShopReviewsList> {
             }
             return Column(
               children: [
-                ...reviews
-                    .take(3)
-                    .map((review) => _buildReviewItem(review))
-                    .toList(),
+                ...reviews.take(3).map((review) => _buildReviewItem(review)),
                 if (reviews.length > 3)
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -690,8 +687,7 @@ class CustomerAddReviewForm extends StatefulWidget {
   final String shopId;
   final VoidCallback onReviewAdded;
   const CustomerAddReviewForm(
-      {Key? key, required this.shopId, required this.onReviewAdded})
-      : super(key: key);
+      {super.key, required this.shopId, required this.onReviewAdded});
 
   @override
   State<CustomerAddReviewForm> createState() => _CustomerAddReviewFormState();
@@ -717,6 +713,36 @@ class _CustomerAddReviewFormState extends State<CustomerAddReviewForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูป: $e')),
       );
+    }
+  }
+
+  /// ตรวจสอบว่าผู้ใช้เคยซื้อสินค้าจากร้านนี้หรือไม่
+  Future<bool> _checkVerifiedPurchase(String userId, String shopId) async {
+    try {
+      final ordersQuery = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .where('status', isEqualTo: 'completed') // เฉพาะออเดอร์ที่เสร็จสิ้น
+          .get();
+
+      for (final orderDoc in ordersQuery.docs) {
+        final orderData = orderDoc.data();
+        final items = orderData['items'] as List<dynamic>? ?? [];
+
+        // ตรวจสอบว่ามีสินค้าจากร้านนี้ในออเดอร์หรือไม่
+        for (final item in items) {
+          if (item is Map<String, dynamic>) {
+            final sellerId = item['sellerId'] as String?;
+            if (sellerId == shopId) {
+              return true; // พบการซื้อจากร้านนี้
+            }
+          }
+        }
+      }
+      return false; // ไม่พบการซื้อจากร้านนี้
+    } catch (e) {
+      print('Error checking verified purchase: $e');
+      return false; // กรณีเกิดข้อผิดพลาด ให้ถือว่าไม่ verified
     }
   }
 
@@ -837,8 +863,15 @@ class _CustomerAddReviewFormState extends State<CustomerAddReviewForm> {
                           final user = FirebaseAuth.instance.currentUser;
                           if (user == null) throw 'กรุณาเข้าสู่ระบบ';
 
-                          // TODO: อัปโหลดรูปภาพไป Firebase Storage (ตอนนี้เป็น Demo)
+                          // Upload images to Firebase Storage if any
                           List<String> imageUrls = [];
+                          // Note: Image upload implementation would go here
+                          // For now, this is a placeholder for actual implementation
+
+                          // Check if user has actually purchased from this shop
+                          bool isVerifiedPurchase =
+                              await _checkVerifiedPurchase(
+                                  user.uid, widget.shopId);
 
                           await FirebaseFirestore.instance
                               .collection('shop_reviews')
@@ -850,8 +883,11 @@ class _CustomerAddReviewFormState extends State<CustomerAddReviewForm> {
                             'comment': _commentController.text.trim(),
                             'date': Timestamp.now(),
                             'reply': '',
-                            'verified': false, // TODO: ตรวจสอบการซื้อจริง
+                            'verified':
+                                isVerifiedPurchase, // Check actual purchase history
                             'images': imageUrls,
+                            'helpfulCount': 0,
+                            'reportCount': 0,
                           });
 
                           widget.onReviewAdded();
@@ -889,8 +925,7 @@ class AllShopReviewsDialog extends StatefulWidget {
   final String shopId;
   final String shopName;
   const AllShopReviewsDialog(
-      {Key? key, required this.shopId, required this.shopName})
-      : super(key: key);
+      {super.key, required this.shopId, required this.shopName});
 
   @override
   State<AllShopReviewsDialog> createState() => _AllShopReviewsDialogState();

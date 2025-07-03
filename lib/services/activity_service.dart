@@ -51,10 +51,10 @@ class ActivityService {
           .collection(_activitiesCollection)
           .add(activity.toFirestore());
 
-      print('✅ สร้างกิจกรรมสำเร็จ ID: ${docRef.id}');
+      print('[SUCCESS] สร้างกิจกรรมสำเร็จ ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการสร้างกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการสร้างกิจกรรม: $e');
       rethrow;
     }
   }
@@ -138,9 +138,9 @@ class ActivityService {
           .doc(activityId)
           .update({'isApproved': true});
 
-      print('✅ อนุมัติกิจกรรมสำเร็จ ID: $activityId');
+      print('[SUCCESS] อนุมัติกิจกรรมสำเร็จ ID: $activityId');
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการอนุมัติกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการอนุมัติกิจกรรม: $e');
       rethrow;
     }
   }
@@ -153,9 +153,9 @@ class ActivityService {
           .doc(activityId)
           .delete();
 
-      print('✅ ปฏิเสธและลบกิจกรรมสำเร็จ ID: $activityId');
+      print('[SUCCESS] ปฏิเสธและลบกิจกรรมสำเร็จ ID: $activityId');
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการปฏิเสธกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการปฏิเสธกิจกรรม: $e');
       rethrow;
     }
   }
@@ -173,7 +173,7 @@ class ActivityService {
       }
       return null;
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการดึงข้อมูลกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการดึงข้อมูลกิจกรรม: $e');
       return null;
     }
   }
@@ -187,9 +187,9 @@ class ActivityService {
           .doc(activityId)
           .update(updates);
 
-      print('✅ อัปเดตกิจกรรมสำเร็จ ID: $activityId');
+      print('[SUCCESS] อัปเดตกิจกรรมสำเร็จ ID: $activityId');
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการอัปเดตกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการอัปเดตกิจกรรม: $e');
       rethrow;
     }
   }
@@ -202,9 +202,9 @@ class ActivityService {
           .doc(activityId)
           .delete();
 
-      print('✅ ลบกิจกรรมสำเร็จ ID: $activityId');
+      print('[SUCCESS] ลบกิจกรรมสำเร็จ ID: $activityId');
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการลบกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการลบกิจกรรม: $e');
       rethrow;
     }
   }
@@ -258,7 +258,7 @@ class ActivityService {
 
       return activities;
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการค้นหากิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการค้นหากิจกรรม: $e');
       return [];
     }
   }
@@ -291,7 +291,7 @@ class ActivityService {
         'upcoming': upcomingSnapshot.docs.length,
       };
     } catch (e) {
-      print('❌ เกิดข้อผิดพลาดในการดึงสถิติกิจกรรม: $e');
+      print('[ERROR] เกิดข้อผิดพลาดในการดึงสถิติกิจกรรม: $e');
       return {
         'pending': 0,
         'approved': 0,

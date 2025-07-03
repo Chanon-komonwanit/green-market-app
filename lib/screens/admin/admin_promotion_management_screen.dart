@@ -148,6 +148,8 @@ class AdminPromotionManagementScreen extends StatelessWidget {
     String? selectedDiscountType = promotion?.discountType;
     final discountController =
         TextEditingController(text: promotion?.discountValue.toString() ?? '');
+    String selectedImageUrl = promotion?.image ?? '';
+
     // For dates, you'd typically use a date picker and store DateTime objects
     // For simplicity, we'll just show text fields here.
     final startDateController = TextEditingController(
@@ -162,120 +164,224 @@ class AdminPromotionManagementScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title:
-              Text(promotion == null ? 'เพิ่มโปรโมชั่นใหม่' : 'แก้ไขโปรโมชั่น'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                      controller: titleController,
-                      decoration:
-                          buildInputDecoration(context, 'ชื่อโปรโมชั่น'),
-                      validator: (v) => v!.isEmpty ? 'กรุณากรอกชื่อ' : null),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                      controller: descriptionController,
-                      decoration:
-                          buildInputDecoration(context, 'คำอธิบายโปรโมชั่น'),
-                      validator: (v) =>
-                          v!.isEmpty ? 'กรุณากรอกคำอธิบาย' : null),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedDiscountType,
-                    decoration: buildInputDecoration(context, 'ประเภทส่วนลด'),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'percentage', child: Text('เปอร์เซ็นต์')),
-                      DropdownMenuItem(
-                          value: 'fixed_amount', child: Text('จำนวนเงินคงที่')),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                  promotion == null ? 'เพิ่มโปรโมชั่นใหม่' : 'แก้ไขโปรโมชั่น'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                          controller: titleController,
+                          decoration:
+                              buildInputDecoration(context, 'ชื่อโปรโมชั่น'),
+                          validator: (v) =>
+                              v!.isEmpty ? 'กรุณากรอกชื่อ' : null),
+                      const SizedBox(height: 10),
+
+                      // Image selection section
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'รูปภาพโปรโมชั่น',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            if (selectedImageUrl.isNotEmpty)
+                              Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      selectedImageUrl,
+                                      height: 100,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                        height: 100,
+                                        color: Colors.grey[300],
+                                        child: const Icon(Icons.image),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        padding: const EdgeInsets.all(4),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedImageUrl = '';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              GestureDetector(
+                                onTap: () {
+                                  // สำหรับ demo ให้ใช้ placeholder image
+                                  setState(() {
+                                    selectedImageUrl =
+                                        'https://via.placeholder.com/400x200/4CAF50/FFFFFF?text=Promotion+Image';
+                                  });
+                                },
+                                child: Container(
+                                  height: 100,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.grey[300]!,
+                                        style: BorderStyle.solid),
+                                  ),
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_photo_alternate,
+                                          size: 40, color: Colors.grey),
+                                      SizedBox(height: 8),
+                                      Text('แตะเพื่อเลือกรูปภาพ',
+                                          style: TextStyle(color: Colors.grey)),
+                                      Text('(Demo: จะใช้รูป placeholder)',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: descriptionController,
+                          decoration: buildInputDecoration(
+                              context, 'คำอธิบายโปรโมชั่น'),
+                          validator: (v) =>
+                              v!.isEmpty ? 'กรุณากรอกคำอธิบาย' : null),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: selectedDiscountType,
+                        decoration:
+                            buildInputDecoration(context, 'ประเภทส่วนลด'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'percentage', child: Text('เปอร์เซ็นต์')),
+                          DropdownMenuItem(
+                              value: 'fixed_amount',
+                              child: Text('จำนวนเงินคงที่')),
+                        ],
+                        onChanged: (value) {
+                          selectedDiscountType = value;
+                        },
+                        validator: (v) =>
+                            v == null ? 'กรุณาเลือกประเภทส่วนลด' : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: codeController,
+                          decoration:
+                              buildInputDecoration(context, 'รหัสโปรโมชั่น'),
+                          validator: (v) =>
+                              v!.isEmpty ? 'กรุณากรอกรหัส' : null),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: discountController,
+                          decoration: buildInputDecoration(context, 'ส่วนลด'),
+                          keyboardType: TextInputType.number,
+                          validator: (v) =>
+                              v!.isEmpty || double.tryParse(v) == null
+                                  ? 'กรุณากรอกส่วนลดที่ถูกต้อง'
+                                  : null),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: startDateController,
+                          decoration: buildInputDecoration(
+                              context, 'วันที่เริ่มต้น (YYYY-MM-DD)'),
+                          validator: (v) =>
+                              v!.isEmpty ? 'กรุณากรอกวันที่เริ่มต้น' : null),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          // Consider using a date picker for better UX
+                          controller: endDateController,
+                          decoration: buildInputDecoration(
+                              context, 'วันที่สิ้นสุด (YYYY-MM-DD)'),
+                          validator: (v) =>
+                              v!.isEmpty ? 'กรุณากรอกวันที่สิ้นสุด' : null),
                     ],
-                    onChanged: (value) {
-                      selectedDiscountType = value;
-                    },
-                    validator: (v) =>
-                        v == null ? 'กรุณาเลือกประเภทส่วนลด' : null,
                   ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                      controller: codeController,
-                      decoration:
-                          buildInputDecoration(context, 'รหัสโปรโมชั่น'),
-                      validator: (v) => v!.isEmpty ? 'กรุณากรอกรหัส' : null),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                      controller: discountController,
-                      decoration: buildInputDecoration(context, 'ส่วนลด'),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty || double.tryParse(v) == null
-                          ? 'กรุณากรอกส่วนลดที่ถูกต้อง'
-                          : null),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                      controller: startDateController,
-                      decoration: buildInputDecoration(
-                          context, 'วันที่เริ่มต้น (YYYY-MM-DD)'),
-                      validator: (v) =>
-                          v!.isEmpty ? 'กรุณากรอกวันที่เริ่มต้น' : null),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                      // Consider using a date picker for better UX
-                      controller: endDateController,
-                      decoration: buildInputDecoration(
-                          context, 'วันที่สิ้นสุด (YYYY-MM-DD)'),
-                      validator: (v) =>
-                          v!.isEmpty ? 'กรุณากรอกวันที่สิ้นสุด' : null),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('ยกเลิก')),
-            ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                final firebaseService =
-                    Provider.of<FirebaseService>(context, listen: false);
-                try {
-                  final newPromo = Promotion(
-                    id: promotion?.id ?? '',
-                    title: titleController.text.trim(),
-                    code: codeController.text.trim(),
-                    description: descriptionController.text.trim(),
-                    image: '', // TODO: เพิ่ม image picker สำหรับโปรโมชั่น
-                    discountType: selectedDiscountType!,
-                    discountValue: double.parse(discountController.text.trim()),
-                    startDate: DateFormat('yyyy-MM-dd')
-                        .parse(startDateController.text.trim()),
-                    endDate: DateFormat('yyyy-MM-dd')
-                        .parse(endDateController.text.trim()),
-                    isActive: true, // Default to active
-                  );
-                  if (promotion == null) {
-                    await firebaseService.addPromotion(newPromo);
-                    showAppSnackBar(context, 'เพิ่มโปรโมชั่นสำเร็จ',
-                        isSuccess: true);
-                  } else {
-                    await firebaseService.updatePromotion(newPromo);
-                    showAppSnackBar(context, 'แก้ไขโปรโมชั่นสำเร็จ',
-                        isSuccess: true);
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                } catch (e) {
-                  showAppSnackBar(context, 'เกิดข้อผิดพลาด: ${e.toString()}',
-                      isError: true);
-                }
-              },
-              child: const Text('บันทึก'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('ยกเลิก')),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+                    final firebaseService =
+                        Provider.of<FirebaseService>(context, listen: false);
+                    try {
+                      final newPromo = Promotion(
+                        id: promotion?.id ?? '',
+                        title: titleController.text.trim(),
+                        code: codeController.text.trim(),
+                        description: descriptionController.text.trim(),
+                        image: '', // TODO: เพิ่ม image picker สำหรับโปรโมชั่น
+                        discountType: selectedDiscountType!,
+                        discountValue:
+                            double.parse(discountController.text.trim()),
+                        startDate: DateFormat('yyyy-MM-dd')
+                            .parse(startDateController.text.trim()),
+                        endDate: DateFormat('yyyy-MM-dd')
+                            .parse(endDateController.text.trim()),
+                        isActive: true, // Default to active
+                      );
+                      if (promotion == null) {
+                        await firebaseService.addPromotion(newPromo);
+                        showAppSnackBar(context, 'เพิ่มโปรโมชั่นสำเร็จ',
+                            isSuccess: true);
+                      } else {
+                        await firebaseService.updatePromotion(newPromo);
+                        showAppSnackBar(context, 'แก้ไขโปรโมชั่นสำเร็จ',
+                            isSuccess: true);
+                      }
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
+                    } catch (e) {
+                      showAppSnackBar(
+                          context, 'เกิดข้อผิดพลาด: ${e.toString()}',
+                          isError: true);
+                    }
+                  },
+                  child: const Text('บันทึก'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

@@ -38,9 +38,31 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final Logger logger = Logger();
+  final Logger logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0, // จำนวนบรรทัดของ method stack trace
+      errorMethodCount: 8, // จำนวนบรรทัดของ error stack trace
+      lineLength: 120, // ความยาวของบรรทัด
+      colors: true, // ใช้สีใน console
+      printEmojis: false, // ปิดการใช้ emoji
+      printTime: false, // ไม่แสดงเวลา
+    ),
+  );
 
-  FirebaseService();
+  FirebaseService() {
+    _initializeAuth();
+  }
+
+  /// Initialize authentication with persistence
+  Future<void> _initializeAuth() async {
+    try {
+      // Set auth persistence to keep user logged in
+      await _auth.setPersistence(Persistence.LOCAL);
+      logger.i("Auth persistence set to LOCAL");
+    } catch (e) {
+      logger.e("Failed to set auth persistence: $e");
+    }
+  }
 
   // Lazy initialization of GoogleSignIn with error handling
   GoogleSignIn? _getGoogleSignIn() {
@@ -164,10 +186,37 @@ class FirebaseService {
 
   Future<AppUser?> getAppUser(String uid) async {
     try {
+      logger.i("[FETCH] Fetching user data from Firestore for UID: $uid");
       final doc = await _firestore.collection('users').doc(uid).get();
-      return doc.exists ? AppUser.fromMap(doc.data()!, doc.id) : null;
+
+      if (doc.exists) {
+        final userData = doc.data()!;
+        logger.i("[SUCCESS] User document found: ${userData['email']}");
+        return AppUser.fromMap(userData, doc.id);
+      } else {
+        logger.w("[WARNING] User document not found for UID: $uid");
+        return null;
+      }
     } catch (e) {
-      logger.e("Error getting user : ");
+      logger.e("[ERROR] Error getting user $uid: $e");
+
+      // ถ้าเป็น network error, ลอง retry
+      if (e.toString().contains('network') ||
+          e.toString().contains('unavailable') ||
+          e.toString().contains('timeout')) {
+        logger.w("[RETRY] Network error detected, retrying...");
+        await Future.delayed(Duration(seconds: 2));
+
+        try {
+          final doc = await _firestore.collection('users').doc(uid).get();
+          if (doc.exists) {
+            return AppUser.fromMap(doc.data()!, doc.id);
+          }
+        } catch (retryError) {
+          logger.e("[ERROR] Retry failed: $retryError");
+        }
+      }
+
       return null;
     }
   }

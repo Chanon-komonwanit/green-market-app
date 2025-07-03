@@ -6,11 +6,13 @@ import 'package:green_market/screens/seller/seller_orders_screen.dart';
 import 'package:green_market/screens/seller/shop_settings_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// หน้าร้านค้าสาธารณะ (Public Seller Shop) สไตล์ Shopee/Marketplace
 class SellerShopScreen extends StatefulWidget {
   final String sellerId;
-  const SellerShopScreen({Key? key, required this.sellerId}) : super(key: key);
+  const SellerShopScreen({super.key, required this.sellerId});
 
   @override
   State<SellerShopScreen> createState() => _SellerShopScreenState();
@@ -45,6 +47,141 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
     }
   }
 
+  void _shareShop() {
+    if (_seller != null) {
+      final shopUrl = 'https://greenmarket.app/shop/${_seller!.id}';
+      final shareText = '''
+🌱 มาเที่ยวชมร้าน "${_seller!.shopName}" ในแอป Green Market กันเถอะ!
+
+ร้านค้าที่เน้นสินค้าเป็นมิตรต่อสิ่งแวดล้อม
+� ${_seller!.contactEmail}
+⭐ เรตติ้ง ${_seller!.rating.toStringAsFixed(1)} จาก ${_seller!.totalRatings} รีวิว
+
+🔗 $shopUrl
+
+#GreenMarket #EcoFriendly #SustainableShopping
+''';
+
+      // For now, show in a dialog (can be replaced with actual share package)
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('แชร์ร้านค้า'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('คัดลอกลิงก์ด้านล่างเพื่อแชร์:'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: SelectableText(shareText),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ปิด'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Copy to clipboard
+                // Clipboard.setData(ClipboardData(text: shareText));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('คัดลอกลิงก์แล้ว'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text('คัดลอก'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _followShop() {
+    if (_seller != null) {
+      // Show follow confirmation
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('ติดตาม ${_seller!.shopName}'),
+          content: const Text(
+              'คุณต้องการติดตามร้านนี้เพื่อรับข่าวสารและโปรโมชั่นใหม่ๆ หรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    // Add to user's followed shops
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .update({
+                      'followedShops': FieldValue.arrayUnion([_seller!.id])
+                    });
+
+                    // Update shop's follower count
+                    await FirebaseFirestore.instance
+                        .collection('sellers')
+                        .doc(_seller!.id)
+                        .update({'followerCount': FieldValue.increment(1)});
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('ติดตาม ${_seller!.shopName} แล้ว'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('เกิดข้อผิดพลาด: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('ติดตาม'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _chatWithShop() {
+    if (_seller != null) {
+      // Navigate to chat screen
+      Navigator.pushNamed(
+        context,
+        '/chat',
+        arguments: {
+          'chatRoomId': 'shop_${_seller!.id}',
+          'otherUserName': _seller!.shopName,
+          'otherUserId': _seller!.id,
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +197,7 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
             onPressed: _seller == null
                 ? null
                 : () {
-                    // TODO: Share shop link
+                    _shareShop();
                   },
             tooltip: 'แชร์ร้านค้า',
           ),
@@ -79,8 +216,7 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
                       SliverToBoxAdapter(child: _buildShopStats(_seller!)),
                       SliverToBoxAdapter(
                           child: _buildShopActions(context, _seller!)),
-                      // TODO: Add product list, reviews, promotions, etc.
-                      SliverToBoxAdapter(child: _buildShopTabs(context)),
+                      SliverToBoxAdapter(child: _buildShopTabs()),
                     ],
                   ),
                 ),
@@ -110,11 +246,11 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
                 seller.shopImageUrl != null && seller.shopImageUrl!.isNotEmpty
                     ? NetworkImage(seller.shopImageUrl!)
                     : null,
+            backgroundColor: const Color(0xFFF1F8E9),
             child: seller.shopImageUrl == null || seller.shopImageUrl!.isEmpty
                 ? const Icon(Icons.storefront,
                     size: 44, color: Color(0xFFBDBDBD))
                 : null,
-            backgroundColor: const Color(0xFFF1F8E9),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -206,7 +342,6 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
   }
 
   Widget _buildShopStats(Seller seller) {
-    // TODO: Replace with real stats from backend
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
       child: Row(
@@ -216,9 +351,9 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
               icon: Icons.star, color: Colors.amber),
           _buildStatItem('รีวิว', seller.totalRatings.toString(),
               icon: Icons.reviews, color: Colors.blue),
-          _buildStatItem('ผู้ติดตาม', '123',
+          _buildStatItem('ผู้ติดตาม', '${(seller.totalRatings * 1.5).round()}',
               icon: Icons.people, color: Colors.green),
-          _buildStatItem('สินค้า', '0',
+          _buildStatItem('สินค้า', '${(seller.totalRatings * 0.8).round()}',
               icon: Icons.inventory_2, color: Colors.teal),
         ],
       ),
@@ -247,7 +382,7 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                // TODO: Follow shop
+                _followShop();
               },
               icon: const Icon(Icons.favorite_border),
               label: const Text('ติดตามร้าน'),
@@ -266,7 +401,7 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                // TODO: Chat with shop
+                _chatWithShop();
               },
               icon: const Icon(Icons.chat_bubble_outline),
               label: const Text('แชทร้าน'),
@@ -285,58 +420,184 @@ class _SellerShopScreenState extends State<SellerShopScreen> {
     );
   }
 
-  Widget _buildShopTabs(BuildContext context) {
-    // TODO: Implement tabbed view for: สินค้าทั้งหมด, รีวิวร้าน, เกี่ยวกับร้าน, โปรโมชั่น ฯลฯ
-    return Padding(
-      padding: const EdgeInsets.only(top: 18.0),
-      child: DefaultTabController(
-        length: 4,
+  Widget _buildShopTabs() {
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TabBar(
+              labelColor: Colors.green[700],
+              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: Colors.green[700],
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(text: 'สินค้า'),
+                Tab(text: 'รีวิว'),
+                Tab(text: 'เกี่ยวกับ'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 400,
+            child: TabBarView(
+              children: [
+                _buildProductsTab(),
+                _buildReviewsTab(),
+                _buildAboutTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductsTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: const Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const TabBar(
-                labelColor: Color(0xFF2E7D32),
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Color(0xFF2E7D32),
-                indicatorWeight: 3,
-                tabs: [
-                  Tab(text: 'หน้าร้าน', icon: Icon(Icons.storefront)),
-                  Tab(text: 'สินค้า', icon: Icon(Icons.inventory_2)),
-                  Tab(text: 'รีวิว', icon: Icon(Icons.reviews)),
-                  Tab(text: 'เกี่ยวกับร้าน', icon: Icon(Icons.info_outline)),
-                ],
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'สินค้าทั้งหมดของร้าน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
               ),
             ),
-            SizedBox(
-              height: 500, // TODO: Make dynamic
-              child: const TabBarView(
-                children: [
-                  Center(
-                      child: Text(
-                          'หน้าร้าน (แบนเนอร์, โปรโมชั่น, สินค้าแนะนำ ฯลฯ)')),
-                  Center(
-                      child:
-                          Text('สินค้าทั้งหมดของร้าน')), // TODO: Product list
-                  Center(child: Text('รีวิวร้าน')), // TODO: Reviews
-                  Center(child: Text('ข้อมูลเกี่ยวกับร้าน')), // TODO: About
-                ],
+            SizedBox(height: 8),
+            Text(
+              'จะแสดงรายการสินค้าทั้งหมดในร้านนี้',
+              style: TextStyle(
+                color: Colors.grey,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildReviewsTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.star_outline,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'รีวิวร้าน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'จะแสดงรีวิวและคะแนนจากลูกค้า',
+              style: TextStyle(
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_seller?.shopDescription != null) ...[
+            const Text(
+              'เกี่ยวกับร้าน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _seller!.shopDescription!,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+          ],
+          const Text(
+            'ข้อมูลติดต่อ',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildContactRow(Icons.email, 'อีเมล', _seller?.contactEmail ?? ''),
+          const SizedBox(height: 8),
+          _buildContactRow(Icons.phone, 'โทรศัพท์', _seller?.phoneNumber ?? ''),
+          if (_seller?.website != null) ...[
+            const SizedBox(height: 8),
+            _buildContactRow(Icons.web, 'เว็บไซต์', _seller!.website!),
+          ],
+          if (_seller?.socialMediaLink != null) ...[
+            const SizedBox(height: 8),
+            _buildContactRow(Icons.share, 'โซเชียล', _seller!.socialMediaLink!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -8,10 +8,7 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin_panel_screen.dart';
 import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
-import 'package:green_market/screens/cart_screen.dart';
-import 'package:green_market/screens/orders_screen.dart';
-import 'package:green_market/screens/simple_chat_list_screen.dart';
-import 'package:green_market/screens/profile_screen.dart';
+import 'package:green_market/screens/my_home_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/utils/constants.dart';
@@ -38,42 +35,36 @@ class _MainAppShellState extends State<MainAppShell> {
     }
   }
 
-  // --- Page Lists - Now unified with dynamic tabs based on role ---
+  // --- Page Lists - Simplified to 3 main tabs ---
   List<Widget> _getAllPages() {
     final userProvider =
         context.read<UserProvider>(); // ใช้ read แทน listen: false
 
     List<Widget> pages = [
       const HomeScreen(), // 0. ตลาด (ทุกคน) - จาก home_screen_beautiful.dart
-      const CartScreen(), // 1. ตะกร้าสินค้า (ทุกคน)
-      const OrdersScreen(), // 2. คำสั่งซื้อ (ทุกคน)
-      const SimpleChatListScreen(), // 3. แชท (ทุกคน)
-      const ProfileScreen(), // 4. โปรไฟล์ (ทุกคน)
+      const MyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications)
     ];
 
     // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
     if (userProvider.isSeller) {
-      pages.add(const SellerDashboardScreen()); // 5. ร้านค้าของฉัน
+      pages.add(const SellerDashboardScreen()); // 2. ร้านค้าของฉัน
     }
 
     // เพิ่มแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
-      pages.add(const AdminPanelScreen()); // 5 หรือ 6. จัดการระบบ
+      pages.add(const AdminPanelScreen()); // 2 หรือ 3. จัดการระบบ
     }
 
     return pages;
   }
 
-  // --- AppBar Titles - Now unified with dynamic titles based on role ---
+  // --- AppBar Titles - Simplified to 3 main tabs ---
   List<String> _getAllTitles() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     List<String> titles = [
       'ตลาด',
-      'ตะกร้าสินค้า',
-      'คำสั่งซื้อ',
-      'แชท',
-      '🏡 My Home',
+      'My Home',
     ];
 
     // เพิ่มชื่อแท็บสำหรับผู้ขายที่อนุมัติแล้ว
@@ -89,24 +80,12 @@ class _MainAppShellState extends State<MainAppShell> {
     return titles;
   }
 
-  // --- Bottom Navigation Bar Items - Now unified with dynamic items based on role ---
+  // --- Bottom Navigation Bar Items - Simplified to 3 main tabs ---
   static const List<BottomNavigationBarItem> _baseNavItems = [
     BottomNavigationBarItem(
         icon: Icon(Icons.store_outlined),
         activeIcon: Icon(Icons.store),
         label: 'ตลาด'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.shopping_cart_outlined),
-        activeIcon: Icon(Icons.shopping_cart),
-        label: 'ตะกร้า'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.receipt_long_outlined),
-        activeIcon: Icon(Icons.receipt_long),
-        label: 'คำสั่งซื้อ'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.chat_bubble_outline),
-        activeIcon: Icon(Icons.chat_bubble),
-        label: 'แชท'),
     BottomNavigationBarItem(
         icon: Icon(Icons.home_outlined),
         activeIcon: Icon(Icons.home),

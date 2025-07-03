@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:green_market/models/activity_report.dart';
 import 'package:green_market/models/app_notification.dart'; // Corrected import
-import 'package:green_market/screens/sustainable_activity/sustainable_activity_detail_screen.dart';
+import 'package:green_market/screens/sustainable_activity_detail_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/app_utils.dart';
 import 'package:intl/intl.dart';
@@ -161,11 +161,14 @@ class _AdminActivityReportsScreenState
       if (activity != null) {
         if (context.mounted) {
           // TODO: Create SustainableActivityDetailScreen that accepts Map
-          // Navigator.of(context).push(MaterialPageRoute(
-          //     builder: (ctx) =>
-          //         SustainableActivityDetailScreen(activity: activity)));
-          showAppSnackBar(context,
-              'ดูรายละเอียดกิจกรรม: ${activity['title'] ?? 'ไม่ระบุ'}');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SustainableActivityDetailScreen(
+                activity: activity,
+              ),
+            ),
+          );
         }
       } else {
         if (context.mounted) {

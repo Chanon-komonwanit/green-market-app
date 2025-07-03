@@ -47,16 +47,17 @@ class ProductCard extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final imageUrl = product.imageUrls[index];
                               print(
-                                  '🖼️ DEBUG ProductCard: Loading image $index for product ${product.name}');
+                                  '[IMAGE] DEBUG ProductCard: Loading image $index for product ${product.name}');
                               print(
-                                  '🖼️ DEBUG ProductCard: Image URL: $imageUrl');
+                                  '[IMAGE] DEBUG ProductCard: Image URL: $imageUrl');
 
                               return Image.network(
                                 imageUrl,
                                 errorBuilder: (context, error, stackTrace) {
                                   print(
-                                      '❌ DEBUG ProductCard: Error loading image $imageUrl');
-                                  print('❌ DEBUG ProductCard: Error: $error');
+                                      '[ERROR] DEBUG ProductCard: Error loading image $imageUrl');
+                                  print(
+                                      '[ERROR] DEBUG ProductCard: Error: $error');
                                   return Container(
                                     color: Colors.grey[200],
                                     child: const Column(
@@ -76,11 +77,11 @@ class ProductCard extends StatelessWidget {
                                     (context, child, loadingProgress) {
                                   if (loadingProgress == null) {
                                     print(
-                                        '✅ DEBUG ProductCard: Image loaded successfully: $imageUrl');
+                                        '[SUCCESS] DEBUG ProductCard: Image loaded successfully: $imageUrl');
                                     return child;
                                   }
                                   print(
-                                      '⏳ DEBUG ProductCard: Loading progress for $imageUrl: ${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}');
+                                      '[LOADING] DEBUG ProductCard: Loading progress for $imageUrl: ${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}');
                                   return Center(
                                     child: CircularProgressIndicator(
                                       value:

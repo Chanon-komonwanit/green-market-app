@@ -5,12 +5,16 @@ import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart'; // Import FlChart
 
-// ignore: must_be_immutable
-class AdminDashboardScreen extends StatelessWidget {
-  TabController? tabController;
+class AdminDashboardScreen extends StatefulWidget {
+  final TabController? tabController;
 
-  AdminDashboardScreen({super.key, this.tabController});
+  const AdminDashboardScreen({super.key, this.tabController});
 
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildStatisticCard(
       BuildContext context,
       String title,
@@ -127,7 +131,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.people_alt_outlined,
                   theme.colorScheme.primary,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(6),
+                  onTap: () => widget.tabController?.animateTo(6),
                 ),
                 _buildStatisticCard(
                   context,
@@ -136,7 +140,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.storefront_outlined,
                   Colors.green.shade600,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(6),
+                  onTap: () => widget.tabController?.animateTo(6),
                 ),
                 _buildStatisticCard(
                   context,
@@ -145,7 +149,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.inventory_2_outlined,
                   Colors.orange.shade700,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(2),
+                  onTap: () => widget.tabController?.animateTo(2),
                 ),
                 _buildStatisticCard(
                   context,
@@ -154,7 +158,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.receipt_long_outlined,
                   Colors.blue.shade600,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(3),
+                  onTap: () => widget.tabController?.animateTo(3),
                 ),
                 _buildStatisticCard(
                   context,
@@ -163,7 +167,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.hourglass_top_outlined,
                   Colors.amber.shade800,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(2),
+                  onTap: () => widget.tabController?.animateTo(2),
                 ),
                 _buildStatisticCard(
                   context,
@@ -172,7 +176,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.person_add_alt_1_outlined,
                   Colors.purple.shade400,
                   firebaseService,
-                  onTap: () => tabController?.animateTo(7),
+                  onTap: () => widget.tabController?.animateTo(7),
                 ),
               ],
             ),

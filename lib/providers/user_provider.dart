@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart'
     as auth; // ใช้ as auth เพื่อความชัดเจน
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/services/firebase_service.dart';
@@ -62,15 +63,71 @@ class UserProvider extends ChangeNotifier {
   Future<void> loadUserData(String uid) async {
     _isLoading = true;
     notifyListeners(); // แจ้ง UI ว่ากำลังโหลด
+
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        _firebaseService.logger.i(
+            "[LOADING] Loading user data for: $uid (attempt ${retryCount + 1})");
+
+        // เรียกใช้ service เพื่อดึงข้อมูลจาก collection 'users'
+        _currentUser = await _firebaseService.getAppUser(uid);
+
+        if (_currentUser != null) {
+          _firebaseService.logger.i(
+              "[SUCCESS] User data loaded successfully: ${_currentUser!.email}");
+          break; // สำเร็จ, ออกจาก retry loop
+        } else {
+          _firebaseService.logger
+              .w("[WARNING] User data is null for UID: $uid");
+
+          // ถ้าไม่มีข้อมูลใน Firestore, สร้างใหม่
+          await _createMissingUserData(uid);
+          retryCount++; // เพิ่ม retry count
+        }
+      } catch (e) {
+        retryCount++;
+        _firebaseService.logger
+            .e('Failed to load user data (attempt $retryCount)', error: e);
+
+        if (retryCount < maxRetries) {
+          // รอก่อน retry (exponential backoff)
+          await Future.delayed(Duration(seconds: retryCount * 2));
+        } else {
+          _firebaseService.logger.e('All retry attempts failed for user: $uid');
+          _currentUser = null; // หากพลาดหลังจากครบ retry
+        }
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners(); // แจ้ง UI ว่าโหลดเสร็จแล้ว (ไม่ว่าจะสำเร็จหรือไม่)
+  }
+
+  /// สร้างข้อมูลผู้ใช้ใหม่ใน Firestore หากไม่มี
+  Future<void> _createMissingUserData(String uid) async {
     try {
-      // เรียกใช้ service เพื่อดึงข้อมูลจาก collection 'users'
-      _currentUser = await _firebaseService.getAppUser(uid);
+      final firebaseUser = _firebaseService.getCurrentUser();
+      if (firebaseUser != null && firebaseUser.uid == uid) {
+        _firebaseService.logger
+            .i("[CREATE] Creating missing user data for: $uid");
+
+        final newUser = AppUser(
+          id: uid,
+          email: firebaseUser.email ?? '',
+          displayName: firebaseUser.displayName,
+          photoUrl: firebaseUser.photoURL,
+          createdAt: Timestamp.fromDate(DateTime.now()),
+        );
+
+        await _firebaseService.createOrUpdateAppUser(newUser, merge: false);
+        _firebaseService.logger
+            .i("[SUCCESS] Created missing user data for: $uid");
+      }
     } catch (e) {
-      _firebaseService.logger.e('Failed to load user data', error: e);
-      _currentUser = null; // หากพลาด ให้เคลียร์ข้อมูล
-    } finally {
-      _isLoading = false;
-      notifyListeners(); // แจ้ง UI ว่าโหลดเสร็จแล้ว (ไม่ว่าจะสำเร็จหรือไม่)
+      _firebaseService.logger.e('Failed to create missing user data', error: e);
     }
   }
 

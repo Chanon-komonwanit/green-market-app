@@ -20,8 +20,14 @@ class EcoLevelProductsScreen extends StatefulWidget {
 class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
   final ScrollController _scrollController = ScrollController();
   List<Product> _products = [];
+  final List<Map<String, dynamic>> _rawProducts = []; // For sorting
   bool _isLoading = true;
   bool _hasMore = true;
+  String _selectedSortType = 'newest';
+  final List<String> _selectedCategories = [];
+  double _minPrice = 0;
+  double _maxPrice = 10000;
+  final List<String> _selectedConditions = [];
 
   @override
   void initState() {
@@ -51,20 +57,61 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
     });
 
     try {
-      // TODO: Replace with actual ProductService call
-      // final products = await ProductService.getProductsByEcoLevel(
-      //   widget.ecoLevel,
-      //   page: 1,
-      //   limit: AppConstants.defaultPageSize,
-      // );
+      // Query products by eco level with filters
+      Query query = FirebaseFirestore.instance
+          .collection('products')
+          .where('status', isEqualTo: 'approved')
+          .where('ecoLevel',
+              isEqualTo: widget.ecoLevel.toString().split('.').last);
 
-      // Mock data for now
-      final products = await _getMockProducts();
+      // Apply category filter
+      if (_selectedCategories.isNotEmpty) {
+        query = query.where('category', whereIn: _selectedCategories);
+      }
+
+      // Apply condition filter
+      if (_selectedConditions.isNotEmpty) {
+        query = query.where('condition', whereIn: _selectedConditions);
+      }
+
+      // Apply price range filter
+      query = query
+          .where('price', isGreaterThanOrEqualTo: _minPrice)
+          .where('price', isLessThanOrEqualTo: _maxPrice);
+
+      // Apply sorting
+      switch (_selectedSortType) {
+        case 'newest':
+          query = query.orderBy('createdAt', descending: true);
+          break;
+        case 'price_low':
+          query = query.orderBy('price', descending: false);
+          break;
+        case 'price_high':
+          query = query.orderBy('price', descending: true);
+          break;
+        case 'eco_score':
+          query = query.orderBy('ecoScore', descending: true);
+          break;
+        case 'popularity':
+          query = query.orderBy('averageRating', descending: true);
+          break;
+        default:
+          query = query.orderBy('createdAt', descending: true);
+      }
+
+      final querySnapshot = await query.limit(20).get();
+
+      final products = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Product.fromMap(data);
+      }).toList();
 
       setState(() {
         _products = products;
         _isLoading = false;
-        _hasMore = products.length == AppConstants.defaultPageSize;
+        _hasMore = products.length == 20;
       });
     } catch (e) {
       setState(() {
@@ -86,20 +133,64 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
     });
 
     try {
-      // TODO: Replace with actual ProductService call
-      // final newProducts = await ProductService.getProductsByEcoLevel(
-      //   widget.ecoLevel,
-      //   page: _currentPage + 1,
-      //   limit: AppConstants.defaultPageSize,
-      // );
+      // Get the last document for pagination
+      final lastDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(_products.last.id)
+          .get();
 
-      // Mock data for now
-      final newProducts = await _getMockProducts();
+      // Query more products by eco level with filters
+      Query query = FirebaseFirestore.instance
+          .collection('products')
+          .where('status', isEqualTo: 'approved')
+          .where('ecoLevel',
+              isEqualTo: widget.ecoLevel.toString().split('.').last);
+
+      // Apply filters (same as _loadProducts)
+      if (_selectedCategories.isNotEmpty) {
+        query = query.where('category', whereIn: _selectedCategories);
+      }
+      if (_selectedConditions.isNotEmpty) {
+        query = query.where('condition', whereIn: _selectedConditions);
+      }
+      query = query
+          .where('price', isGreaterThanOrEqualTo: _minPrice)
+          .where('price', isLessThanOrEqualTo: _maxPrice);
+
+      // Apply sorting
+      switch (_selectedSortType) {
+        case 'newest':
+          query = query.orderBy('createdAt', descending: true);
+          break;
+        case 'price_low':
+          query = query.orderBy('price', descending: false);
+          break;
+        case 'price_high':
+          query = query.orderBy('price', descending: true);
+          break;
+        case 'eco_score':
+          query = query.orderBy('ecoScore', descending: true);
+          break;
+        case 'popularity':
+          query = query.orderBy('averageRating', descending: true);
+          break;
+        default:
+          query = query.orderBy('createdAt', descending: true);
+      }
+
+      final querySnapshot =
+          await query.startAfterDocument(lastDoc).limit(20).get();
+
+      final newProducts = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Product.fromMap(data);
+      }).toList();
 
       setState(() {
         _products.addAll(newProducts);
         _isLoading = false;
-        _hasMore = newProducts.length == AppConstants.defaultPageSize;
+        _hasMore = newProducts.length == 20;
       });
     } catch (e) {
       setState(() {
@@ -110,45 +201,6 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
           SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลดสินค้าเพิ่มเติม: $e')),
         );
       }
-    }
-  }
-
-  Future<List<Product>> _getMockProducts() async {
-    // Mock delay to simulate network call
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Generate mock products for this eco level
-    return List.generate(
-        10,
-        (index) => Product(
-              id: 'product_${widget.ecoLevel.name}_$index',
-              name: 'สินค้า ${widget.ecoLevel.name} ${index + 1}',
-              description:
-                  'รายละเอียดสินค้า ${widget.ecoLevel.name} ${index + 1}',
-              price: 100.0 + (index * 50),
-              imageUrls: ['https://via.placeholder.com/200'],
-              sellerId: 'seller_$index',
-              categoryId: 'category_$index',
-              stock: 10 + index,
-              materialDescription: 'วัสดุที่เป็นมิตรต่อสิ่งแวดล้อม',
-              ecoJustification: 'เหตุผลด้านสิ่งแวดล้อม',
-              createdAt: Timestamp.fromDate(
-                  DateTime.now().subtract(Duration(days: index))),
-              updatedAt: Timestamp.fromDate(DateTime.now()),
-              ecoScore: _getScoreForLevel(widget.ecoLevel, index),
-            ));
-  }
-
-  int _getScoreForLevel(EcoLevel level, int index) {
-    switch (level) {
-      case EcoLevel.basic:
-        return 5 + (index % 20); // 5-24
-      case EcoLevel.standard:
-        return 25 + (index % 25); // 25-49
-      case EcoLevel.premium:
-        return 50 + (index % 25); // 50-74
-      case EcoLevel.platinum:
-        return 75 + (index % 26); // 75-100
     }
   }
 
@@ -393,37 +445,52 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
           children: [
             ListTile(
               title: const Text('ใหม่ล่าสุด'),
+              leading: _selectedSortType == 'newest'
+                  ? const Icon(Icons.check)
+                  : null,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement sort by newest
+                _sortBy('newest');
               },
             ),
             ListTile(
               title: const Text('ราคาต่ำสุด'),
+              leading: _selectedSortType == 'price_low'
+                  ? const Icon(Icons.check)
+                  : null,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement sort by price low to high
+                _sortBy('price_low');
               },
             ),
             ListTile(
               title: const Text('ราคาสูงสุด'),
+              leading: _selectedSortType == 'price_high'
+                  ? const Icon(Icons.check)
+                  : null,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement sort by price high to low
+                _sortBy('price_high');
               },
             ),
             ListTile(
               title: const Text('คะแนนสิ่งแวดล้อมสูงสุด'),
+              leading: _selectedSortType == 'eco_score'
+                  ? const Icon(Icons.check)
+                  : null,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement sort by eco score
+                _sortBy('eco_score');
               },
             ),
             ListTile(
               title: const Text('ยอดนิยม'),
+              leading: _selectedSortType == 'popularity'
+                  ? const Icon(Icons.check)
+                  : null,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement sort by popularity
+                _sortBy('popularity');
               },
             ),
           ],
@@ -439,14 +506,201 @@ class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
   }
 
   void _showCategoryFilter() {
-    // TODO: Implement category filter
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('เลือกหมวดหมู่'),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  'อาหารออร์แกนิค',
+                  'เครื่องใช้ในบ้าน',
+                  'แฟชั่นและเครื่องแต่งกาย',
+                  'ความงามและสุขภาพ',
+                  'ของใช้เด็ก',
+                  'กีฬาและการออกกำลังกาย',
+                  'อิเล็กทรอนิกส์',
+                  'หนังสือและสื่อการเรียนรู้',
+                ]
+                    .map((category) => CheckboxListTile(
+                          title: Text(category),
+                          value: _selectedCategories.contains(category),
+                          onChanged: (bool? value) {
+                            setDialogState(() {
+                              if (value == true) {
+                                _selectedCategories.add(category);
+                              } else {
+                                _selectedCategories.remove(category);
+                              }
+                            });
+                          },
+                        ))
+                    .toList(),
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _applyFilters();
+            },
+            child: const Text('ตกลง'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPriceRangeFilter() {
-    // TODO: Implement price range filter
+    double tempMinPrice = _minPrice;
+    double tempMaxPrice = _maxPrice;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('กรองตามราคา'),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                    'ราคา: ฿${tempMinPrice.toInt()} - ฿${tempMaxPrice.toInt()}'),
+                RangeSlider(
+                  values: RangeValues(tempMinPrice, tempMaxPrice),
+                  min: 0,
+                  max: 10000,
+                  divisions: 100,
+                  labels: RangeLabels(
+                    '฿${tempMinPrice.toInt()}',
+                    '฿${tempMaxPrice.toInt()}',
+                  ),
+                  onChanged: (RangeValues values) {
+                    setDialogState(() {
+                      tempMinPrice = values.start;
+                      tempMaxPrice = values.end;
+                    });
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _minPrice = tempMinPrice;
+                _maxPrice = tempMaxPrice;
+              });
+              Navigator.pop(context);
+              _applyFilters();
+            },
+            child: const Text('ตกลง'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showConditionFilter() {
-    // TODO: Implement condition filter
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('เลือกสภาพสินค้า'),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                'ใหม่',
+                'มือสอง - สภาพดีมาก',
+                'มือสอง - สภาพดี',
+                'มือสอง - สภาพปกติ',
+              ]
+                  .map((condition) => CheckboxListTile(
+                        title: Text(condition),
+                        value: _selectedConditions.contains(condition),
+                        onChanged: (bool? value) {
+                          setDialogState(() {
+                            if (value == true) {
+                              _selectedConditions.add(condition);
+                            } else {
+                              _selectedConditions.remove(condition);
+                            }
+                          });
+                        },
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _applyFilters();
+            },
+            child: const Text('ตกลง'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sortBy(String sortType) {
+    setState(() {
+      _selectedSortType = sortType;
+
+      switch (sortType) {
+        case 'newest':
+          _products.sort((a, b) {
+            if (a.createdAt == null || b.createdAt == null) return 0;
+            return b.createdAt!.compareTo(a.createdAt!); // Newest first
+          });
+          break;
+        case 'price_low':
+          _products.sort((a, b) => a.price.compareTo(b.price)); // Low to high
+          break;
+        case 'price_high':
+          _products.sort((a, b) => b.price.compareTo(a.price)); // High to low
+          break;
+        case 'eco_score':
+          _products.sort((a, b) =>
+              b.ecoScore.compareTo(a.ecoScore)); // Highest eco score first
+          break;
+        case 'popularity':
+          _products.sort((a, b) {
+            // Sort by average rating first, then by review count
+            final ratingCompare = b.averageRating.compareTo(a.averageRating);
+            return ratingCompare != 0
+                ? ratingCompare
+                : b.reviewCount.compareTo(a.reviewCount);
+          });
+          break;
+      }
+    });
+  }
+
+  void _applyFilters() {
+    // Reload products with filters applied
+    _loadProducts();
   }
 }

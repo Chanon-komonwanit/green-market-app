@@ -77,14 +77,14 @@ void main() {
 
     test('Test Notification Categories and Types', () {
       // Test all notification categories
-      final categories = NotificationCategory.values;
+      const categories = NotificationCategory.values;
       print('Available notification categories: ${categories.length}');
       for (var category in categories) {
         print('- ${category.value}');
       }
 
       // Test all notification types
-      final types = NotificationType.values;
+      const types = NotificationType.values;
       print('Available notification types: ${types.length}');
       for (var type in types) {
         print('- ${type.value}');

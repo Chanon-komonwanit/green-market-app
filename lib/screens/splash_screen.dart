@@ -39,15 +39,21 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 20),
             Text('Green Market',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.bold)), // Corrected: Already correct
-            const SizedBox(height: 10), // Corrected: Already correct
+                    color: AppColors.white, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
             Text('ตลาดสินค้าเพื่อโลกสีเขียว',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
                     ?.copyWith(color: AppColors.white.withAlpha(204))),
             const SizedBox(height: 40),
+            // เพิ่มข้อความแสดงสถานะ
+            Text('กำลังโหลดข้อมูลผู้ใช้...',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.white.withAlpha(179))),
+            const SizedBox(height: 20),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
             ),

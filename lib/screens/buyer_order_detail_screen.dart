@@ -10,6 +10,7 @@ import 'package:green_market/utils/order_utils.dart'; // Import order_utils
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/screens/write_review_screen.dart'; // Import the actual WriteReviewScreen
+import 'package:green_market/screens/review_detail_screen.dart'; // Import ReviewDetailScreen
 import 'package:firebase_auth/firebase_auth.dart';
 
 class BuyerOrderDetailScreen extends StatefulWidget {
@@ -228,11 +229,16 @@ class _BuyerOrderDetailScreenState extends State<BuyerOrderDetailScreen> {
                                                             AppColors // Corrected: Already correct
                                                                 .darkGrey)),
                                             onPressed: () {
-                                              // TODO: Navigate to view their review (if a separate screen is needed)
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(const SnackBar(
-                                                      content: Text(
-                                                          'คุณได้รีวิวสินค้านี้แล้ว (ส่วนแสดงรีวิวยังไม่ได้ทำ)')));
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ReviewDetailScreen(
+                                                    orderId: widget.order.id,
+                                                    orderItem: item,
+                                                  ),
+                                                ),
+                                              );
                                             },
                                           )
                                         : ElevatedButton(

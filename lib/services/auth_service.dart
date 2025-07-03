@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'package:flutter/material.dart'; // For BuildContext if showing SnackBars
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -112,5 +113,174 @@ class AuthService {
     print('User signed out');
   }
 
-  // TODO: Add other methods like Google Sign-In, Apple Sign-In, Password Reset, etc.
+  // Password Reset
+  Future<bool> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      print('Password reset email sent to $email');
+      return true;
+    } catch (e) {
+      print('Error sending password reset email: $e');
+      return false;
+    }
+  }
+
+  // Google Sign-In
+  Future<User?> signInWithGoogle() async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        // User canceled the sign-in
+        return null;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        print('Google Sign-In successful: ${user.email}');
+
+        // Check if this is a new user and create profile if needed
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          // Create new user profile
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+            'email': user.email ?? '',
+            'displayName': user.displayName ?? '',
+            'profileImageUrl': user.photoURL ?? '',
+            'role': 'buyer',
+            'isActive': true,
+            'isSeller': false,
+            'isAdmin': false,
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLoginAt': FieldValue.serverTimestamp(),
+            'signInMethod': 'google',
+          });
+          print('New Google user profile created');
+        } else {
+          // Update last login time
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      return user;
+    } catch (e) {
+      print('Error with Google Sign-In: $e');
+      return null;
+    }
+  }
+
+  // Apple Sign-In (placeholder for future implementation)
+  Future<User?> signInWithApple() async {
+    // TODO: Implement Apple Sign-In when needed
+    // This requires apple_sign_in package and iOS configuration
+    throw UnimplementedError('Apple Sign-In not yet implemented');
+  }
+
+  // Email verification
+  Future<bool> sendEmailVerification() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        print('Email verification sent');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error sending email verification: $e');
+      return false;
+    }
+  }
+
+  // Check if email is verified
+  bool isEmailVerified() {
+    final user = _auth.currentUser;
+    return user?.emailVerified ?? false;
+  }
+
+  // Update user password
+  Future<bool> updatePassword(String newPassword) async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await user.updatePassword(newPassword);
+        print('Password updated successfully');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating password: $e');
+      return false;
+    }
+  }
+
+  // Re-authenticate user (required for sensitive operations)
+  Future<bool> reauthenticateWithPassword(String password) async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && user.email != null) {
+        final credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+        print('Re-authentication successful');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error with re-authentication: $e');
+      return false;
+    }
+  }
+
+  // Delete user account
+  Future<bool> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Delete user data from Firestore first
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .delete();
+
+        // Delete the authentication account
+        await user.delete();
+        print('User account deleted successfully');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting account: $e');
+      return false;
+    }
+  }
 }

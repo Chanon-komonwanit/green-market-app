@@ -64,7 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
             .markChatRoomAsRead(effectiveChatId, _currentUser!.uid);
       }
     } catch (e) {
-      _initError = 'เกิดข้อผิดพลาด: ' + e.toString();
+      _initError = 'เกิดข้อผิดพลาด: $e';
     }
   }
 

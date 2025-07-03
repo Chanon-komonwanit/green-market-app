@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Custom green world icon with a small sprouting tree for eco branding.
 class GreenWorldIcon extends StatelessWidget {
   final double size;
-  const GreenWorldIcon({Key? key, this.size = 28}) : super(key: key);
+  const GreenWorldIcon({super.key, this.size = 28});
 
   @override
   Widget build(BuildContext context) {

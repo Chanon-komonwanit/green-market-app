@@ -99,6 +99,17 @@ class MyApp extends StatelessWidget {
                   // If user is not logged in, show the authentication screen.
                   return const LoginScreen();
                 } else {
+                  // ตรวจสอบว่า user data โหลดเสร็จแล้วหรือไม่
+                  if (user.currentUser == null && !user.isLoading) {
+                    print(
+                        'Main.dart - User data missing, attempting to reload');
+                    // ลอง reload user data อีกครั้ง
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      user.loadUserData(auth.user!.uid);
+                    });
+                    return const SplashScreen();
+                  }
+
                   print('Main.dart - Showing MainAppShell');
                   // If user is logged in, show the main app shell.
                   // The shell itself can then decide what to show based on user role.
