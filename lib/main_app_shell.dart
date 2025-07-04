@@ -11,6 +11,7 @@ import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ h
 import 'package:green_market/screens/my_home_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/green_community_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/screens/notifications_center_screen.dart';
@@ -50,9 +51,12 @@ class _MainAppShellState extends State<MainAppShell> {
       pages.add(const SellerDashboardScreen()); // 2. ร้านค้าของฉัน
     }
 
+    // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
+    pages.add(const GreenCommunityScreen()); // 3. ชุมชนสีเขียว
+
     // เพิ่มแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
-      pages.add(const AdminPanelScreen()); // 2 หรือ 3. จัดการระบบ
+      pages.add(const AdminPanelScreen()); // 4. จัดการระบบ
     }
 
     return pages;
@@ -71,6 +75,9 @@ class _MainAppShellState extends State<MainAppShell> {
     if (userProvider.isSeller) {
       titles.add('ร้านค้าของฉัน');
     }
+
+    // เพิ่มชื่อแท็บชุมชนสีเขียว (ทุกคน)
+    titles.add('ชุมชนสีเขียว');
 
     // เพิ่มชื่อแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
@@ -104,6 +111,12 @@ class _MainAppShellState extends State<MainAppShell> {
           activeIcon: Icon(Icons.storefront),
           label: 'ร้านค้า'));
     }
+
+    // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
+    items.add(BottomNavigationBarItem(
+        icon: Text('🌳', style: TextStyle(fontSize: 24)),
+        activeIcon: Text('🌳', style: TextStyle(fontSize: 24)),
+        label: 'ชุมชนสีเขียว'));
 
     // เพิ่มแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {

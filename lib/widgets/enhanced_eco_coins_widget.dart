@@ -74,10 +74,11 @@ class EnhancedEcoCoinsWidget extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.eco,
-                        color: Colors.white,
-                        size: size,
+                      child: Text(
+                        '🪙',
+                        style: TextStyle(
+                          fontSize: size,
+                        ),
                       ),
                     ),
                   );

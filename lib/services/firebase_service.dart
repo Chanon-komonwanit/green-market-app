@@ -222,6 +222,20 @@ class FirebaseService {
     }
   }
 
+  // Get user by ID
+  Future<AppUser?> getUserById(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return AppUser.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      logger.e('Error getting user by ID: $e');
+      return null;
+    }
+  }
+
   Future<String?> getUserDisplayName(String userId) async {
     try {
       final userDoc = await _firestore.collection('users').doc(userId).get();
@@ -236,10 +250,7 @@ class FirebaseService {
   }
 
   Stream<List<AppUser>> getAllUsers() {
-    return _firestore
-        .collection('users')
-        .snapshots()
-        .map(
+    return _firestore.collection('users').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => AppUser.fromMap(doc.data(), doc.id))
               .toList(),
@@ -421,10 +432,7 @@ class FirebaseService {
   }
 
   Stream<List<Seller>> getAllSellers() {
-    return _firestore
-        .collection('sellers')
-        .snapshots()
-        .map(
+    return _firestore.collection('sellers').snapshots().map(
           (snapshot) =>
               snapshot.docs.map((doc) => Seller.fromMap(doc.data())).toList(),
         );
@@ -458,9 +466,8 @@ class FirebaseService {
 
   // --- Product Management ---
   Future<void> addProduct(Product product) async {
-    final docId = product.id.isEmpty
-        ? generateNewDocId('products')
-        : product.id;
+    final docId =
+        product.id.isEmpty ? generateNewDocId('products') : product.id;
     await _firestore
         .collection('products')
         .doc(docId)
@@ -505,16 +512,13 @@ class FirebaseService {
           }).toList(),
         )
         .handleError((error) {
-          logger.e("Error fetching approved products: $error");
-          return <Product>[];
-        });
+      logger.e("Error fetching approved products: $error");
+      return <Product>[];
+    });
   }
 
   Stream<List<Product>> getAllProductsForAdmin() {
-    return _firestore
-        .collection('products')
-        .snapshots()
-        .map(
+    return _firestore.collection('products').snapshots().map(
           (snapshot) =>
               snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
         );
@@ -653,10 +657,7 @@ class FirebaseService {
   }
 
   Stream<List<SustainableActivity>> getAllSustainableActivitiesForAdmin() {
-    return _firestore
-        .collection('sustainable_activities')
-        .snapshots()
-        .map(
+    return _firestore.collection('sustainable_activities').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => SustainableActivity.fromMap(doc.data()))
               .toList(),
@@ -688,9 +689,8 @@ class FirebaseService {
       snapshot,
     ) {
       final totalActivities = snapshot.docs.length;
-      final activeActivities = snapshot.docs
-          .where((doc) => doc.data()['isActive'] == true)
-          .length;
+      final activeActivities =
+          snapshot.docs.where((doc) => doc.data()['isActive'] == true).length;
       final completedActivities = snapshot.docs.where((doc) {
         final endDate = (doc.data()['endDate'] as Timestamp?)?.toDate();
         return endDate != null && endDate.isBefore(DateTime.now());
@@ -710,9 +710,8 @@ class FirebaseService {
   }
 
   Future<void> joinSustainableActivity(String activityId, String userId) async {
-    final activityRef = _firestore
-        .collection('sustainable_activities')
-        .doc(activityId);
+    final activityRef =
+        _firestore.collection('sustainable_activities').doc(activityId);
     await activityRef.update({
       'participantIds': FieldValue.arrayUnion([userId]),
     });
@@ -890,9 +889,8 @@ class FirebaseService {
 
   // --- Categories Management ---
   Future<void> addCategory(Category category) async {
-    final docId = category.id.isEmpty
-        ? generateNewDocId('categories')
-        : category.id;
+    final docId =
+        category.id.isEmpty ? generateNewDocId('categories') : category.id;
     await _firestore
         .collection('categories')
         .doc(docId)
@@ -926,9 +924,9 @@ class FirebaseService {
           }).toList(),
         )
         .handleError((error) {
-          logger.e("Error fetching categories: $error");
-          return <Category>[];
-        });
+      logger.e("Error fetching categories: $error");
+      return <Category>[];
+    });
   }
 
   Stream<List<Product>> getProductsByCategoryId(String categoryId) {
@@ -1066,10 +1064,7 @@ class FirebaseService {
   }
 
   Stream<List<InvestmentProject>> getAllInvestmentProjectsForAdmin() {
-    return _firestore
-        .collection('investment_projects')
-        .snapshots()
-        .map(
+    return _firestore.collection('investment_projects').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => InvestmentProject.fromMap(doc.data()))
               .toList(),
@@ -1200,10 +1195,7 @@ class FirebaseService {
   }
 
   Stream<List<app_order.Order>> getAllOrders() {
-    return _firestore
-        .collection('orders')
-        .snapshots()
-        .map(
+    return _firestore.collection('orders').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => app_order.Order.fromMap(doc.data()))
               .toList(),
@@ -1269,10 +1261,8 @@ class FirebaseService {
   // --- Homepage Settings ---
   Future<HomepageSettings> getHomepageSettings() async {
     try {
-      final doc = await _firestore
-          .collection('app_settings')
-          .doc('homepage')
-          .get();
+      final doc =
+          await _firestore.collection('app_settings').doc('homepage').get();
       if (doc.exists) {
         return HomepageSettings.fromMap(doc.data()!);
       } else {
@@ -1309,10 +1299,10 @@ class FirebaseService {
         .collection('sustainable_activities')
         .doc(activityId)
         .update({
-          'submissionStatus': 'rejected',
-          'rejectionReason': reason,
-          'isActive': false,
-        });
+      'submissionStatus': 'rejected',
+      'rejectionReason': reason,
+      'isActive': false,
+    });
     logger.i("Sustainable activity $activityId rejected: $reason");
   }
 
@@ -1345,23 +1335,18 @@ class FirebaseService {
 
   // --- Promotion Methods ---
   Stream<List<Promotion>> getActivePromotions() {
-    return _firestore
-        .collection('promotions')
-        .snapshots()
-        .map((snapshot) {
-          final now = DateTime.now();
-          return snapshot.docs
-              .map((doc) => Promotion.fromMap(doc.data()))
-              .where(
-                (promotion) =>
-                    promotion.isActive && promotion.endDate.isAfter(now),
-              )
-              .toList();
-        })
-        .handleError((error) {
-          logger.e("Error fetching active promotions: $error");
-          return <Promotion>[];
-        });
+    return _firestore.collection('promotions').snapshots().map((snapshot) {
+      final now = DateTime.now();
+      return snapshot.docs
+          .map((doc) => Promotion.fromMap(doc.data()))
+          .where(
+            (promotion) => promotion.isActive && promotion.endDate.isAfter(now),
+          )
+          .toList();
+    }).handleError((error) {
+      logger.e("Error fetching active promotions: $error");
+      return <Promotion>[];
+    });
   }
 
   Future<void> createPromotion(Promotion promotion) async {
@@ -1401,10 +1386,7 @@ class FirebaseService {
   }
 
   Stream<List<Promotion>> getPromotions() {
-    return _firestore
-        .collection('promotions')
-        .snapshots()
-        .map(
+    return _firestore.collection('promotions').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => Promotion.fromMap(doc.data()))
               .toList(),
@@ -1475,8 +1457,8 @@ class FirebaseService {
                 (product) =>
                     product.name.toLowerCase().contains(query.toLowerCase()) ||
                     product.description.toLowerCase().contains(
-                      query.toLowerCase(),
-                    ),
+                          query.toLowerCase(),
+                        ),
               )
               .toList(),
         );
@@ -1485,9 +1467,8 @@ class FirebaseService {
   // --- Investment Methods ---
   Future<InvestmentSummary> getInvestmentProjectSummary() async {
     try {
-      final projectsSnapshot = await _firestore
-          .collection('investment_projects')
-          .get();
+      final projectsSnapshot =
+          await _firestore.collection('investment_projects').get();
       final totalProjects = projectsSnapshot.docs.length;
 
       double totalAmountRaised = 0;
@@ -1529,13 +1510,13 @@ class FirebaseService {
     }
 
     return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map(
-            (doc) =>
-                InvestmentProject.fromMap(doc.data() as Map<String, dynamic>),
-          )
-          .toList(),
-    );
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => InvestmentProject.fromMap(
+                    doc.data() as Map<String, dynamic>),
+              )
+              .toList(),
+        );
   }
 
   Future<InvestmentProject?> getInvestmentProjectById(String projectId) async {
@@ -1572,9 +1553,8 @@ class FirebaseService {
           projectData?['title'] as String? ?? 'Unknown Project';
 
       // Update project current amount
-      final projectRef = _firestore
-          .collection('investment_projects')
-          .doc(projectId);
+      final projectRef =
+          _firestore.collection('investment_projects').doc(projectId);
       batch.update(projectRef, {
         'currentAmount': FieldValue.increment(amount),
         'investorCount': FieldValue.increment(1),
@@ -1692,10 +1672,8 @@ class FirebaseService {
 
   Future<Map<String, dynamic>?> getAppSettingsDocument() async {
     try {
-      final doc = await _firestore
-          .collection('app_settings')
-          .doc('general')
-          .get();
+      final doc =
+          await _firestore.collection('app_settings').doc('general').get();
       return doc.exists ? doc.data() : null;
     } catch (e) {
       logger.e("Error getting app settings: $e");
@@ -1745,10 +1723,7 @@ class FirebaseService {
   }
 
   Stream<List<StaticPage>> getStaticPages() {
-    return _firestore
-        .collection('static_pages')
-        .snapshots()
-        .map(
+    return _firestore.collection('static_pages').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => StaticPage.fromMap(doc.data()))
               .toList(),
@@ -1780,10 +1755,7 @@ class FirebaseService {
 
   // --- Activity Reports Methods ---
   Stream<List<Map<String, dynamic>>> getAllActivityReports() {
-    return _firestore
-        .collection('activity_reports')
-        .snapshots()
-        .map(
+    return _firestore.collection('activity_reports').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => {'id': doc.id, ...doc.data()})
               .toList(),
@@ -1818,10 +1790,7 @@ class FirebaseService {
 
   // --- Activity Reviews Methods ---
   Stream<List<Map<String, dynamic>>> getAllActivityReviews() {
-    return _firestore
-        .collection('activity_reviews')
-        .snapshots()
-        .map(
+    return _firestore.collection('activity_reviews').snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => {'id': doc.id, ...doc.data()})
               .toList(),
@@ -1866,9 +1835,8 @@ class FirebaseService {
   // --- Sustainable Activities Methods ---
   Future<List<Map<String, dynamic>>> getSustainableActivities() async {
     try {
-      final snapshot = await _firestore
-          .collection('sustainable_activities')
-          .get();
+      final snapshot =
+          await _firestore.collection('sustainable_activities').get();
       return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
     } catch (e) {
       logger.e("Error getting sustainable activities: $e");
@@ -1939,10 +1907,8 @@ class FirebaseService {
   // --- Shipping Address Methods ---
   Future<Map<String, dynamic>?> getUserShippingAddress(String userId) async {
     try {
-      final doc = await _firestore
-          .collection('shipping_addresses')
-          .doc(userId)
-          .get();
+      final doc =
+          await _firestore.collection('shipping_addresses').doc(userId).get();
       return doc.exists ? doc.data() : null;
     } catch (e) {
       logger.e("Error getting user shipping address: $e");
@@ -2077,10 +2043,8 @@ class FirebaseService {
   // --- Dynamic App Configuration Methods ---
   Future<Map<String, dynamic>?> getDynamicAppConfig() async {
     try {
-      final doc = await _firestore
-          .collection('app_settings')
-          .doc('app_config')
-          .get();
+      final doc =
+          await _firestore.collection('app_settings').doc('app_config').get();
       if (doc.exists) {
         return {'id': doc.id, ...doc.data()!};
       } else {
@@ -2477,18 +2441,17 @@ class FirebaseService {
         .orderBy('requiredCoins', descending: false)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return EcoReward.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return EcoReward.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
   }
 
   /// สร้างรางวัลใหม่ (สำหรับแอดมิน)
   Future<String> createEcoReward(EcoReward reward) async {
     try {
-      final docRef = await _firestore
-          .collection('eco_rewards')
-          .add(reward.toMap());
+      final docRef =
+          await _firestore.collection('eco_rewards').add(reward.toMap());
       logger.i("Created eco reward: ${reward.title}");
       return docRef.id;
     } catch (e) {
@@ -2587,7 +2550,7 @@ class FirebaseService {
         userId: userId,
         rewardId: rewardId,
         rewardTitle: reward.title,
-        coinsUsed: reward.requiredCoins,
+        coinsUsed: reward.requiredCoins.round(),
         status: 'pending',
         redeemedAt: DateTime.now(),
       );
@@ -2606,10 +2569,10 @@ class FirebaseService {
         .orderBy('redeemedAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return RewardRedemption.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return RewardRedemption.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
   }
 
   /// ดึงประวัติการแลกรางวัลทั้งหมด (สำหรับแอดมิน)
@@ -2619,10 +2582,10 @@ class FirebaseService {
         .orderBy('redeemedAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return RewardRedemption.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return RewardRedemption.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
   }
 
   /// อัปเดตสถานะการแลกรางวัล (สำหรับแอดมิน)
@@ -2894,6 +2857,385 @@ class FirebaseService {
         'success': false,
         'message': 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง',
         'error': 'UNKNOWN_ERROR',
+      };
+    }
+  }
+
+  // ==================== COMMUNITY MANAGEMENT ====================
+
+  /// สร้างโพสต์ใหม่ในชุมชน
+  Future<String> createCommunityPost({
+    required String userId,
+    required String content,
+    List<String> imageUrls = const [],
+    String? videoUrl,
+    List<String> tags = const [],
+  }) async {
+    try {
+      // ดึงข้อมูลผู้ใช้
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      final userData = userDoc.data()!;
+      final userDisplayName =
+          userData['displayName'] ?? userData['name'] ?? 'ผู้ใช้';
+      final userProfileImage = userData['profileImageUrl'];
+
+      // สร้างโพสต์ใหม่
+      final postRef = _firestore.collection('community_posts').doc();
+      final post = {
+        'id': postRef.id,
+        'userId': userId,
+        'userDisplayName': userDisplayName,
+        'userProfileImage': userProfileImage,
+        'content': content,
+        'imageUrls': imageUrls,
+        'videoUrl': videoUrl,
+        'likes': <String>[],
+        'commentCount': 0,
+        'shareCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': null,
+        'isActive': true,
+        'tags': tags,
+      };
+
+      await postRef.set(post);
+
+      logger.i("Community post created: ${postRef.id}");
+      return postRef.id;
+    } catch (e) {
+      logger.e("Error creating community post: $e");
+      rethrow;
+    }
+  }
+
+  /// ดึงโพสต์ทั้งหมดในชุมชน (สำหรับ Feed)
+  Stream<List<Map<String, dynamic>>> getCommunityPosts({
+    int limit = 20,
+    String? startAfter,
+  }) {
+    Query query = _firestore
+        .collection('community_posts')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
+      }).toList();
+    });
+  }
+
+  /// ดึงโพสต์ของผู้ใช้คนใดคนหนึ่ง (สำหรับ Profile)
+  Stream<List<Map<String, dynamic>>> getUserCommunityPosts(String userId) {
+    return _firestore
+        .collection('community_posts')
+        .where('userId', isEqualTo: userId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return {'id': doc.id, ...doc.data()};
+      }).toList();
+    });
+  }
+
+  /// กดไลค์/เลิกไลค์โพสต์
+  Future<void> toggleLikeCommunityPost(String postId, String userId) async {
+    try {
+      final postRef = _firestore.collection('community_posts').doc(postId);
+
+      await _firestore.runTransaction((transaction) async {
+        final postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+          throw Exception('ไม่พบโพสต์');
+        }
+
+        final likes = List<String>.from(postDoc.data()?['likes'] ?? []);
+
+        if (likes.contains(userId)) {
+          // เลิกไลค์
+          likes.remove(userId);
+        } else {
+          // ไลค์
+          likes.add(userId);
+
+          // ส่งการแจ้งเตือนให้เจ้าของโพสต์ (ถ้าไม่ใช่คนเดียวกัน)
+          final postOwnerId = postDoc.data()?['userId'];
+          if (postOwnerId != null && postOwnerId != userId) {
+            final notification = {
+              'id': _firestore.collection('notifications').doc().id,
+              'recipientId': postOwnerId,
+              'senderId': userId,
+              'type': 'community_like',
+              'title': 'มีคนไลค์โพสต์ของคุณ',
+              'body': 'มีคนไลค์โพสต์ในชุมชนสีเขียว',
+              'data': {'postId': postId},
+              'isRead': false,
+              'createdAt': FieldValue.serverTimestamp(),
+            };
+
+            await _firestore
+                .collection('notifications')
+                .doc(notification['id'])
+                .set(notification);
+          }
+        }
+
+        transaction.update(postRef, {'likes': likes});
+      });
+
+      logger.i("Post $postId like toggled by user $userId");
+    } catch (e) {
+      logger.e("Error toggling like on post $postId: $e");
+      rethrow;
+    }
+  }
+
+  /// เพิ่มคอมเมนต์ในโพสต์
+  Future<String> addCommentToCommunityPost({
+    required String postId,
+    required String userId,
+    required String content,
+    String? parentCommentId,
+  }) async {
+    try {
+      // ดึงข้อมูลผู้ใช้
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      final userData = userDoc.data()!;
+      final userDisplayName =
+          userData['displayName'] ?? userData['name'] ?? 'ผู้ใช้';
+      final userProfileImage = userData['profileImageUrl'];
+
+      await _firestore.runTransaction((transaction) async {
+        // สร้างคอมเมนต์ใหม่
+        final commentRef = _firestore.collection('community_comments').doc();
+        final comment = {
+          'id': commentRef.id,
+          'postId': postId,
+          'userId': userId,
+          'userDisplayName': userDisplayName,
+          'userProfileImage': userProfileImage,
+          'content': content,
+          'likes': <String>[],
+          'parentCommentId': parentCommentId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': null,
+          'isActive': true,
+        };
+
+        transaction.set(commentRef, comment);
+
+        // เพิ่ม commentCount ในโพสต์
+        final postRef = _firestore.collection('community_posts').doc(postId);
+        transaction.update(postRef, {
+          'commentCount': FieldValue.increment(1),
+        });
+
+        // ส่งการแจ้งเตือนให้เจ้าของโพสต์
+        final postDoc = await transaction.get(postRef);
+        if (postDoc.exists) {
+          final postOwnerId = postDoc.data()?['userId'];
+          if (postOwnerId != null && postOwnerId != userId) {
+            final notificationRef =
+                _firestore.collection('notifications').doc();
+            final notification = {
+              'id': notificationRef.id,
+              'recipientId': postOwnerId,
+              'senderId': userId,
+              'type': 'community_comment',
+              'title': 'มีคนคอมเมนต์โพสต์ของคุณ',
+              'body': content.length > 50
+                  ? '${content.substring(0, 50)}...'
+                  : content,
+              'data': {'postId': postId, 'commentId': commentRef.id},
+              'isRead': false,
+              'createdAt': FieldValue.serverTimestamp(),
+            };
+
+            transaction.set(notificationRef, notification);
+          }
+        }
+      });
+
+      logger.i("Comment added to post $postId");
+      return '';
+    } catch (e) {
+      logger.e("Error adding comment to post $postId: $e");
+      rethrow;
+    }
+  }
+
+  /// ดึงคอมเมนต์ของโพสต์
+  Stream<List<Map<String, dynamic>>> getCommunityPostComments(String postId) {
+    return _firestore
+        .collection('community_comments')
+        .where('postId', isEqualTo: postId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return {'id': doc.id, ...doc.data()};
+      }).toList();
+    });
+  }
+
+  /// แชร์โพสต์ (สร้างโพสต์ใหม่ที่อ้างอิงโพสต์เดิม)
+  Future<String> shareCommunityPost({
+    required String originalPostId,
+    required String userId,
+    String? additionalContent,
+  }) async {
+    try {
+      // ดึงโพสต์ต้นฉบับ
+      final originalPostDoc = await _firestore
+          .collection('community_posts')
+          .doc(originalPostId)
+          .get();
+
+      if (!originalPostDoc.exists) {
+        throw Exception('ไม่พบโพสต์ต้นฉบับ');
+      }
+
+      final originalPostData = originalPostDoc.data()!;
+
+      // สร้างโพสต์แชร์ใหม่
+      final shareContent = additionalContent != null &&
+              additionalContent.isNotEmpty
+          ? '$additionalContent\n\n--- แชร์จาก ${originalPostData['userDisplayName']} ---\n${originalPostData['content']}'
+          : '--- แชร์จาก ${originalPostData['userDisplayName']} ---\n${originalPostData['content']}';
+
+      final sharedPostId = await createCommunityPost(
+        userId: userId,
+        content: shareContent,
+        imageUrls: List<String>.from(originalPostData['imageUrls'] ?? []),
+        videoUrl: originalPostData['videoUrl'],
+        tags: List<String>.from(originalPostData['tags'] ?? []),
+      );
+
+      // เพิ่ม shareCount ในโพสต์ต้นฉบับ
+      await _firestore
+          .collection('community_posts')
+          .doc(originalPostId)
+          .update({
+        'shareCount': FieldValue.increment(1),
+      });
+
+      // ส่งการแจ้งเตือนให้เจ้าของโพสต์ต้นฉบับ
+      final originalPostOwnerId = originalPostData['userId'];
+      if (originalPostOwnerId != userId) {
+        final notification = {
+          'id': _firestore.collection('notifications').doc().id,
+          'recipientId': originalPostOwnerId,
+          'senderId': userId,
+          'type': 'community_share',
+          'title': 'มีคนแชร์โพสต์ของคุณ',
+          'body': 'โพสต์ของคุณถูกแชร์ในชุมชนสีเขียว',
+          'data': {
+            'originalPostId': originalPostId,
+            'sharedPostId': sharedPostId,
+          },
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        await _firestore
+            .collection('notifications')
+            .doc(notification['id'])
+            .set(notification);
+      }
+
+      logger.i("Post $originalPostId shared as $sharedPostId");
+      return sharedPostId;
+    } catch (e) {
+      logger.e("Error sharing post $originalPostId: $e");
+      rethrow;
+    }
+  }
+
+  /// ลบโพสต์ (Soft delete)
+  Future<void> deleteCommunityPost(String postId, String userId) async {
+    try {
+      final postRef = _firestore.collection('community_posts').doc(postId);
+      final postDoc = await postRef.get();
+
+      if (!postDoc.exists) {
+        throw Exception('ไม่พบโพสต์');
+      }
+
+      final postData = postDoc.data()!;
+
+      // ตรวจสอบสิทธิ์ (เฉพาะเจ้าของโพสต์หรือแอดมิน)
+      if (postData['userId'] != userId) {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        final isAdmin = userDoc.data()?['isAdmin'] ?? false;
+
+        if (!isAdmin) {
+          throw Exception('ไม่มีสิทธิ์ลบโพสต์นี้');
+        }
+      }
+
+      // Soft delete
+      await postRef.update({
+        'isActive': false,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'deletedBy': userId,
+      });
+
+      logger.i("Post $postId deleted by user $userId");
+    } catch (e) {
+      logger.e("Error deleting post $postId: $e");
+      rethrow;
+    }
+  }
+
+  /// ดึงสถิติของผู้ใช้ในชุมชน
+  Future<Map<String, dynamic>> getUserCommunityStats(String userId) async {
+    try {
+      // นับจำนวนโพสต์
+      final postsSnapshot = await _firestore
+          .collection('community_posts')
+          .where('userId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      // นับจำนวนไลค์ที่ได้รับ
+      int totalLikes = 0;
+      for (final doc in postsSnapshot.docs) {
+        final likes = List<String>.from(doc.data()['likes'] ?? []);
+        totalLikes += likes.length;
+      }
+
+      // นับจำนวนคอมเมนต์ที่ได้รับ
+      int totalComments = 0;
+      for (final doc in postsSnapshot.docs) {
+        totalComments += doc.data()['commentCount'] as int? ?? 0;
+      }
+
+      return {
+        'totalPosts': postsSnapshot.docs.length,
+        'totalLikes': totalLikes,
+        'totalComments': totalComments,
+        'lastUpdated': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      logger.e("Error getting user community stats: $e");
+      return {
+        'totalPosts': 0,
+        'totalLikes': 0,
+        'totalComments': 0,
+        'lastUpdated': DateTime.now().toIso8601String(),
       };
     }
   }

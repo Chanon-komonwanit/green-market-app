@@ -17,6 +17,7 @@ import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/widgets/smart_eco_hero_tab.dart';
+import 'package:green_market/screens/eco_rewards_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -86,10 +87,10 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      const SmartEcoHeroTab(), // แท็บใหม่
+                      _SmartEcoHeroTab(), // แท็บใหม่
                       _ChatTab(),
                       _CartTab(),
-                      _NotificationsTab()
+                      _NotificationsTab(),
                     ],
                   ),
                 ),
@@ -1467,7 +1468,7 @@ class _EcoCoinsSection extends StatelessWidget {
               ),
               BoxShadow(
                 color: Colors.orange.withOpacity(0.2),
-                blurRadius: 40,
+                blurRadius: 30,
                 offset: const Offset(0, 15),
               ),
             ],
@@ -1665,7 +1666,15 @@ class _EcoCoinsSection extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => _showEcoCoinsInfo(context, ecoCoinCount),
+                      onTap: () {
+                        // Navigate to Eco Rewards Screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EcoRewardsScreen(),
+                          ),
+                        );
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -2138,24 +2147,24 @@ class _QuickActionsModern extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // แถวที่ 2: ปรับตามสถานะผู้ใช้
+                // แถวที่ 2: ตะกร้าของฉัน และ การตั้งค่า/จัดการระบบ
                 Row(
                   children: [
-                    // ปุ่มด้านซ้าย: สำหรับผู้ขายแสดงร้านค้า, สำหรับผู้ใช้ทั่วไปแสดงสมัครขาย
+                    // ปุ่มด้านซ้าย: ตะกร้าของฉัน (ทุกคน)
                     Expanded(
-                      child: currentUser?.isSeller == true
-                          ? _QuickActionButton(
-                              icon: Icons.store_outlined,
-                              label: 'ร้านค้าของฉัน',
-                              color: const Color(0xFF43A047),
-                              onTap: () => _navigateToSellerDashboard(context),
-                            )
-                          : _QuickActionButton(
-                              icon: Icons.business_outlined,
-                              label: 'สมัครขายสินค้า',
-                              color: const Color(0xFF43A047),
-                              onTap: () => _showSellerApplication(context),
-                            ),
+                      child: Consumer<CartProvider>(
+                        builder: (context, cartProvider, child) {
+                          final totalItems = cartProvider.totalItemsInCart;
+                          final totalAmount = cartProvider.totalAmount;
+                          
+                          return _QuickActionButton(
+                            icon: Icons.shopping_cart_outlined,
+                            label: 'ตะกร้าของฉัน\n$totalItems รายการ ฿${totalAmount.toStringAsFixed(0)}',
+                            color: const Color(0xFF43A047),
+                            onTap: () => _navigateToCart(context),
+                          );
+                        },
+                      ),
                     ),
                     const SizedBox(width: 12),
                     // ปุ่มด้านขวา: สำหรับแอดมินแสดงจัดการระบบ, อื่นๆ แสดงการตั้งค่า
@@ -2176,6 +2185,15 @@ class _QuickActionsModern extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                // Open Shop Button (ปุ่มเปิดร้านค้า)
+                if (currentUser?.isSeller != true)
+                  _OpenShopButton(
+                    onTap: () {
+                      // นำทางไปยังหน้าลงทะเบียนผู้ขาย
+                      Navigator.pushNamed(context, '/register_seller');
+                    },
+                  ),
               ],
             ),
           ),
@@ -2220,67 +2238,6 @@ class _QuickActionsModern extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('ตกลง'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _navigateToSellerDashboard(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SellerDashboardScreen()),
-    );
-  }
-
-  void _showSellerApplication(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.business, color: Color(0xFF43A047)),
-            SizedBox(width: 8),
-            Text('สมัครเป็นผู้ขาย'),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.store_outlined, size: 60, color: Color(0xFF43A047)),
-            SizedBox(height: 16),
-            Text('เริ่มต้นธุรกิจของคุณกับ Green Market!'),
-            SizedBox(height: 8),
-            Text(
-              'ขายสินค้าเป็นมิตรกับสิ่งแวดล้อมและสร้างรายได้',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: นำทางไปยังหน้าสมัครเป็นผู้ขาย
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'ฟีเจอร์สมัครเป็นผู้ขายจะเปิดให้ใช้งานเร็วๆ นี้',
-                  ),
-                  backgroundColor: Color(0xFF43A047),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF43A047),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('สมัครเลย'),
           ),
         ],
       ),
@@ -2347,6 +2304,13 @@ class _QuickActionsModern extends StatelessWidget {
       ),
     );
   }
+
+  void _navigateToCart(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CartScreen()),
+    );
+  }
 }
 
 // Quick Action Button Widget
@@ -2400,4 +2364,214 @@ class _QuickActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+// Open Shop Button Widget (Special banner for non-sellers)
+class _OpenShopButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _OpenShopButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF43A047),
+              Color(0xFF66BB6A),
+              Color(0xFF81C784),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: [0.0, 0.5, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF43A047).withOpacity(0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.green.withOpacity(0.2),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              // Icon Container
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.storefront,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '🏪 เปิดร้านค้าของคุณ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'เริ่มขายสินค้าเป็นมิตรกับสิ่งแวดล้อม',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Text(
+                        '✨ สมัครฟรี! ไม่มีค่าใช้จ่าย',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow Icon
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- Smart Eco Hero Tab ---
+Widget _SmartEcoHeroTab() {
+  return Consumer<UserProvider>(
+    builder: (context, userProvider, child) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF43A047)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Smart Eco Hero',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'สินค้าระดับ Eco Hero ที่วิเคราะห์ด้วยระบบอัจฉริยะ',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Content
+            const Expanded(
+              child: Center(
+                child: Text(
+                  '🌱 Smart Eco Hero\n\nระบบวิเคราะห์สินค้าที่เป็นมิตรกับสิ่งแวดล้อม\nจะเปิดให้ใช้งานเร็วๆ นี้',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

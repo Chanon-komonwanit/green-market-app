@@ -6,7 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:green_market/models/eco_reward.dart';
-import 'package:green_market/models/reward_redemption.dart';
+import 'package:green_market/models/reward_redemption.dart'
+    as reward_redemption;
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/providers/user_provider.dart';
 
@@ -22,7 +23,6 @@ class _AdminRewardsManagementScreenState
     extends State<AdminRewardsManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final bool _isLoading = false;
 
   @override
   void initState() {
@@ -297,7 +297,7 @@ class _AdminRewardsManagementScreenState
       listen: false,
     );
 
-    return StreamBuilder<List<RewardRedemption>>(
+    return StreamBuilder<List<dynamic>>(
       stream: firebaseService.getAllRedemptions(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -321,7 +321,16 @@ class _AdminRewardsManagementScreenState
           );
         }
 
-        final redemptions = snapshot.data ?? [];
+        final redemptions = (snapshot.data ?? [])
+            .map(
+              (item) => item is reward_redemption.RewardRedemption
+                  ? item
+                  : reward_redemption.RewardRedemption.fromMap(
+                      item as Map<String, dynamic>,
+                      item['id'] ?? '',
+                    ),
+            )
+            .toList();
 
         if (redemptions.isEmpty) {
           return const Center(
@@ -351,7 +360,9 @@ class _AdminRewardsManagementScreenState
     );
   }
 
-  Widget _buildAdminRedemptionCard(RewardRedemption redemption) {
+  Widget _buildAdminRedemptionCard(
+    reward_redemption.RewardRedemption redemption,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -553,7 +564,7 @@ class _AdminRewardsManagementScreenState
   }
 
   Future<void> _handleRedemptionAction(
-    RewardRedemption redemption,
+    reward_redemption.RewardRedemption redemption,
     String action,
   ) async {
     try {
@@ -577,7 +588,7 @@ class _AdminRewardsManagementScreenState
           // คืนเหรียญให้ผู้ใช้
           await firebaseService.addEcoCoins(
             redemption.userId,
-            redemption.coinsUsed,
+            redemption.coinsUsed.toDouble(),
             'คืนเหรียญจากการยกเลิกรางวัล: ${redemption.rewardTitle}',
           );
           break;

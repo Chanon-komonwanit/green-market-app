@@ -465,7 +465,7 @@ class _EnhancedAddReviewFormState extends State<EnhancedAddReviewForm> {
         maxHeight: 800,
         imageQuality: 80,
       );
-      if (images != null && images.isNotEmpty) {
+      if (images.isNotEmpty) {
         setState(() {
           _selectedImages = images.map((img) => File(img.path)).toList();
         });

@@ -44,6 +44,8 @@ dependencies: # Corrected: Already correct
   rxdart: ^0.28.0 # Latest stable
   logger: ^2.3.0 # Latest stable
   file_picker: ^8.0.0+1 # Latest stable for file picking
+  cached_network_image: ^3.3.1 # For caching network images
+  timeago: ^3.6.1 # For time formatting
 dev_dependencies:
   flutter_test:
     sdk: flutter

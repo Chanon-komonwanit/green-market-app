@@ -7,6 +7,7 @@ import 'package:green_market/models/product.dart';
 import 'package:green_market/models/promotion.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/widgets/product_card.dart';
+import 'package:green_market/widgets/smart_eco_hero_tab.dart';
 import 'package:green_market/screens/category_products_screen.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 // import 'package:green_market/screens/eco_level_products_screen.dart';
@@ -448,6 +449,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           // Banner ข่าวสาร/โปรโมชั่น (ถ้ามี)
           if (promotions.isNotEmpty) _buildPromotionBanner(promotions),
+          // Eco Hero Section - Smart Product Analytics
+          _buildEcoHeroSection(products),
           // Eco Level Tabs และ Products
           _buildEcoLevelTabsSection(products),
           // Spacing ด้านล่าง
@@ -519,7 +522,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   ),
                                 ],
                               ),
-                              child: const GreenWorldIcon(size: 24),
+                              child: const Text('🌱',
+                                  style: TextStyle(fontSize: 24)),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -527,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'GREEN MARKET',
+                                    '🌱 GREEN MARKET',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 28, // เพิ่มจาก 24
@@ -1023,7 +1027,7 @@ class _HomeScreenState extends State<HomeScreen>
       padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.65, // ปรับให้เหมือน Shopee มากขึ้น (ลดลงจาก 0.7)
+        childAspectRatio: 0.8, // เพิ่มขึ้นเพื่อให้รูปไม่ใหญ่เกินไป
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -1056,7 +1060,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 // Product Image
                 Expanded(
-                  flex: 3,
+                  flex: 2, // ลดจาก 3 เป็น 2 เพื่อให้รูปไม่ใหญ่เกินไป
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -1066,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
+                        top: Radius.circular(12), // แก้ไขให้ตรงกัน
                       ),
                       child: Stack(
                         children: [
@@ -1249,4 +1253,453 @@ class _HomeScreenState extends State<HomeScreen>
       },
     );
   }
+
+  // เพิ่ม method สำหรับ Eco Hero Section
+  Widget _buildEcoHeroSection(List<Product> products) {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.green.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF1B5E20),
+                    Color(0xFF2E7D32),
+                    Color(0xFF43A047)
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Smart Eco Hero',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'สินค้าระดับ Eco Hero ที่วิเคราะห์ด้วยระบบอัจฉริยะ',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to My Home Screen สำหรับดู Eco Hero แบบเต็ม
+                      Navigator.of(context).pushNamed('/my_home');
+                    },
+                    child: const Text(
+                      'ดูทั้งหมด',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Smart Eco Hero Products Horizontal List
+            Container(
+              height: 280,
+              padding: const EdgeInsets.all(16),
+              child: _EcoHeroProductsList(products: products),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Widget สำหรับแสดง Eco Hero Products แบบ Horizontal
+class _EcoHeroProductsList extends StatefulWidget {
+  final List<Product> products;
+
+  const _EcoHeroProductsList({required this.products});
+
+  @override
+  State<_EcoHeroProductsList> createState() => _EcoHeroProductsListState();
+}
+
+class _EcoHeroProductsListState extends State<_EcoHeroProductsList> {
+  List<Product> _heroProducts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _analyzeEcoHeroProducts();
+  }
+
+  void _analyzeEcoHeroProducts() {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // วิเคราะห์และเลือกสินค้า Eco Hero
+    final analyzedProducts = _analyzeProducts(widget.products);
+
+    setState(() {
+      _heroProducts = analyzedProducts.take(8).toList(); // เอาแค่ 8 ชิ้น
+      _isLoading = false;
+    });
+  }
+
+  List<Product> _analyzeProducts(List<Product> allProducts) {
+    // คำนวณคะแนน Eco Hero สำหรับแต่ละสินค้า
+    List<_ProductWithScore> scoredProducts = allProducts.map((product) {
+      double score = _calculateEcoHeroScore(product);
+      return _ProductWithScore(product, score);
+    }).toList();
+
+    // เรียงลำดับตามคะแนนจากมากไปน้อย
+    scoredProducts.sort((a, b) => b.score.compareTo(a.score));
+
+    // คืนค่าเฉพาะ Product object
+    return scoredProducts.map((item) => item.product).toList();
+  }
+
+  double _calculateEcoHeroScore(Product product) {
+    double score = 0;
+
+    // 1. ระดับความเป็นมิตรกับสิ่งแวดล้อม (40% ของคะแนน)
+    score += _getEnvironmentalScore(product) * 0.4;
+
+    // 2. คะแนนรีวิว (25% ของคะแนน)
+    if (product.averageRating > 0) {
+      score += (product.averageRating / 5.0) * 25;
+    }
+
+    // 3. จำนวนยอดสั่งซื้อ (20% ของคะแนน) - ใช้จำนวนรีวิวเป็นตัวแทน
+    score += _getPopularityScore(product) * 0.2;
+
+    // 4. ความใหม่ของสินค้า (10% ของคะแนน)
+    score += _getFreshnessScore(product) * 0.1;
+
+    // 5. ราคาที่เหมาะสม (5% ของคะแนน)
+    score += _getPriceScore(product) * 0.05;
+
+    return score;
+  }
+
+  double _getEnvironmentalScore(Product product) {
+    double envScore = 0;
+
+    // ตรวจสอบคำสำคัญที่เกี่ยวกับสิ่งแวดล้อม
+    final ecoKeywords = [
+      'ออร์แกนิค',
+      'organic',
+      'เป็นมิตรกับสิ่งแวดล้อม',
+      'รีไซเคิล',
+      'ลดขยะ',
+      'ธรรมชาติ',
+      'ไม่มีสาร',
+      'ปลอดสาร',
+      'สีเขียว',
+      'ยั่งยืน',
+      'sustainable',
+      'eco',
+      'green',
+      'natural',
+      'ไบโอ',
+      'zero waste',
+      'ไผ่',
+      'หวาย',
+      'กะลามะพร้าว',
+      'ใยธรรมชาติ',
+      'ผ้าฝ้าย',
+      'แฮนด์เมด',
+      'handmade'
+    ];
+
+    final productText = '${product.name} ${product.description}'.toLowerCase();
+
+    for (String keyword in ecoKeywords) {
+      if (productText.contains(keyword.toLowerCase())) {
+        envScore += 10; // แต่ละคำสำคัญได้ 10 คะแนน
+      }
+    }
+
+    // คะแนนพิเศษสำหรับหมวดหมู่สีเขียว
+    final greenCategories = ['สวนและต้นไม้', 'ผลิตภัณฑ์รีไซเคิล', 'ออร์แกนิค'];
+    if (greenCategories.any((cat) => (product.categoryName ?? '')
+        .toLowerCase()
+        .contains(cat.toLowerCase()))) {
+      envScore += 15;
+    }
+
+    return envScore.clamp(0, 100);
+  }
+
+  double _getPopularityScore(Product product) {
+    // ใช้จำนวนรีวิวเป็นตัวชี้วัดความนิยม
+    if (product.reviewCount > 0) {
+      return (product.reviewCount * 2).clamp(0, 20).toDouble();
+    }
+    return 0;
+  }
+
+  double _getFreshnessScore(Product product) {
+    final now = DateTime.now();
+    final createdDate = product.createdAt?.toDate() ?? now;
+    final daysDifference = now.difference(createdDate).inDays;
+
+    if (daysDifference <= 7) {
+      return 10; // สินค้าใหม่ (ภายใน 7 วัน)
+    } else if (daysDifference <= 30) {
+      return 5; // สินค้าค่อนข้างใหม่ (ภายใน 30 วัน)
+    }
+    return 0;
+  }
+
+  double _getPriceScore(Product product) {
+    // คะแนนราคาที่เหมาะสม (ยิ่งถูกยิ่งดี แต่ไม่ถูกเกินไป)
+    if (product.price >= 50 && product.price <= 500) {
+      return 5; // ราคาในช่วงที่เหมาะสม
+    } else if (product.price < 50) {
+      return 3; // ราคาถูกมาก
+    }
+    return 1; // ราคาแพง
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+        ),
+      );
+    }
+
+    if (_heroProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.eco_outlined,
+              size: 60,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ยังไม่พบสินค้า Eco Hero',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: _heroProducts.length,
+      itemBuilder: (context, index) {
+        final product = _heroProducts[index];
+        final rank = index + 1;
+        return Container(
+          width: 160,
+          margin:
+              EdgeInsets.only(right: index < _heroProducts.length - 1 ? 12 : 0),
+          child: _buildEcoHeroCard(product, rank),
+        );
+      },
+    );
+  }
+
+  Widget _buildEcoHeroCard(Product product, int rank) {
+    final isTopThree = rank <= 3;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isTopThree
+                ? const Color(0xFFFFD700)
+                : const Color(0xFF2E7D32).withOpacity(0.3),
+            width: isTopThree ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isTopThree
+                      ? const Color(0xFFFFD700)
+                      : const Color(0xFF2E7D32))
+                  .withOpacity(0.15),
+              blurRadius: isTopThree ? 8 : 4,
+              offset: Offset(0, isTopThree ? 4 : 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image with Rank Badge
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    product.imageUrls.isNotEmpty ? product.imageUrls[0] : '',
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 120,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image_not_supported,
+                            color: Colors.grey),
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isTopThree
+                          ? const Color(0xFFFFD700)
+                          : const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '#$rank',
+                      style: TextStyle(
+                        color: isTopThree ? Colors.black : Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isTopThree)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Icon(
+                      rank == 1 ? Icons.military_tech : Icons.star,
+                      color: const Color(0xFFFFD700),
+                      size: 18,
+                    ),
+                  ),
+              ],
+            ),
+
+            // Product Info
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    if (product.averageRating > 0)
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 12),
+                          Text(
+                            ' ${product.averageRating.toStringAsFixed(1)}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    const Spacer(),
+                    Text(
+                      '฿${product.price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF2E7D32),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Helper class สำหรับเก็บ Product และ Score
+class _ProductWithScore {
+  final Product product;
+  final double score;
+
+  _ProductWithScore(this.product, this.score);
 }

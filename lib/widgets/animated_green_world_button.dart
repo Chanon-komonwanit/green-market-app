@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:green_market/widgets/green_world_icon.dart';
+import 'package:green_market/widgets/animated_sprouting_tree.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 
 class AnimatedGreenWorldButton extends StatefulWidget {
@@ -113,7 +113,7 @@ class _AnimatedGreenWorldButtonState extends State<AnimatedGreenWorldButton>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Enhanced World Icon with rotation
+                      // Enhanced Sprouting Tree Animation
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -124,7 +124,7 @@ class _AnimatedGreenWorldButtonState extends State<AnimatedGreenWorldButton>
                             width: 1,
                           ),
                         ),
-                        child: const GreenWorldIcon(size: 32),
+                        child: const AnimatedSproutingTree(size: 32),
                       ),
                       const SizedBox(width: 16),
                       // Text with enhanced styling
