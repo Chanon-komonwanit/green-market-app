@@ -6,6 +6,8 @@ import 'package:green_market/screens/seller/my_products_screen.dart';
 import 'package:green_market/screens/seller/seller_orders_screen.dart';
 import 'package:green_market/screens/seller/shop_settings_screen.dart';
 import 'package:green_market/screens/seller/seller_notifications_screen.dart';
+import 'package:green_market/screens/seller/shipping_management_screen.dart';
+import 'package:green_market/screens/seller/enhanced_shipping_management_screen.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,7 +28,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _loadDashboardData();
   }
 
@@ -103,6 +105,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             Tab(icon: Icon(Icons.dashboard), text: 'ภาพรวม'),
             Tab(icon: Icon(Icons.inventory_2), text: 'สินค้า'),
             Tab(icon: Icon(Icons.shopping_cart), text: 'คำสั่งซื้อ'),
+            Tab(icon: Icon(Icons.local_shipping), text: 'การจัดส่ง'),
             Tab(icon: Icon(Icons.bar_chart), text: 'สถิติ'),
             Tab(icon: Icon(Icons.settings), text: 'ตั้งค่า'),
           ],
@@ -116,6 +119,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 _buildOverviewTab(),
                 _buildProductsTab(),
                 _buildOrdersTab(),
+                _buildShippingTab(),
                 _buildAnalyticsTab(),
                 _buildSettingsTab(),
               ],
@@ -545,6 +549,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
   Widget _buildOrdersTab() {
     return const SellerOrdersScreen();
+  }
+
+  Widget _buildShippingTab() {
+    return const EnhancedShippingManagementScreen();
   }
 
   Widget _buildAnalyticsTab() {

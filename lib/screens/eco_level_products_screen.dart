@@ -20,7 +20,6 @@ class EcoLevelProductsScreen extends StatefulWidget {
 class _EcoLevelProductsScreenState extends State<EcoLevelProductsScreen> {
   final ScrollController _scrollController = ScrollController();
   List<Product> _products = [];
-  final List<Map<String, dynamic>> _rawProducts = []; // For sorting
   bool _isLoading = true;
   bool _hasMore = true;
   String _selectedSortType = 'newest';

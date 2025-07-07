@@ -753,7 +753,7 @@ class _AddRewardFormState extends State<_AddRewardForm> {
         context,
         listen: false,
       );
-      await firebaseService.createEcoReward(reward);
+      await firebaseService.createEcoReward(reward.toMap());
 
       // ล้างฟอร์ม
       _titleController.clear();

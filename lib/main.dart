@@ -22,6 +22,8 @@ import 'package:green_market/providers/eco_coins_provider.dart';
 import 'package:green_market/screens/eco_coins_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:green_market/models/product.dart';
+import 'package:green_market/services/firebase_data_seeder.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,11 +73,10 @@ class MyApp extends StatelessWidget {
         builder: (context, themeProvider, appConfigProvider, child) {
           return MaterialApp(
             title: appConfigProvider.appName,
-            theme: appConfigProvider.lightTheme,
-            darkTheme: appConfigProvider.darkTheme,
-            themeMode: appConfigProvider.enableDarkMode
-                ? ThemeMode.system
-                : ThemeMode.light,
+            theme: themeProvider.lightTheme,
+            darkTheme: themeProvider.darkTheme,
+            themeMode:
+                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             debugShowCheckedModeBanner: false,
             home: Consumer2<AuthProvider, UserProvider>(
               // Use Consumer2 to listen to both

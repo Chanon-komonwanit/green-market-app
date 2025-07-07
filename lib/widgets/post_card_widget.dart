@@ -89,53 +89,69 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // User Header
-              _buildUserHeader(),
-
-              const SizedBox(height: 12),
-
-              // Post Content
-              if (widget.post.content.isNotEmpty) ...[
-                Text(
-                  widget.post.content,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.green.withOpacity(0.08),
+          width: 1.2,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(18),
+          splashColor: Colors.greenAccent.withOpacity(0.08),
+          highlightColor: Colors.greenAccent.withOpacity(0.04),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User Header
+                _buildUserHeader(),
+                const SizedBox(height: 10),
+                // Post Content
+                if (widget.post.content.isNotEmpty) ...[
+                  Text(
+                    widget.post.content,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          color: Colors.grey[900],
+                        ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                // Images
+                if (widget.post.imageUrls.isNotEmpty) ...[
+                  _buildImages(),
+                  const SizedBox(height: 10),
+                ],
+                // Video (if any)
+                if (widget.post.videoUrl != null) ...[
+                  _buildVideoThumbnail(),
+                  const SizedBox(height: 10),
+                ],
+                // Tags
+                if (widget.post.tags.isNotEmpty) ...[
+                  _buildTags(),
+                  const SizedBox(height: 10),
+                ],
+                // Action Buttons
+                _buildActionButtons(),
               ],
-
-              // Images
-              if (widget.post.imageUrls.isNotEmpty) ...[
-                _buildImages(),
-                const SizedBox(height: 12),
-              ],
-
-              // Video (if any)
-              if (widget.post.videoUrl != null) ...[
-                _buildVideoThumbnail(),
-                const SizedBox(height: 12),
-              ],
-
-              // Tags
-              if (widget.post.tags.isNotEmpty) ...[
-                _buildTags(),
-                const SizedBox(height: 12),
-              ],
-
-              // Action Buttons
-              _buildActionButtons(),
-            ],
+            ),
           ),
         ),
       ),
@@ -145,20 +161,33 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   Widget _buildUserHeader() {
     return Row(
       children: [
-        // Profile Image
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: Colors.grey[300],
-          backgroundImage: _postUser?.photoUrl != null
-              ? CachedNetworkImageProvider(_postUser!.photoUrl!)
-              : null,
-          child: _postUser?.photoUrl == null
-              ? Icon(Icons.person, color: Colors.grey[600])
-              : null,
+        // Profile Image with gradient border (IG style)
+        Container(
+          padding: const EdgeInsets.all(2.2),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.greenAccent.shade100,
+                Colors.teal.shade400,
+                Colors.blue.shade200,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: _postUser?.photoUrl != null
+                ? CachedNetworkImageProvider(_postUser!.photoUrl!)
+                : null,
+            child: _postUser?.photoUrl == null
+                ? Icon(Icons.person, color: Colors.grey[600])
+                : null,
+          ),
         ),
-
         const SizedBox(width: 12),
-
         // User Name and Time
         Expanded(
           child: Column(
@@ -166,20 +195,22 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             children: [
               Text(
                 _postUser?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.teal[800],
                     ),
               ),
               Text(
                 timeago.format(widget.post.createdAt.toDate(), locale: 'th'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Colors.grey[500],
+                      fontSize: 12,
                     ),
               ),
             ],
           ),
         ),
-
         // More Options
         IconButton(
           onPressed: () {
@@ -269,17 +300,25 @@ class _PostCardWidgetState extends State<PostCardWidget> {
       runSpacing: 4,
       children: widget.post.tags.map((tag) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.green[100],
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                Colors.teal.shade50,
+                Colors.greenAccent.shade100,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.teal.shade100, width: 1),
           ),
           child: Text(
             '#$tag',
             style: TextStyle(
-              color: Colors.green[700],
+              color: Colors.teal[700],
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         );
@@ -294,30 +333,30 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         InkWell(
           onTap: _toggleLike,
           borderRadius: BorderRadius.circular(20),
+          splashColor: Colors.redAccent.withOpacity(0.12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
                   _isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: _isLiked ? Colors.red : Colors.grey[600],
-                  size: 20,
+                  color: _isLiked ? Colors.redAccent : Colors.teal[400],
+                  size: 22,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   _likesCount.toString(),
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                    color: _isLiked ? Colors.redAccent : Colors.teal[700],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
         ),
-
-        const SizedBox(width: 16),
-
+        const SizedBox(width: 18),
         // Comment Button
         InkWell(
           onTap: () {
@@ -330,30 +369,30 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             widget.onComment?.call();
           },
           borderRadius: BorderRadius.circular(20),
+          splashColor: Colors.blueAccent.withOpacity(0.10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
                   Icons.comment_outlined,
-                  color: Colors.grey[600],
-                  size: 20,
+                  color: Colors.blue[400],
+                  size: 21,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   widget.post.commentCount.toString(),
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                    color: Colors.blue[700],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
         ),
-
-        const SizedBox(width: 16),
-
+        const SizedBox(width: 18),
         // Share Button
         InkWell(
           onTap: () {
@@ -364,30 +403,30 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             widget.onShare?.call();
           },
           borderRadius: BorderRadius.circular(20),
+          splashColor: Colors.tealAccent.withOpacity(0.10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
                   Icons.share_outlined,
-                  color: Colors.grey[600],
-                  size: 20,
+                  color: Colors.teal[400],
+                  size: 21,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   widget.post.shareCount.toString(),
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                    color: Colors.teal[700],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
         ),
-
         const Spacer(),
-
         // Time ago
         Text(
           timeago.format(widget.post.createdAt.toDate(), locale: 'th'),

@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/screens/write_review_screen.dart'; // Import the actual WriteReviewScreen
 import 'package:green_market/screens/review_detail_screen.dart'; // Import ReviewDetailScreen
+import 'package:green_market/screens/order_tracking_screen.dart'; // Import OrderTrackingScreen
 import 'package:firebase_auth/firebase_auth.dart';
 
 class BuyerOrderDetailScreen extends StatefulWidget {
@@ -146,6 +147,12 @@ class _BuyerOrderDetailScreenState extends State<BuyerOrderDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Shipping Information Section
+            if (widget.order.status == 'shipped' ||
+                widget.order.status == 'delivered')
+              _buildShippingInfoSection(),
+
             Text('รายการสินค้า:',
                 style: AppTextStyles.subtitle
                     .copyWith(color: AppColors.primaryGreen)),
@@ -314,6 +321,127 @@ class _BuyerOrderDetailScreenState extends State<BuyerOrderDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildShippingInfoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('ข้อมูลการจัดส่ง:',
+            style:
+                AppTextStyles.subtitle.copyWith(color: AppColors.primaryGreen)),
+        const SizedBox(height: 8),
+        Card(
+          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.order.shippingCarrier != null)
+                  Row(
+                    children: [
+                      Icon(Icons.local_shipping,
+                          color: AppColors.primaryTeal, size: 20),
+                      const SizedBox(width: 8),
+                      Text('บริษัทขนส่ง: ${widget.order.shippingCarrier}',
+                          style: AppTextStyles.body),
+                    ],
+                  ),
+                if (widget.order.shippingMethod != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.speed,
+                            color: AppColors.primaryTeal, size: 20),
+                        const SizedBox(width: 8),
+                        Text('วิธีการส่ง: ${widget.order.shippingMethod}',
+                            style: AppTextStyles.body),
+                      ],
+                    ),
+                  ),
+                if (widget.order.trackingNumber != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.tag, color: AppColors.primaryTeal, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                              'หมายเลขติดตาม: ${widget.order.trackingNumber}',
+                              style: AppTextStyles.body),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (widget.order.shippedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule,
+                            color: AppColors.primaryTeal, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                            'วันที่จัดส่ง: ${DateFormat('dd MMM yyyy, HH:mm', 'th_TH').format(widget.order.shippedAt!.toDate())}',
+                            style: AppTextStyles.body),
+                      ],
+                    ),
+                  ),
+                if (widget.order.deliveredAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle,
+                            color: AppColors.primaryGreen, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                            'วันที่ส่งถึง: ${DateFormat('dd MMM yyyy, HH:mm', 'th_TH').format(widget.order.deliveredAt!.toDate())}',
+                            style: AppTextStyles.body),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                // Track Package Button
+                if (widget.order.trackingNumber != null ||
+                    widget.order.trackingUrl != null)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                OrderTrackingScreen(order: widget.order),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.track_changes, color: Colors.white),
+                      label: Text('ติดตามพัสดุ',
+                          style:
+                              AppTextStyles.body.copyWith(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 }

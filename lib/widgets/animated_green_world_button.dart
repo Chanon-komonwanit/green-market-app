@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:green_market/widgets/animated_sprouting_tree.dart';
+import 'package:green_market/widgets/animated_globe_icon.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 
 class AnimatedGreenWorldButton extends StatefulWidget {
@@ -113,18 +113,28 @@ class _AnimatedGreenWorldButtonState extends State<AnimatedGreenWorldButton>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Enhanced Sprouting Tree Animation
+                      // Enhanced Animated Globe Icon
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(15),
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
-                            width: 1,
+                            width: 2,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const AnimatedSproutingTree(size: 32),
+                        child: const AnimatedGlobeIcon(
+                          size: 40,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       // Text with enhanced styling

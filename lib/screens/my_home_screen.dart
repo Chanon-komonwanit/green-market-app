@@ -15,7 +15,9 @@ import 'package:green_market/models/cart_item.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
+import 'package:green_market/screens/customer_shipping_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/seller/seller_application_form_screen.dart';
 import 'package:green_market/widgets/smart_eco_hero_tab.dart';
 import 'package:green_market/screens/eco_rewards_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,50 +53,54 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   Widget build(BuildContext context) {
     try {
       return Scaffold(
-        backgroundColor: const Color(0xFFF3FBF4),
+        backgroundColor: const Color(0xFFF8FAF9),
         body: SafeArea(
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFE8F5E9), Color(0xFFF3FBF4)],
+                colors: [Color(0xFFFFFFFF), Color(0xFFF8FAF9)],
               ),
             ),
-            child: Column(
-              children: [
-                // Modern User Info Header
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: _UserInfoHeaderModern(),
-                ),
-                const SizedBox(height: 8),
-
-                // Enhanced Eco Coins Zone
-                _EcoCoinsSection(),
-                const SizedBox(height: 8),
-
-                // Modern Quick Actions
-                _QuickActionsModern(),
-                const SizedBox(height: 8),
-
-                // Modern Tab Bar
-                _ModernTabBar(),
-                const SizedBox(height: 4),
-
-                // TabBarView - Smart Eco Hero, แชท, ตะกร้า, แจ้งเตือน
-                Flexible(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _SmartEcoHeroTab(), // แท็บใหม่
-                      _ChatTab(),
-                      _CartTab(),
-                      _NotificationsTab(),
-                    ],
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Modern User Info Header
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _UserInfoHeaderModern(),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+
+                  // Enhanced Eco Coins Zone
+                  _EcoCoinsSection(),
+                  const SizedBox(height: 8),
+
+                  // Modern Quick Actions
+                  _QuickActionsModern(),
+                  const SizedBox(height: 8),
+
+                  // Modern Tab Bar
+                  _ModernTabBar(),
+                  const SizedBox(height: 4),
+
+                  // TabBarView - Smart Eco Hero, แชท, ตะกร้า, แจ้งเตือน
+                  SizedBox(
+                    height: 400, // กำหนดความสูงคงที่
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _SmartEcoHeroTab(), // แท็บใหม่
+                        _ChatTab(),
+                        _CartTab(),
+                        _NotificationsTab(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20), // เพิ่มพื้นที่ด้านล่าง
+                ],
+              ),
             ),
           ),
         ),
@@ -108,28 +114,66 @@ class _MyHomeScreenState extends State<MyHomeScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFFAFAFA),
+            Color(0xFFFFFFFF),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2E7D32).withOpacity(0.1),
+            color: const Color(0xFF1F2937).withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: const Color(0xFF059669).withOpacity(0.05),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, -2),
           ),
         ],
+        border: Border.all(
+          color: const Color(0xFF059669).withOpacity(0.12),
+          width: 1,
+        ),
       ),
       child: TabBar(
         controller: _tabController,
         labelColor: Colors.white,
-        unselectedLabelColor: const Color(0xFF666666),
+        unselectedLabelColor: const Color(0xFF374151),
         indicator: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+            colors: [
+              Color(0xFF059669),
+              Color(0xFF10B981),
+              Color(0xFF34D399),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF059669).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         indicatorWeight: 0,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          letterSpacing: 0.3,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ),
         tabs: const [
           Tab(text: 'Eco Hero', icon: Icon(Icons.auto_awesome, size: 20)),
           Tab(text: 'แชท', icon: Icon(Icons.chat_bubble_outline, size: 20)),
@@ -854,13 +898,13 @@ class _UserInfoHeaderModern extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2E7D32).withOpacity(0.08),
+                color: const Color(0xFF64748B).withOpacity(0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
             ],
             border: Border.all(
-              color: const Color(0xFF2E7D32).withOpacity(0.1),
+              color: const Color(0xFF64748B).withOpacity(0.1),
               width: 1,
             ),
           ),
@@ -876,7 +920,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF2E7D32).withOpacity(0.3),
+                        color: const Color(0xFF64748B).withOpacity(0.2),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -965,12 +1009,12 @@ class _UserInfoHeaderModern extends StatelessWidget {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withOpacity(0.1),
+                      color: const Color(0xFF059669).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.edit_outlined,
-                      color: Color(0xFF2E7D32),
+                      color: Color(0xFF059669),
                       size: 20,
                     ),
                   ),
@@ -995,7 +1039,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+          colors: [Color(0xFF059669), Color(0xFF10B981)],
         ),
       ),
       child: const Icon(
@@ -1012,7 +1056,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF6F00), Color(0xFFFF8F00)],
+            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1037,7 +1081,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1062,7 +1106,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
+            colors: [Color(0xFF059669), Color(0xFF10B981)],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1435,13 +1479,22 @@ class _NotificationListItem extends StatelessWidget {
 class _EcoCoinsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        final currentUser = userProvider.currentUser;
-        final ecoCoinCount = currentUser?.ecoCoins ?? 0;
-        final equivalentBaht = (ecoCoinCount * 0.01); // 1 เหรียญ = 0.01 บาท
+    return Consumer<UserProvider>(builder: (context, userProvider, child) {
+      final currentUser = userProvider.currentUser;
+      final ecoCoinCount = currentUser?.ecoCoins ?? 0;
+      final equivalentBaht = (ecoCoinCount * 0.01); // 1 เหรียญ = 0.01 บาท
 
-        return Container(
+      return GestureDetector(
+        onTap: () {
+          // Navigate to Eco Rewards Screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const EcoRewardsScreen(),
+            ),
+          );
+        },
+        child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -1454,37 +1507,38 @@ class _EcoCoinsSection extends StatelessWidget {
               end: Alignment.bottomRight,
               stops: [0.0, 0.5, 1.0],
             ),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(18), // ลดจาก 24 เป็น 18
             border: Border.all(
               color: const Color(0xFFB8860B), // เส้นขอบทอง
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFFFD700).withOpacity(0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-                spreadRadius: 2,
+                color: const Color(0xFFFFD700).withOpacity(0.3),
+                blurRadius: 12, // ลดจาก 20 เป็น 12
+                offset: const Offset(0, 4), // ลดจาก 8 เป็น 4
+                spreadRadius: 1, // ลดจาก 2 เป็น 1
               ),
               BoxShadow(
-                color: Colors.orange.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
+                color: Colors.orange.withOpacity(0.15),
+                blurRadius: 20, // ลดจาก 30 เป็น 20
+                offset: const Offset(0, 8), // ลดจาก 15 เป็น 8
               ),
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(18), // ลดจาก 24 เป็น 18
             child: Column(
               children: [
                 Row(
                   children: [
                     // Enhanced Coin Display
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12), // ลดจาก 16 เป็น 12
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius:
+                            BorderRadius.circular(16), // ลดจาก 20 เป็น 16
                         border: Border.all(
                           color: const Color(0xFFB8860B),
                           width: 2,
@@ -1492,8 +1546,8 @@ class _EcoCoinsSection extends StatelessWidget {
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            blurRadius: 8, // ลดจาก 12 เป็น 8
+                            offset: const Offset(0, 3), // ลดจาก 4 เป็น 3
                           ),
                         ],
                       ),
@@ -1508,7 +1562,8 @@ class _EcoCoinsSection extends StatelessWidget {
                               return Transform.rotate(
                                 angle: value * 2 * 3.14159, // หมุน 1 รอบ
                                 child: Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding:
+                                      const EdgeInsets.all(6), // ลดจาก 8 เป็น 6
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
                                       colors: [
@@ -1522,7 +1577,7 @@ class _EcoCoinsSection extends StatelessWidget {
                                         color: const Color(
                                           0xFFFFD700,
                                         ).withOpacity(0.3),
-                                        blurRadius: 8,
+                                        blurRadius: 6, // ลดจาก 8 เป็น 6
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
@@ -1530,20 +1585,20 @@ class _EcoCoinsSection extends StatelessWidget {
                                   child: const Icon(
                                     Icons.eco,
                                     color: Colors.white,
-                                    size: 28,
+                                    size: 22, // ลดจาก 28 เป็น 22
                                   ),
                                 ),
                               );
                             },
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10), // ลดจาก 12 เป็น 10
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '$ecoCoinCount',
                                 style: const TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 24, // ลดจาก 28 เป็น 24
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFFB8860B),
                                   shadows: [
@@ -1556,9 +1611,9 @@ class _EcoCoinsSection extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'เหรียญ Eco',
+                                '🪙 เหรียญ Eco',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11, // ลดจาก 12 เป็น 11
                                   fontWeight: FontWeight.w600,
                                   color: Colors.grey[700],
                                 ),
@@ -1577,12 +1632,13 @@ class _EcoCoinsSection extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                                  horizontal: 10, // ลดจาก 12 เป็น 10
+                                  vertical: 5, // ลดจาก 6 เป็น 5
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(
+                                      16), // ลดจาก 20 เป็น 16
                                   border: Border.all(
                                     color: const Color(
                                       0xFFB8860B,
@@ -1595,13 +1651,13 @@ class _EcoCoinsSection extends StatelessWidget {
                                     const Icon(
                                       Icons.account_balance_wallet,
                                       color: Color(0xFFB8860B),
-                                      size: 16,
+                                      size: 14, // ลดจาก 16 เป็น 14
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 5), // ลดจาก 6 เป็น 5
                                     Text(
                                       'มูลค่า',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11, // ลดจาก 12 เป็น 11
                                         fontWeight: FontWeight.w600,
                                         color: Colors.grey[700],
                                       ),
@@ -1611,13 +1667,13 @@ class _EcoCoinsSection extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6), // ลดจาก 8 เป็น 6
                           Row(
                             children: [
                               Text(
                                 '฿${equivalentBaht.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 18, // ลดจาก 20 เป็น 18
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFFB8860B),
                                   shadows: [
@@ -1629,10 +1685,10 @@ class _EcoCoinsSection extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6), // ลดจาก 8 เป็น 6
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 6, // ลดจาก 8 เป็น 6
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
@@ -1665,37 +1721,20 @@ class _EcoCoinsSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        // Navigate to Eco Rewards Screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EcoRewardsScreen(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: const Color(0xFFB8860B).withOpacity(0.3),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                    // Small info icon (visual indicator only)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFB8860B).withOpacity(0.3),
                         ),
-                        child: const Icon(
-                          Icons.info_outline,
-                          color: Color(0xFFB8860B),
-                          size: 24,
-                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFFB8860B),
+                        size: 16,
                       ),
                     ),
                   ],
@@ -1724,9 +1763,9 @@ class _EcoCoinsSection extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
-    );
+        ), // Container closing
+      ); // GestureDetector closing
+    }); // Consumer closing
   }
 
   String _getProgressText(double ecoCoins) {
@@ -1761,322 +1800,6 @@ class _EcoCoinsSection extends StatelessWidget {
     } else {
       return coinsInt / 50; // ช่วง 0-50
     }
-  }
-
-  void _showEcoCoinsInfo(BuildContext context, double currentCoins) {
-    final equivalentBaht = (currentCoins * 0.01);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFD700), Color(0xFFFFF8DC)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.eco, color: Color(0xFFB8860B), size: 28),
-              SizedBox(width: 12),
-              Text(
-                'ระบบ Eco Coins',
-                style: TextStyle(
-                  color: Color(0xFFB8860B),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Current Balance
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFF8DC), Color(0xFFFFE55C)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFB8860B)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'ยอดคงเหลือ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFB8860B),
-                          ),
-                        ),
-                        Text(
-                          '$currentCoins เหรียญ',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFB8860B),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'มูลค่าเทียบเท่า',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFFB8860B),
-                          ),
-                        ),
-                        Text(
-                          '฿${equivalentBaht.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2E7D32),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Exchange Rate
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'อัตราแลกเปลี่ยน: 1 เหรียญ Eco = 0.01 บาท',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Levels
-              const Text(
-                'ระดับ Eco Coins:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              _buildLevelItem(
-                'ผู้เริ่มต้น',
-                '0-49 เหรียญ',
-                Icons.eco_outlined,
-                currentCoins < 50,
-              ),
-              _buildLevelItem(
-                'Eco Friend',
-                '50-199 เหรียญ',
-                Icons.eco,
-                currentCoins >= 50 && currentCoins < 200,
-              ),
-              _buildLevelItem(
-                'Eco Hero',
-                '200-499 เหรียญ',
-                Icons.star_outline,
-                currentCoins >= 200 && currentCoins < 500,
-              ),
-              _buildLevelItem(
-                'Eco Master',
-                '500-999 เหรียญ',
-                Icons.star,
-                currentCoins >= 500 && currentCoins < 1000,
-              ),
-              _buildLevelItem(
-                'Eco Legend',
-                '1000+ เหรียญ',
-                Icons.emoji_events,
-                currentCoins >= 1000,
-              ),
-
-              const SizedBox(height: 16),
-
-              // How to Earn
-              const Text(
-                'วิธีได้รับ Eco Coins:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              _buildEarnMethod(
-                '🛒 ซื้อสินค้า',
-                '0.1% ของราคาสินค้า',
-                'ทุกการสั่งซื้อจะได้เหรียญกลับ 0.1% ของยอดสั่งซื้อ',
-                Colors.green,
-              ),
-              _buildEarnMethod(
-                '⭐ รีวิวสินค้า',
-                '5-15 เหรียญ',
-                'เขียนรีวิวหลังซื้อสินค้า',
-                Colors.orange,
-              ),
-              _buildEarnMethod(
-                '📅 เข้าสู่ระบบ',
-                '1-5 เหรียญ',
-                'เข้าใช้งานทุกวันติดต่อกัน',
-                Colors.blue,
-              ),
-              _buildEarnMethod(
-                '👥 ชวนเพื่อน',
-                '20-100 เหรียญ',
-                'แนะนำเพื่อนมาใช้งาน Green Market',
-                Colors.purple,
-              ),
-              _buildEarnMethod(
-                '🎉 กิจกรรมพิเศษ',
-                'รางวัลสุ่ม',
-                'เข้าร่วมกิจกรรมและแคมเปญต่างๆ',
-                Colors.pink,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFFFD700).withOpacity(0.2),
-              foregroundColor: const Color(0xFFB8860B),
-            ),
-            child: const Text(
-              'เข้าใจแล้ว',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEarnMethod(
-    String title,
-    String amount,
-    String description,
-    Color color,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                title.split(' ')[0], // emoji
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      title.substring(2), // text without emoji
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      amount,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLevelItem(
-    String title,
-    String requirement,
-    IconData icon,
-    bool isActive,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF43A047) : Colors.grey,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? const Color(0xFF2E7D32) : Colors.grey[600],
-            ),
-          ),
-          const Spacer(),
-          Text(
-            requirement,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -2129,7 +1852,7 @@ class _QuickActionsModern extends StatelessWidget {
                       child: _QuickActionButton(
                         icon: Icons.shopping_bag_outlined,
                         label: 'ออเดอร์ของฉัน',
-                        color: const Color(0xFF1976D2),
+                        color: const Color(0xFF059669),
                         onTap: () => _navigateToOrders(context),
                       ),
                     ),
@@ -2138,7 +1861,7 @@ class _QuickActionsModern extends StatelessWidget {
                       child: _QuickActionButton(
                         icon: Icons.discount_outlined,
                         label: 'โค้ดส่วนลด',
-                        color: const Color(0xFFE91E63),
+                        color: const Color(0xFF7C3AED),
                         onTap: () => _showCoupons(context),
                       ),
                     ),
@@ -2147,7 +1870,7 @@ class _QuickActionsModern extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // แถวที่ 2: ตะกร้าของฉัน และ การตั้งค่า/จัดการระบบ
+                // แถวที่ 2: ตะกร้าของฉัน และ การจัดส่ง
                 Row(
                   children: [
                     // ปุ่มด้านซ้าย: ตะกร้าของฉัน (ทุกคน)
@@ -2156,33 +1879,53 @@ class _QuickActionsModern extends StatelessWidget {
                         builder: (context, cartProvider, child) {
                           final totalItems = cartProvider.totalItemsInCart;
                           final totalAmount = cartProvider.totalAmount;
-                          
+
                           return _QuickActionButton(
                             icon: Icons.shopping_cart_outlined,
-                            label: 'ตะกร้าของฉัน\n$totalItems รายการ ฿${totalAmount.toStringAsFixed(0)}',
-                            color: const Color(0xFF43A047),
+                            label:
+                                'ตะกร้าของฉัน\n$totalItems รายการ ฿${totalAmount.toStringAsFixed(0)}',
+                            color: const Color(0xFF059669),
                             onTap: () => _navigateToCart(context),
                           );
                         },
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // ปุ่มด้านขวา: สำหรับแอดมินแสดงจัดการระบบ, อื่นๆ แสดงการตั้งค่า
+                    // ปุ่มด้านขวา: การจัดส่ง
+                    Expanded(
+                      child: _QuickActionButton(
+                        icon: Icons.local_shipping_outlined,
+                        label: 'การจัดส่ง',
+                        color: const Color(0xFF0891B2),
+                        onTap: () => _navigateToShipping(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // แถวที่ 3: การตั้งค่า/จัดการระบบ
+                Row(
+                  children: [
+                    // ปุ่มด้านซ้าย: สำหรับแอดมินแสดงจัดการระบบ, อื่นๆ แสดงการตั้งค่า
                     Expanded(
                       child: currentUser?.isAdmin == true
                           ? _QuickActionButton(
                               icon: Icons.admin_panel_settings_outlined,
                               label: 'จัดการระบบ',
-                              color: const Color(0xFFFF6F00),
+                              color: const Color(0xFF6366F1),
                               onTap: () => _showAdminPanel(context),
                             )
                           : _QuickActionButton(
                               icon: Icons.settings_outlined,
                               label: 'การตั้งค่า',
-                              color: const Color(0xFF9C27B0),
+                              color: const Color(0xFF6B7280),
                               onTap: () => _navigateToSettings(context),
                             ),
                     ),
+                    const SizedBox(width: 12),
+                    // ปุ่มด้านขวา: ช่องว่าง
+                    Expanded(child: Container()),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -2191,7 +1934,13 @@ class _QuickActionsModern extends StatelessWidget {
                   _OpenShopButton(
                     onTap: () {
                       // นำทางไปยังหน้าลงทะเบียนผู้ขาย
-                      Navigator.pushNamed(context, '/register_seller');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const SellerApplicationFormScreen(),
+                        ),
+                      );
                     },
                   ),
               ],
@@ -2206,6 +1955,14 @@ class _QuickActionsModern extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const OrdersScreen()),
+    );
+  }
+
+  void _navigateToShipping(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => const CustomerShippingDashboardScreen()),
     );
   }
 
@@ -2380,9 +2137,9 @@ class _OpenShopButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
-              Color(0xFF43A047),
-              Color(0xFF66BB6A),
-              Color(0xFF81C784),
+              Color(0xFF059669),
+              Color(0xFF10B981),
+              Color(0xFF34D399),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -2391,13 +2148,13 @@ class _OpenShopButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF43A047).withOpacity(0.4),
+              color: const Color(0xFF059669).withOpacity(0.25),
               blurRadius: 15,
               offset: const Offset(0, 8),
               spreadRadius: 2,
             ),
             BoxShadow(
-              color: Colors.green.withOpacity(0.2),
+              color: const Color(0xFF10B981).withOpacity(0.15),
               blurRadius: 30,
               offset: const Offset(0, 15),
             ),
@@ -2504,50 +2261,281 @@ Widget _SmartEcoHeroTab() {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Enhanced Premium Gold Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF43A047)],
+                  colors: [
+                    Color(0xFFFFD700), // ทองแก้ว
+                    Color(0xFFFFA500), // ทองส้ม
+                    Color(0xFFFFD700), // ทองแก้ว
+                    Color(0xFFDAA520), // ทองเข้ม
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
+                  stops: [0.0, 0.3, 0.7, 1.0],
                 ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFB8860B),
+                  width: 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFD700).withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                    spreadRadius: 3,
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Smart Eco Hero',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                  BoxShadow(
+                    color: const Color(0xFFFFA500).withOpacity(0.3),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    blurRadius: 5,
+                    offset: const Offset(0, -3),
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Enhanced Premium Icon Container
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFFE4B5), // ครีมทอง
+                              Color(0xFFFFFFFF), // ขาว
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                           ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFB8860B),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFD700).withOpacity(0.6),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'สินค้าระดับ Eco Hero ที่วิเคราะห์ด้วยระบบอัจฉริยะ',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                        child: TweenAnimationBuilder<double>(
+                          duration: const Duration(seconds: 2),
+                          tween: Tween<double>(begin: 0.0, end: 1.0),
+                          builder: (context, value, child) {
+                            return Transform.rotate(
+                              angle: value * 2 * 3.14159,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFFD700),
+                                      Color(0xFFFFA500),
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Enhanced Premium Text
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Smart Eco Hero',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF8B4513),
+                                letterSpacing: 1.2,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.white,
+                                    blurRadius: 3,
+                                    offset: Offset(1, 1),
+                                  ),
+                                  Shadow(
+                                    color: Color(0x40000000),
+                                    blurRadius: 2,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFFB8860B),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFFD700)
+                                        .withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Column(
+                                children: [
+                                  Text(
+                                    'สินค้าระดับสูงสุด',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF8B4513),
+                                    ),
+                                  ),
+                                  Text(
+                                    'แห่งความยั่งยืน',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFB8860B),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Ultimate Sustainable Products',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF8B4513),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Premium Eco Level Indicator
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFB8860B),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF4CAF50),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'ระดับ A+',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                            const Text(
+                              'Eco level',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF4CAF50),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: const Color(0xFFB8860B).withOpacity(0.3),
+                        ),
+                        const Column(
+                          children: [
+                            Text(
+                              '🌿 ยั่งยืน',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Sustainable',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF4CAF50),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: const Color(0xFFB8860B).withOpacity(0.3),
+                        ),
+                        const Column(
+                          children: [
+                            Text(
+                              '🏆 พรีเมียม',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Premium',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFB8860B),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -2556,15 +2544,86 @@ Widget _SmartEcoHeroTab() {
               ),
             ),
             const SizedBox(height: 20),
-            // Content
-            const Expanded(
-              child: Center(
-                child: Text(
-                  '🌱 Smart Eco Hero\n\nระบบวิเคราะห์สินค้าที่เป็นมิตรกับสิ่งแวดล้อม\nจะเปิดให้ใช้งานเร็วๆ นี้',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
+            // Enhanced Content Section
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFFAFAFA),
+                      Color(0xFFFFFFFF),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF059669).withOpacity(0.1),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1F2937).withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.eco_outlined,
+                        size: 60,
+                        color: Color(0xFF059669),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'ระบบวิเคราะห์ AI',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'สินค้าเป็นมิตรกับสิ่งแวดล้อม',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF059669),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'AI-Powered Sustainable Product Analysis',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF6B7280),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'เปิดให้บริการเร็วๆ นี้',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                      Text(
+                        'Coming Soon',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

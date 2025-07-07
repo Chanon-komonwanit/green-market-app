@@ -26,6 +26,11 @@ class Order {
   final String? qrCodeImageUrl; // URL ของ QR Code (ถ้ามี)
   final String? trackingNumber; // หมายเลขติดตามพัสดุ
   final String? trackingUrl; // URL สำหรับติดตามพัสดุ
+  final String?
+      shippingCarrier; // บริษัทขนส่ง (เช่น Kerry Express, J&T Express)
+  final String? shippingMethod; // วิธีการส่ง (เช่น Standard, Express, COD)
+  final Timestamp? shippedAt; // วันที่จัดส่ง
+  final Timestamp? deliveredAt; // วันที่ส่งถึง
   final Timestamp? updatedAt;
 
   Order({
@@ -51,6 +56,10 @@ class Order {
     this.qrCodeImageUrl,
     this.trackingNumber,
     this.trackingUrl,
+    this.shippingCarrier,
+    this.shippingMethod,
+    this.shippedAt,
+    this.deliveredAt,
     this.updatedAt,
   });
 
@@ -84,6 +93,10 @@ class Order {
       qrCodeImageUrl: data['qrCodeImageUrl'] as String?,
       trackingNumber: data['trackingNumber'] as String?,
       trackingUrl: data['trackingUrl'] as String?,
+      shippingCarrier: data['shippingCarrier'] as String?,
+      shippingMethod: data['shippingMethod'] as String?,
+      shippedAt: data['shippedAt'] as Timestamp?,
+      deliveredAt: data['deliveredAt'] as Timestamp?,
       updatedAt: data['updatedAt'] as Timestamp?,
     );
   }
@@ -118,6 +131,10 @@ class Order {
       'qrCodeImageUrl': qrCodeImageUrl,
       'trackingNumber': trackingNumber, // Might be set by seller/admin
       'trackingUrl': trackingUrl, // Might be set by seller/admin
+      'shippingCarrier': shippingCarrier, // บริษัทขนส่ง
+      'shippingMethod': shippingMethod, // วิธีการส่ง
+      'shippedAt': shippedAt, // วันที่จัดส่ง
+      'deliveredAt': deliveredAt, // วันที่ส่งถึง
       'updatedAt': updatedAt,
     };
   }
@@ -145,6 +162,10 @@ class Order {
     String? qrCodeImageUrl,
     String? trackingNumber,
     String? trackingUrl,
+    String? shippingCarrier,
+    String? shippingMethod,
+    Timestamp? shippedAt,
+    Timestamp? deliveredAt,
     Timestamp? updatedAt,
   }) {
     return Order(
@@ -170,6 +191,10 @@ class Order {
       qrCodeImageUrl: qrCodeImageUrl ?? this.qrCodeImageUrl,
       trackingNumber: trackingNumber ?? this.trackingNumber,
       trackingUrl: trackingUrl ?? this.trackingUrl,
+      shippingCarrier: shippingCarrier ?? this.shippingCarrier,
+      shippingMethod: shippingMethod ?? this.shippingMethod,
+      shippedAt: shippedAt ?? this.shippedAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }

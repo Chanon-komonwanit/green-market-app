@@ -32,7 +32,7 @@ class AppUser {
   final DateTime? lastLoginDate; // เพิ่ม field สำหรับวันที่ล็อกอินล่าสุด
   final int consecutiveLoginDays; // เพิ่ม field สำหรับจำนวนวันล็อกอินติดต่อกัน
   final double
-  loginRewardProgress; // เพิ่ม field สำหรับ progress การได้รางวัลจากการล็อกอิน (0.0-1.0)
+      loginRewardProgress; // เพิ่ม field สำหรับ progress การได้รางวัลจากการล็อกอิน (0.0-1.0)
 
   AppUser({
     required this.id,
@@ -72,6 +72,9 @@ class AppUser {
     return 'buyer';
   }
 
+  // Getter for profile image URL
+  String? get profileImageUrl => photoUrl;
+
   // Factory constructor updated to take documentId separately
   factory AppUser.fromMap(Map<String, dynamic> map, String documentId) {
     return AppUser(
@@ -107,8 +110,7 @@ class AppUser {
           : null, // เพิ่ม field ใน fromMap
       consecutiveLoginDays:
           map['consecutiveLoginDays'] as int? ?? 0, // เพิ่ม field ใน fromMap
-      loginRewardProgress:
-          (map['loginRewardProgress'] as num?)?.toDouble() ??
+      loginRewardProgress: (map['loginRewardProgress'] as num?)?.toDouble() ??
           0.0, // เพิ่ม field ใน fromMap
     );
   }
@@ -206,11 +208,9 @@ class AppUser {
       gender: gender ?? this.gender, // เพิ่ม field ใน copyWith return
       lastLoginDate:
           lastLoginDate ?? this.lastLoginDate, // เพิ่ม field ใน copyWith return
-      consecutiveLoginDays:
-          consecutiveLoginDays ??
+      consecutiveLoginDays: consecutiveLoginDays ??
           this.consecutiveLoginDays, // เพิ่ม field ใน copyWith return
-      loginRewardProgress:
-          loginRewardProgress ??
+      loginRewardProgress: loginRewardProgress ??
           this.loginRewardProgress, // เพิ่ม field ใน copyWith return
     );
   }

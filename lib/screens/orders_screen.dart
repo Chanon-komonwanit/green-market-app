@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:green_market/models/order.dart' as app_order;
 import 'package:green_market/screens/buyer_order_detail_screen.dart';
+import 'package:green_market/screens/order_tracking_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/order_utils.dart'; // Import order_utils
@@ -11,6 +12,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending_payment':
+        return AppColors.warningOrange;
+      case 'awaiting_confirmation':
+        return AppColors.primaryTeal;
+      case 'processing':
+        return AppColors.primaryTeal;
+      case 'shipped':
+        return AppColors.primaryGreen;
+      case 'delivered':
+        return AppColors.primaryGreen;
+      case 'cancelled':
+        return AppColors.errorRed;
+      default:
+        return AppColors.modernGrey;
+    }
+  }
 
   IconData _getStatusIcon(String status) {
     switch (status) {
@@ -72,7 +92,7 @@ class OrdersScreen extends StatelessWidget {
                 elevation: 2,
                 child: ListTile(
                   leading: Icon(_getStatusIcon(order.status),
-                      color: AppColors.primaryTeal, size: 30),
+                      color: _getStatusColor(order.status), size: 30),
                   title: Text('คำสั่งซื้อ #${order.id.substring(0, 8)}',
                       style: AppTextStyles.subtitleBold),
                   subtitle: Column(
@@ -85,11 +105,42 @@ class OrdersScreen extends StatelessWidget {
                               .copyWith(color: AppColors.primaryGreen)),
                       Text(
                           'สถานะ: ${getOrderStatusText(order.status)}', // Use utility function
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.modernGrey)),
+                          style: AppTextStyles.bodySmall.copyWith(
+                              color: _getStatusColor(order.status),
+                              fontWeight: FontWeight.w600)),
+                      // Show tracking number if available
+                      if (order.trackingNumber != null &&
+                          order.trackingNumber!.isNotEmpty)
+                        Text('หมายเลขติดตาม: ${order.trackingNumber}',
+                            style: AppTextStyles.bodySmall
+                                .copyWith(color: AppColors.primaryTeal)),
                     ],
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Track Package Button for shipped orders
+                      if ((order.status == 'shipped' ||
+                              order.status == 'delivered') &&
+                          (order.trackingNumber != null ||
+                              order.trackingUrl != null))
+                        IconButton(
+                          icon: Icon(Icons.track_changes,
+                              color: AppColors.primaryTeal),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    OrderTrackingScreen(order: order),
+                              ),
+                            );
+                          },
+                          tooltip: 'ติดตามพัสดุ',
+                        ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
                   isThreeLine: true,
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(

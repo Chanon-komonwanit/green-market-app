@@ -1,51 +1,102 @@
 // lib/utils/constants.dart
+
+// lib/utils/constants.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppColors {
-  // Peacock Green / Teal Tones
-  static const Color primaryTeal = Color(0xFF008080); // สีเขียวหางนกยูงหลัก
-  static const Color lightTeal =
-      Color(0xFF4DB6AC); // สีเขียวหางนกยูงอ่อน (สำหรับ Accent)
-  static const Color veryLightTeal = Color(
-      0xFFB2DFDB); // สีเขียวหางนกยูงอ่อนมาก (สำหรับพื้นหลังหรือส่วนประกอบรอง)
+  // Alias for compatibility with old code
+  static const Color darkModernGrey = grayPrimary;
+  // === Modern Professional Color Palette (World-class Design) ===
 
-  // Modern Grey Tones
-  static const Color modernGrey = Color(0xFF757575); // เทาโมเดิร์น
-  static const Color lightModernGrey = Color(0xFFBDBDBD); // เทาโมเดิร์นอ่อน
+  // --- Unified Modern Palette (World-class, Minimal, Professional) ---
+  // Main Brand Colors
+  static const Color primaryTeal = Color(0xFF13B98A); // Teal-500 (main)
+  static const Color primaryTealDark = Color(0xFF0F766E); // Teal-700
+  static const Color primaryTealLight = Color(0xFF5EEAD4); // Teal-300
+  static const Color primaryTealSoft = Color(0xFFE0F7F1); // Teal-100
 
-  // Earthy Accent Tones
-  static const Color earthyBrown = Color(0xFFA1887F); // สีน้ำตาลเอิร์ธโทนอ่อน
-  static const Color lightEarthyBeige = Color(0xFFD7CCC8); // สีเบจเอิร์ธโทน
+  static const Color emeraldPrimary = Color(0xFF10B981); // Emerald-500
+  static const Color emeraldDark = Color(0xFF047857); // Emerald-700
+  static const Color emeraldLight = Color(0xFF6EE7B7); // Emerald-300
+  static const Color emeraldSoft = Color(0xFFD1FAE5); // Emerald-100
 
-  static const Color white = Colors.white;
-  static const Color offWhite = Color(0xFFFAFAFA); // สีขาวนวล
-  static const Color black = Colors.black;
-  static const Color errorRed = Color(0xFFE57373); // แดงอ่อนสำหรับ Error
-  static const Color warningYellow = Colors.amber;
-  static const Color successGreen =
-      Color(0xFF81C784); // เขียวสำหรับ Success (อาจใช้ lightTeal แทนได้)
+  // Blue/Peacock
+  // (already defined below for compatibility)
 
-  // Legacy (can be phased out or mapped to new theme)
-  static const Color primaryGreen =
-      primaryTeal; // Map old primaryGreen to new primaryTeal
-  static const Color accentGreen =
-      lightTeal; // Map old accentGreen to new lightTeal
+  // Grays (Minimal, Clean)
+  static const Color grayPrimary = Color(0xFF23272F); // Main text
+  static const Color graySecondary = Color(0xFF6B7280); // Secondary text
+  static const Color grayTertiary = Color(0xFFB0B8C1); // Tertiary text
+  static const Color grayLight = Color(0xFFF4F7FA); // Light backgrounds
+  static const Color grayBorder = Color(0xFFE5E7EB); // Borders
 
-  // Additional legacy colors needed by the app
-  static const Color primaryDarkGreen = Color(0xFF00695C); // Darker Teal
-  static const Color modernDarkGrey = Color(0xFF424242);
-  static const Color warningOrange = Colors.orangeAccent;
-  static const Color lightGrey =
-      lightModernGrey; // Map old lightGrey to new lightModernGrey
-  static const Color darkGrey =
-      modernGrey; // Map old darkGrey to new modernGrey
+  // Surfaces
+  static const Color surfaceWhite = Color(0xFFFFFFFF);
+  static const Color surfaceGray = Color(0xFFF8FAFC);
+  static const Color surfaceCard = Color(0xFFFFFFFF);
+  static const Color surfaceDark = Color(0xFF1E293B);
+  static const Color surfaceDarkCard = Color(0xFF334155);
+
+  // Status Colors - Consistent with modern design
+  static const Color successGreen = Color(0xFF059669); // Emerald-600
+  static const Color warningOrange = Color(0xFFF59E42); // Orange-400 (NEW)
+  static const Color warningYellow = Color(0xFFFACC15); // Yellow-400 (NEW)
+  static const Color errorRed = Color(0xFFDC2626); // Red-600
+  static const Color alertRed = Color(0xFFF87171); // Red-400 (NEW)
+  static const Color infoBlue = Color(0xFF2563EB); // Blue-600
+
+  // Modern Blue/Peacock/Emerald/Teal Palette for world-class look
+  static const Color peacockBlue = Color(0xFF0E7490); // Peacock Blue
+  static const Color modernBlue = Color(0xFF2563EB); // Modern Blue
+  static const Color deepBlue = Color(0xFF1E40AF); // Deep Blue
+  static const Color emeraldGreen = Color(0xFF10B981); // Emerald Green
+
+  // Action Colors - Eye-catching but professional
+  static const Color accent =
+      Color(0xFF8B5CF6); // Violet-500 - For special actions
+  static const Color accentLight = Color(0xFFC4B5FD); // Violet-300
+
+  // Legacy/compatibility for old code
+  static const Color modernDarkGrey = grayPrimary;
+  static const Color darkGrey = grayPrimary;
+  static const Color lightGrey = grayLight;
   static const Color lightBeige =
-      veryLightTeal; // Map old lightBeige to new veryLightTeal
-  static const Color background = offWhite; // สีพื้นหลังหลัก
+      Color(0xFFFFF8E1); // Soft beige for chat backgrounds
+  static const Color earthyBrown =
+      Color(0xFF8D6E63); // Earthy brown for accents
 
-  // เพิ่มสีที่ขาดหายไป
-  static const Color lightGreen = Color(0xFF8BC34A);
+  // Background Gradients
+  static const List<Color> gradientPrimary = [
+    Color(0xFF14B8A6), // Teal-500
+    Color(0xFF10B981), // Emerald-500
+  ];
+
+  static const List<Color> gradientSoft = [
+    Color(0xFFECFDF5), // Emerald-50
+    Color(0xFFF0FDFA), // Teal-50
+  ];
+
+  // Dark Mode Colors
+  static const Color darkBackground = Color(0xFF0F172A); // Slate-900
+  static const Color darkSurface = Color(0xFF1E293B); // Slate-800
+  static const Color darkCard = Color(0xFF334155); // Slate-700
+  static const Color darkBorder = Color(0xFF475569); // Slate-600
+
+  // Legacy Support (mapped to new colors)
+  static const Color primaryGreen = primaryTeal;
+  static const Color accentGreen = emeraldPrimary;
+  static const Color primaryDarkGreen = primaryTealDark;
+  static const Color lightTeal = primaryTealLight;
+  static const Color veryLightTeal = primaryTealSoft;
+  static const Color modernGrey = graySecondary;
+  static const Color lightModernGrey = grayBorder;
+  static const Color white = surfaceWhite;
+  static const Color offWhite = surfaceGray;
+  static const Color black = grayPrimary;
+  static const Color darkText = grayPrimary;
+  static const Color lightText = graySecondary;
+  static const Color background = surfaceGray;
 }
 
 // Professional 4-level Eco Rating System (ระบบประเมินสินค้าเพื่อสิ่งแวดล้อม 4 ระดับ)
@@ -285,27 +336,27 @@ class AppTextStyles {
   static const TextStyle title = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.bold,
-    color: AppColors.primaryTeal,
+    color: AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
   );
 
   static const TextStyle headline = TextStyle(
     fontSize: 26,
     fontWeight: FontWeight.bold,
-    color: AppColors.primaryTeal,
+    color: AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
   );
 
   static const TextStyle subtitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.modernGrey,
+    color: AppColors.lightText, // เปลี่ยนเป็นสีที่อ่านง่าย
   );
 
-  static final TextStyle subtitleBold = subtitle.copyWith(
-      fontWeight: FontWeight.bold, color: AppColors.primaryDarkGreen);
+  static final TextStyle subtitleBold =
+      subtitle.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkText);
 
   static const TextStyle body = TextStyle(
     fontSize: 16,
-    color: AppColors.modernGrey,
+    color: AppColors.lightText, // เปลี่ยนเป็นสีที่อ่านง่าย
   );
 
   static final TextStyle bodySmall = body.copyWith(fontSize: 14);
@@ -318,18 +369,18 @@ class AppTextStyles {
 
   static const TextStyle link = TextStyle(
     fontSize: 16,
-    color: AppColors.lightTeal,
+    color: AppColors.primaryTeal, // เปลี่ยนเป็นสีที่เด่นกว่า
     decoration: TextDecoration.underline,
   );
 
   static const TextStyle bodyBold = TextStyle(
-      fontSize: 16, color: AppColors.modernGrey, fontWeight: FontWeight.bold);
+      fontSize: 16, color: AppColors.darkText, fontWeight: FontWeight.bold);
 
   static const TextStyle caption =
-      TextStyle(fontSize: 12, color: AppColors.modernGrey);
+      TextStyle(fontSize: 12, color: AppColors.lightText);
 
   static final TextStyle captionBold =
-      caption.copyWith(fontWeight: FontWeight.bold);
+      caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkText);
 
   static final TextStyle bodyGreen =
       body.copyWith(color: AppColors.successGreen);

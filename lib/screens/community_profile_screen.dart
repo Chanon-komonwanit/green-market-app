@@ -7,6 +7,7 @@ import '../models/community_post.dart';
 import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/post_card_widget.dart';
+import '../screens/community_chat_screen.dart';
 import 'create_community_post_screen.dart';
 
 class CommunityProfileScreen extends StatefulWidget {
@@ -253,7 +254,62 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           const SizedBox(height: 16),
 
           // Action Buttons
-          if (!_isMyProfile) _buildActionButtons(),
+          if (!_isMyProfile && _profileUser != null) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CommunityChatScreen(
+                            otherUserId: _profileUser!.id,
+                            otherUserName:
+                                _profileUser!.displayName ?? 'ผู้ใช้',
+                            otherUserPhoto: _profileUser!.photoUrl,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.message),
+                    label: const Text('ส่งข้อความ'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      // TODO: Implement follow functionality
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('ฟีเจอร์ติดตามจะมาเร็วๆ นี้')),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('ติดตาม'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF059669),
+                      side: const BorderSide(color: Color(0xFF059669)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -290,38 +346,6 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 14,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Follow/Unfollow functionality
-            _toggleFollow();
-          },
-          icon: const Icon(Icons.person_add),
-          label: const Text('ติดตาม'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.green,
-          ),
-        ),
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Send message functionality
-            _sendMessage();
-          },
-          icon: const Icon(Icons.message),
-          label: const Text('ส่งข้อความ'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.green,
           ),
         ),
       ],
@@ -534,18 +558,6 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           ],
         );
       },
-    );
-  }
-
-  void _toggleFollow() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์ติดตามจะพร้อมใช้งานเร็วๆ นี้')),
-    );
-  }
-
-  void _sendMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์ส่งข้อความจะพร้อมใช้งานเร็วๆ นี้')),
     );
   }
 

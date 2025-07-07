@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:green_market/providers/cart_provider.dart';
 import 'package:green_market/models/order.dart' as app_order;
 import 'package:green_market/models/order_item.dart';
+import 'package:green_market/models/shipping_method.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -21,11 +22,25 @@ class CheckoutSummaryScreen extends StatefulWidget {
 }
 
 class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
-  static const double _defaultShippingFee = 50.00;
-
   String? _selectedPaymentMethod;
+  ShippingMethod? _selectedShippingMethod;
   bool _isLoading = false;
   String? _qrCodeImageUrl;
+
+  // Get default shipping methods
+  final List<ShippingMethod> _availableShippingMethods =
+      ShippingMethod.getDefaultMethods();
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default shipping method
+    if (_availableShippingMethods.isNotEmpty) {
+      _selectedShippingMethod = _availableShippingMethods.first;
+    }
+  }
+
+  double get _shippingFee => _selectedShippingMethod?.cost ?? 50.0;
 
   void _onPaymentMethodChanged(String? value) async {
     setState(() {
@@ -42,10 +57,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
       try {
         final firebaseService =
             Provider.of<FirebaseService>(context, listen: false);
-        // final cartProvider = Provider.of<CartProvider>(context, listen: false);
-        // final double totalAmount =
-        //     cartProvider.totalAmount + _defaultShippingFee;
-
+        // Remove unused variable totalAmount
         final String generatedQrUrl =
             await firebaseService.generateMockQrCode();
         if (mounted) {
@@ -117,7 +129,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
       final List<String> sellerIds = sellerIdsSet.toList();
 
       final double subTotal = cartProvider.totalAmount;
-      final double totalAmount = subTotal + _defaultShippingFee;
+      final double totalAmount = subTotal + _shippingFee;
 
       final newOrder = app_order.Order(
         id: '',
@@ -128,7 +140,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
             : 'pending_delivery',
         paymentMethod: _selectedPaymentMethod!,
         totalAmount: totalAmount,
-        shippingFee: _defaultShippingFee,
+        shippingFee: _shippingFee,
         subTotal: subTotal,
         fullName: widget.shippingAddress['fullName'],
         phoneNumber: widget.shippingAddress['phoneNumber'],
@@ -140,6 +152,8 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
         note: widget.shippingAddress['note'],
         items: orderItems,
         sellerIds: sellerIds,
+        shippingCarrier: _selectedShippingMethod?.carrier,
+        shippingMethod: _selectedShippingMethod?.id,
       );
 
       await firebaseService.placeOrder(newOrder);
@@ -167,8 +181,8 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
         for (String sellerId in sellerIds) {
           final sellerProducts =
               orderItems.where((item) => item.sellerId == sellerId).toList();
-          final sellerTotal = sellerProducts.fold(
-              0.0, (sum, item) => sum + (item.pricePerUnit * item.quantity));
+          final sellerTotal = sellerProducts.fold(0.0,
+              (total, item) => total + (item.pricePerUnit * item.quantity));
 
           await NotificationHelper.newOrder(
             sellerId: sellerId,
@@ -236,7 +250,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final double subTotal = cartProvider.totalAmount;
-    final double totalAmount = subTotal + _defaultShippingFee;
+    final double totalAmount = subTotal + _shippingFee;
 
     return Scaffold(
       appBar: AppBar(
@@ -262,6 +276,20 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
                   const SizedBox(height: 8),
                   _ShippingAddressCard(shippingAddress: widget.shippingAddress),
                   const SizedBox(height: 20),
+                  Text('วิธีการจัดส่ง',
+                      style: AppTextStyles.subtitle
+                          .copyWith(color: AppColors.primaryGreen)),
+                  const SizedBox(height: 8),
+                  _ShippingMethodSelection(
+                    availableMethods: _availableShippingMethods,
+                    selectedMethod: _selectedShippingMethod,
+                    onMethodChanged: (method) {
+                      setState(() {
+                        _selectedShippingMethod = method;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
                   Text('วิธีการชำระเงิน',
                       style: AppTextStyles.subtitle
                           .copyWith(color: AppColors.primaryGreen)),
@@ -272,7 +300,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
                     isLoading: _isLoading,
                     onPaymentMethodChanged: _onPaymentMethodChanged,
                     subTotal: subTotal,
-                    shippingFee: _defaultShippingFee,
+                    shippingFee: _shippingFee,
                   ),
                 ],
               ),
@@ -280,7 +308,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
           ),
           _OrderTotalsAndConfirm(
             subTotal: subTotal,
-            shippingFee: _defaultShippingFee,
+            shippingFee: _shippingFee,
             totalAmount: totalAmount,
             isLoading: _isLoading,
             selectedPaymentMethod: _selectedPaymentMethod,
@@ -585,6 +613,168 @@ class _OrderTotalsAndConfirm extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Shipping Method Selection Widget
+class _ShippingMethodSelection extends StatelessWidget {
+  final List<ShippingMethod> availableMethods;
+  final ShippingMethod? selectedMethod;
+  final Function(ShippingMethod) onMethodChanged;
+
+  const _ShippingMethodSelection({
+    required this.availableMethods,
+    required this.selectedMethod,
+    required this.onMethodChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.local_shipping,
+                    color: AppColors.primaryTeal, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'เลือกวิธีการจัดส่ง',
+                  style: AppTextStyles.bodyBold.copyWith(
+                    color: AppColors.primaryDarkGreen,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...availableMethods.map((method) {
+              final isSelected = selectedMethod?.id == method.id;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.primaryTeal
+                        : AppColors.lightGrey,
+                    width: isSelected ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  color: isSelected
+                      ? AppColors.veryLightTeal.withOpacity(0.3)
+                      : Colors.transparent,
+                ),
+                child: RadioListTile<ShippingMethod>(
+                  value: method,
+                  groupValue: selectedMethod,
+                  onChanged: (value) {
+                    if (value != null) {
+                      onMethodChanged(value);
+                    }
+                  },
+                  activeColor: AppColors.primaryTeal,
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              method.name,
+                              style: AppTextStyles.bodyBold,
+                            ),
+                            Text(
+                              '${method.carrier} • ${method.deliveryTimeText}',
+                              style: AppTextStyles.body.copyWith(
+                                color: AppColors.darkGrey,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (method.description.isNotEmpty)
+                              Text(
+                                method.description,
+                                style: AppTextStyles.body.copyWith(
+                                  color: AppColors.darkGrey,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            method.costText,
+                            style: AppTextStyles.bodyBold.copyWith(
+                              color: method.cost == 0
+                                  ? AppColors.successGreen
+                                  : AppColors.primaryDarkGreen,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (method.supportsCOD)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryTeal.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'COD',
+                                style: AppTextStyles.body.copyWith(
+                                  fontSize: 10,
+                                  color: AppColors.primaryTeal,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                ),
+              );
+            }),
+            if (selectedMethod != null) ...[
+              const Divider(),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.veryLightTeal.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: AppColors.primaryTeal, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ค่าจัดส่ง: ${selectedMethod!.costText} • ${selectedMethod!.deliveryTimeText}',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.primaryDarkGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

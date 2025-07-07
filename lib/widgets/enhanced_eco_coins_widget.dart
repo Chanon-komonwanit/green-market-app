@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/screens/eco_rewards_screen.dart';
 
 class EnhancedEcoCoinsWidget extends StatelessWidget {
   final bool showLabel;
   final bool showValue;
   final double size;
   final EdgeInsets? padding;
+  final VoidCallback? onTap;
+  final bool enableTap;
 
   const EnhancedEcoCoinsWidget({
     super.key,
@@ -14,6 +17,8 @@ class EnhancedEcoCoinsWidget extends StatelessWidget {
     this.showValue = true,
     this.size = 24.0,
     this.padding,
+    this.onTap,
+    this.enableTap = true,
   });
 
   @override
@@ -23,7 +28,7 @@ class EnhancedEcoCoinsWidget extends StatelessWidget {
         final currentUser = userProvider.currentUser;
         final ecoCoinCount = currentUser?.ecoCoins ?? 0.0;
 
-        return Container(
+        Widget coinWidget = Container(
           padding: padding ??
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
@@ -120,6 +125,24 @@ class EnhancedEcoCoinsWidget extends StatelessWidget {
             ],
           ),
         );
+
+        // ถ้าเปิดใช้งานการแตะ
+        if (enableTap) {
+          return GestureDetector(
+            onTap: onTap ??
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EcoRewardsScreen(),
+                    ),
+                  );
+                },
+            child: coinWidget,
+          );
+        }
+
+        return coinWidget;
       },
     );
   }

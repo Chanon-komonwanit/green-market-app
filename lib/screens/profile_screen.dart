@@ -2,10 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
-import 'package:green_market/screens/user/edit_profile_screen.dart';
 import 'package:green_market/screens/user/become_seller_screen.dart';
+import 'package:green_market/screens/user/edit_profile_screen.dart';
 import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:image_picker/image_picker.dart';
@@ -241,6 +242,30 @@ class ProfileScreen extends StatelessWidget {
             if (confirmLogout == true) {
               await authProvider.signOut();
             }
+          },
+        ),
+
+        // Theme Toggle
+        Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            return _buildMenuTile(
+              icon:
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              title: 'โหมดการแสดงผล',
+              subtitle: themeProvider.isDarkMode
+                  ? 'กลางคืน - พื้นหลังสีดำ ข้อความสีขาว'
+                  : 'กลางวัน - พื้นหลังสีขาว ข้อความสีดำ',
+              onTap: () {
+                themeProvider.toggleDarkMode();
+              },
+              trailing: Switch(
+                value: themeProvider.isDarkMode,
+                onChanged: (bool value) {
+                  themeProvider.setDarkMode(value);
+                },
+                activeColor: AppColors.primaryGreen,
+              ),
+            );
           },
         ),
       ],

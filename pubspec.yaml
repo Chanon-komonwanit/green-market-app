@@ -46,10 +46,15 @@ dependencies: # Corrected: Already correct
   file_picker: ^8.0.0+1 # Latest stable for file picking
   cached_network_image: ^3.3.1 # For caching network images
   timeago: ^3.6.1 # For time formatting
+  qr_flutter: ^4.1.0 # For QR code generation
+  shared_preferences: ^2.2.2 # For storing theme preferences
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  mockito: ^5.4.4 # For mocking in tests
+  build_runner: ^2.4.9 # For code generation
+  fake_cloud_firestore: ^3.1.0 # For mocking Firestore in tests
 
 flutter:
   uses-material-design: true

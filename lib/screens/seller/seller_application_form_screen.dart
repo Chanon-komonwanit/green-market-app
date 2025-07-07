@@ -7,10 +7,12 @@ class SellerApplicationFormScreen extends StatefulWidget {
   const SellerApplicationFormScreen({super.key});
 
   @override
-  State<SellerApplicationFormScreen> createState() => _SellerApplicationFormScreenState();
+  State<SellerApplicationFormScreen> createState() =>
+      _SellerApplicationFormScreenState();
 }
 
-class _SellerApplicationFormScreenState extends State<SellerApplicationFormScreen> {
+class _SellerApplicationFormScreenState
+    extends State<SellerApplicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
   String _shopName = '';
   String _contactEmail = '';
@@ -30,25 +32,32 @@ class _SellerApplicationFormScreenState extends State<SellerApplicationFormScree
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('ชื่อร้านค้า', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('ชื่อร้านค้า',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 decoration: const InputDecoration(hintText: 'กรอกชื่อร้าน'),
-                validator: (v) => v == null || v.isEmpty ? 'กรุณากรอกชื่อร้าน' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'กรุณากรอกชื่อร้าน' : null,
                 onSaved: (v) => _shopName = v ?? '',
               ),
               const SizedBox(height: 16),
-              const Text('อีเมลติดต่อ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('อีเมลติดต่อ',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
                 initialValue: currentUser?.email ?? '',
                 decoration: const InputDecoration(hintText: 'กรอกอีเมล'),
-                validator: (v) => v == null || v.isEmpty ? 'กรุณากรอกอีเมล' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'กรุณากรอกอีเมล' : null,
                 onSaved: (v) => _contactEmail = v ?? '',
               ),
               const SizedBox(height: 16),
-              const Text('เบอร์โทรศัพท์', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('เบอร์โทรศัพท์',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               TextFormField(
-                decoration: const InputDecoration(hintText: 'กรอกเบอร์โทรศัพท์'),
-                validator: (v) => v == null || v.isEmpty ? 'กรุณากรอกเบอร์โทรศัพท์' : null,
+                decoration:
+                    const InputDecoration(hintText: 'กรอกเบอร์โทรศัพท์'),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'กรุณากรอกเบอร์โทรศัพท์' : null,
                 onSaved: (v) => _phoneNumber = v ?? '',
                 keyboardType: TextInputType.phone,
               ),
@@ -56,8 +65,87 @@ class _SellerApplicationFormScreenState extends State<SellerApplicationFormScree
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : () async {
-                    if (!_formKey.currentState!.validate()) return;
-                    _formKey.currentState!.save();
-                    setState(() => _isSubmitting = true);
-                    try {
+                  onPressed: _isSubmitting
+                      ? null
+                      : () async {
+                          if (!_formKey.currentState!.validate()) return;
+                          _formKey.currentState!.save();
+                          setState(() => _isSubmitting = true);
+
+                          try {
+                            // ส่งข้อมูลการสมัครไปยัง Firebase
+                            // final firebaseService = Provider.of<FirebaseService>(context, listen: false);
+
+                            // TODO: เพิ่มการส่งข้อมูลการสมัครเป็นผู้ขาย
+                            // await firebaseService.submitSellerApplication(_shopName, _contactEmail, _phoneNumber);
+                            await Future.delayed(const Duration(
+                                seconds: 2)); // จำลองการส่งข้อมูล
+
+                            if (mounted) {
+                              setState(() => _isSubmitting = false);
+
+                              // แสดงข้อความสำเร็จ
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'ส่งใบสมัครเรียบร้อยแล้ว! รอการอนุมัติจากทีมงาน'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+
+                              // กลับไปหน้าก่อนหน้า
+                              Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              setState(() => _isSubmitting = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('เกิดข้อผิดพลาด: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF43A047),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text('กำลังส่งใบสมัคร...'),
+                          ],
+                        )
+                      : const Text(
+                          'ส่งใบสมัคร',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

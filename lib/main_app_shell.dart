@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin_panel_screen.dart';
 import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
@@ -114,8 +115,8 @@ class _MainAppShellState extends State<MainAppShell> {
 
     // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
     items.add(BottomNavigationBarItem(
-        icon: Text('🌳', style: TextStyle(fontSize: 24)),
-        activeIcon: Text('🌳', style: TextStyle(fontSize: 24)),
+        icon: Text('🌱', style: TextStyle(fontSize: 24)),
+        activeIcon: Text('🌱', style: TextStyle(fontSize: 24)),
         label: 'ชุมชนสีเขียว'));
 
     // เพิ่มแท็บสำหรับแอดมิน
@@ -152,6 +153,22 @@ class _MainAppShellState extends State<MainAppShell> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Theme toggle button
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return IconButton(
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
+                onPressed: () {
+                  themeProvider.toggleDarkMode();
+                },
+                tooltip: themeProvider.isDarkMode
+                    ? 'เปลี่ยนเป็นโหมดกลางวัน'
+                    : 'เปลี่ยนเป็นโหมดกลางคืน',
+              );
+            },
+          ),
           // Notification icon with badge
           Consumer<UserProvider>(
             builder: (context, userProvider, child) {

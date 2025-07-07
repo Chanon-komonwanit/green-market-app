@@ -1231,8 +1231,10 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
     final firebaseService =
         Provider.of<FirebaseService>(context, listen: false);
 
-    return StreamBuilder<List<RewardRedemption>>(
-      stream: firebaseService.getUserRedemptions(currentUser.id),
+    return StreamBuilder<List<dynamic>>(
+      stream: firebaseService
+          .getUserRedemptions(currentUser.id)
+          .map((redemptions) => redemptions.cast<dynamic>()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -1414,7 +1416,8 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
     try {
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
-      await firebaseService.redeemEcoReward(currentUser.id, reward.id);
+      await firebaseService.redeemEcoReward(
+          currentUser.id, reward.id, reward.requiredCoins.toInt());
 
       // รีเฟรชข้อมูลผู้ใช้
       await userProvider.loadUserData(currentUser.id);
