@@ -7,7 +7,7 @@ import '../models/community_post.dart';
 import '../models/community_comment.dart';
 import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
-import '../utils/community_sample_data.dart';
+import '../utils/constants.dart';
 
 class PostCommentsScreen extends StatefulWidget {
   final CommunityPost post;
@@ -39,11 +39,11 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surfaceGray,
       appBar: AppBar(
-        title: const Text('ความคิดเห็น'),
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: Text('ความคิดเห็น', style: AppTextStyles.headline),
+        backgroundColor: AppColors.white,
+        elevation: 1,
       ),
       body: Column(
         children: [
@@ -65,23 +65,24 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
   Widget _buildPostSummary() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.white,
         border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!),
+          bottom: BorderSide(color: AppColors.grayBorder),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 20,
-            backgroundColor: Colors.grey[300],
+            radius: 18,
+            backgroundColor: AppColors.grayBorder,
             backgroundImage: widget.post.userProfileImage != null
                 ? CachedNetworkImageProvider(widget.post.userProfileImage!)
                 : null,
             child: widget.post.userProfileImage == null
-                ? Icon(Icons.person, color: Colors.grey[600])
+                ? const Icon(Icons.person,
+                    color: AppColors.graySecondary, size: 18)
                 : null,
           ),
           const SizedBox(width: 12),
@@ -89,54 +90,14 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.post.userDisplayName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+                Text(widget.post.userDisplayName,
+                    style: AppTextStyles.bodyBold),
                 const SizedBox(height: 4),
                 Text(
                   widget.post.content,
-                  style: TextStyle(
-                    color: Colors.grey[800],
-                    fontSize: 14,
-                  ),
+                  style: AppTextStyles.bodySmall,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.favorite,
-                      size: 16,
-                      color: Colors.red[400],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${widget.post.likeCount}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.comment,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${widget.post.commentCount}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -147,14 +108,12 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
   }
 
   Widget _buildCommentsList() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: Future.value(
-        CommunitySampleData.getSampleComments(widget.post.id),
-      ), // Using sample data for now
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firebaseService.getCommunityPostComments(widget.post.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+            child: CircularProgressIndicator(color: AppColors.primaryTeal),
           );
         }
 
@@ -163,15 +122,13 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 60, color: Colors.red[400]),
+                const Icon(Icons.error_outline,
+                    size: 60, color: AppColors.errorRed),
                 const SizedBox(height: 16),
                 Text(
                   'เกิดข้อผิดพลาด',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red[800],
-                  ),
+                  style: AppTextStyles.subtitle
+                      .copyWith(color: AppColors.errorRed),
                 ),
               ],
             ),
@@ -185,7 +142,7 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
 
         return ListView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: AppTheme.smallPadding),
           itemCount: commentsData.length,
           itemBuilder: (context, index) {
             final commentData = commentsData[index];
@@ -203,23 +160,23 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
 
     return Container(
       margin: EdgeInsets.only(
-        left: isReply ? 40 : 16,
-        right: 16,
-        bottom: 8,
+        left: isReply ? 40.0 : AppTheme.padding,
+        right: AppTheme.padding,
+        bottom: AppTheme.smallPadding,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: isReply ? 14 : 18,
-            backgroundColor: Colors.grey[300],
+            backgroundColor: AppColors.grayBorder,
             backgroundImage: comment.userProfileImage != null
                 ? CachedNetworkImageProvider(comment.userProfileImage!)
                 : null,
             child: comment.userProfileImage == null
                 ? Icon(
                     Icons.person,
-                    color: Colors.grey[600],
+                    color: AppColors.graySecondary,
                     size: isReply ? 14 : 18,
                   )
                 : null,
@@ -227,10 +184,10 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppTheme.padding),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,27 +196,18 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                     children: [
                       Text(
                         comment.userDisplayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: AppTextStyles.bodyBold,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         timeago.format(comment.createdAt.toDate(),
                             locale: 'th'),
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: AppTextStyles.caption,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    comment.content,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(comment.content, style: AppTextStyles.body),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -274,19 +222,17 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                                   ? Icons.favorite
                                   : Icons.favorite_border,
                               size: 16,
-                              color: comment.likes.contains(
-                                context.read<UserProvider>().currentUser?.id,
-                              )
-                                  ? Colors.red
-                                  : Colors.grey[600],
+                              color: comment.likes.contains(context
+                                      .read<UserProvider>()
+                                      .currentUser
+                                      ?.id)
+                                  ? AppColors.errorRed
+                                  : AppColors.graySecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               comment.likes.length.toString(),
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
+                              style: AppTextStyles.caption,
                             ),
                           ],
                         ),
@@ -297,11 +243,8 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                           onTap: () => _replyToComment(comment),
                           child: Text(
                             'ตอบกลับ',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: AppTextStyles.caption
+                                .copyWith(fontWeight: FontWeight.w600),
                           ),
                         ),
                     ],
@@ -317,42 +260,29 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
 
   Widget _buildEmptyCommentsState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.comment_outlined,
-                size: 60,
-                color: Color(0xFF2E7D32),
-              ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.largePadding),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'ยังไม่มีความคิดเห็น',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2E7D32),
-              ),
+            child: const Icon(
+              Icons.forum_outlined,
+              size: 60,
+              color: AppColors.primaryTeal,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'เป็นคนแรกที่แสดงความคิดเห็น',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppTheme.largePadding),
+          Text('ยังไม่มีความคิดเห็น', style: AppTextStyles.subtitle),
+          const SizedBox(height: AppTheme.smallPadding),
+          Text(
+            'เป็นคนแรกที่แสดงความคิดเห็นในโพสต์นี้',
+            style: AppTextStyles.body,
+          ),
+        ],
       ),
     );
   }
@@ -360,38 +290,37 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
   Widget _buildCommentInput() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.white,
         border: Border(
-          top: BorderSide(color: Colors.grey[300]!),
+          top: BorderSide(color: AppColors.grayBorder),
         ),
       ),
       child: Column(
         children: [
           if (_replyingToCommentId != null) ...[
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.infoBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.reply, size: 16, color: Colors.blue[700]),
+                  Icon(Icons.reply, size: 16, color: AppColors.infoBlue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'ตอบกลับ $_replyingToUserName',
-                      style: TextStyle(
-                        color: Colors.blue[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.infoBlue,
+                          fontWeight: FontWeight.w600),
                     ),
                   ),
                   InkWell(
                     onTap: _cancelReply,
-                    child: Icon(Icons.close, size: 16, color: Colors.blue[700]),
+                    child:
+                        Icon(Icons.close, size: 16, color: AppColors.infoBlue),
                   ),
                 ],
               ),
@@ -404,13 +333,14 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                 builder: (context, userProvider, child) {
                   final user = userProvider.currentUser;
                   return CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.grey[300],
+                    radius: 20,
+                    backgroundColor: AppColors.grayBorder,
                     backgroundImage: user?.photoUrl != null
                         ? CachedNetworkImageProvider(user!.photoUrl!)
                         : null,
                     child: user?.photoUrl == null
-                        ? Icon(Icons.person, color: Colors.grey[600])
+                        ? const Icon(Icons.person,
+                            color: AppColors.graySecondary)
                         : null,
                   );
                 },
@@ -424,15 +354,18 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                         ? 'เขียนการตอบกลับ...'
                         : 'เขียนความคิดเห็น...',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.borderRadius * 2),
+                      borderSide: const BorderSide(color: AppColors.grayBorder),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: Color(0xFF2E7D32)),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.borderRadius * 2),
+                      borderSide:
+                          const BorderSide(color: AppColors.primaryTeal),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: AppTheme.padding,
                       vertical: 8,
                     ),
                   ),
@@ -444,7 +377,7 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
               const SizedBox(width: 8),
               Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFF2E7D32),
+                  color: AppColors.primaryTeal,
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -456,10 +389,11 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                                AlwaysStoppedAnimation<Color>(AppColors.white),
                           ),
                         )
-                      : const Icon(Icons.send, color: Colors.white, size: 20),
+                      : const Icon(Icons.send_rounded,
+                          color: AppColors.white, size: 20),
                 ),
               ),
             ],
@@ -521,11 +455,15 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('เพิ่มความคิดเห็นแล้ว')),
+        const SnackBar(
+            content: Text('เพิ่มความคิดเห็นแล้ว'),
+            backgroundColor: AppColors.successGreen),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: AppColors.errorRed),
       );
     } finally {
       setState(() {
@@ -541,11 +479,15 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
     try {
       // TODO: Implement comment like toggle in Firebase service
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้')),
+        const SnackBar(
+            content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
+            backgroundColor: AppColors.infoBlue),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: AppColors.errorRed),
       );
     }
   }

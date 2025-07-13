@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/models/app_user.dart';
+import 'package:green_market/utils/constants.dart';
 import 'package:intl/intl.dart';
 
 class CommunityChatScreen extends StatefulWidget {
@@ -24,6 +25,150 @@ class CommunityChatScreen extends StatefulWidget {
 }
 
 class _CommunityChatScreenState extends State<CommunityChatScreen> {
+  void _showShareActivityDialog() async {
+    // ตัวอย่างข้อมูลกิจกรรม สามารถเชื่อมต่อกับระบบกิจกรรมจริงได้
+    const activityId = 'sample-activity-id';
+    const title = 'ปลูกต้นไม้ร่วมกัน';
+    const description = 'เข้าร่วมกิจกรรมปลูกต้นไม้เพื่อโลกสีเขียวของเรา!';
+    const imageUrl =
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80';
+    const ecoCoinsReward = 50;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('แชร์กิจกรรม'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.eco, color: AppColors.primaryTeal),
+                const SizedBox(width: 8),
+                Text(title, style: AppTextStyles.bodyBold),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(description, style: AppTextStyles.caption),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(imageUrl,
+                  height: 80, width: 120, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: const [
+                Icon(Icons.monetization_on,
+                    color: AppColors.successGreen, size: 16),
+                SizedBox(width: 4),
+                Text('รางวัล: $ecoCoinsReward Eco Coins',
+                    style: AppTextStyles.caption),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _sendActivityCard(
+                activityId: activityId,
+                title: title,
+                description: description,
+                imageUrl: imageUrl,
+                ecoCoinsReward: ecoCoinsReward,
+              );
+            },
+            child: const Text('แชร์กิจกรรม'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Example: Send activity card (for future extensibility)
+  Future<void> _sendActivityCard({
+    required String activityId,
+    required String title,
+    required String description,
+    String? imageUrl,
+    int? ecoCoinsReward,
+  }) async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userData = userProvider.currentUser;
+      if (currentUser == null || userData == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+      final messageData = {
+        'senderId': currentUser.uid,
+        'senderName': userData.displayName ?? 'ผู้ใช้',
+        'type': 'activity',
+        'activityId': activityId,
+        'activityTitle': title,
+        'activityDescription': description,
+        'activityImageUrl': imageUrl,
+        'ecoCoinsReward': ecoCoinsReward,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+      await FirebaseFirestore.instance
+          .collection('community_chats')
+          .doc(_chatId)
+          .collection('messages')
+          .add(messageData);
+      // Update chat metadata
+      await FirebaseFirestore.instance
+          .collection('community_chats')
+          .doc(_chatId)
+          .set({
+        'participants': [currentUser.uid, widget.otherUserId],
+        'lastMessage': '[กิจกรรม] $title',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSender': currentUser.uid,
+        'participantInfo': {
+          currentUser.uid: {
+            'displayName': userData.displayName ?? 'ผู้ใช้',
+            'photoUrl': userData.photoUrl,
+          },
+          widget.otherUserId: {
+            'displayName': widget.otherUserName,
+            'photoUrl': widget.otherUserPhoto,
+          },
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      // Scroll to bottom
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+      // Send notification to other user
+      await _sendNotification(
+          '[กิจกรรม] $title', userData.displayName ?? 'ผู้ใช้');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late String _chatId;
@@ -55,28 +200,27 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('แชท'),
-          backgroundColor: const Color(0xFF059669),
-          foregroundColor: Colors.white,
+          title: Text('แชท', style: AppTextStyles.headline),
+          backgroundColor: AppColors.white,
+          elevation: 1,
         ),
         body: const Center(
           child: Text('กรุณาเข้าสู่ระบบ'),
         ),
       );
     }
-
+    // Main chat UI
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: AppColors.surfaceGray,
       appBar: AppBar(
         title: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFF059669),
+              backgroundColor: AppColors.primaryTeal.withOpacity(0.2),
               backgroundImage: widget.otherUserPhoto != null
                   ? NetworkImage(widget.otherUserPhoto!)
                   : null,
@@ -85,34 +229,30 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                       widget.otherUserName.isNotEmpty
                           ? widget.otherUserName[0].toUpperCase()
                           : 'U',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.headline
+                          .copyWith(color: AppColors.primaryTeal, fontSize: 18),
                     )
                   : null,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 widget.otherUserName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 18,
-                ),
+                style: AppTextStyles.headline,
               ),
+            ),
+            IconButton(
+              icon: Icon(Icons.eco, color: AppColors.primaryTeal),
+              tooltip: 'แชร์กิจกรรม',
+              onPressed: _showShareActivityDialog,
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF059669),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: AppColors.white,
+        elevation: 1,
       ),
       body: Column(
         children: [
-          // Messages List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -124,53 +264,35 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
-                    ),
+                    child:
+                        CircularProgressIndicator(color: AppColors.primaryTeal),
                   );
                 }
-
                 if (snapshot.hasError) {
                   return Center(
                     child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
                   );
                 }
-
                 final messages = snapshot.data?.docs ?? [];
-
                 if (messages.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      children: const [
                         Icon(
                           Icons.chat_bubble_outline,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: AppColors.graySecondary,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'ยังไม่มีข้อความ',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'เริ่มการสนทนาด้วยการส่งข้อความ',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
+                        SizedBox(height: 16),
+                        Text('ยังไม่มีข้อความ', style: AppTextStyles.subtitle),
+                        SizedBox(height: 8),
+                        Text('เริ่มการสนทนาด้วยการส่งข้อความ',
+                            style: AppTextStyles.body),
                       ],
                     ),
                   );
                 }
-
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
@@ -185,15 +307,13 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
               },
             ),
           ),
-
-          // Message Input
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
               border: Border(
                 top: BorderSide(
-                  color: Colors.grey,
+                  color: AppColors.grayBorder,
                   width: 0.2,
                 ),
               ),
@@ -206,12 +326,13 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                     decoration: InputDecoration(
                       hintText: 'พิมพ์ข้อความ...',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.borderRadius * 2),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
+                      fillColor: AppColors.surfaceGray,
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
                       ),
@@ -221,25 +342,25 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF059669),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
                     icon: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: AppColors.white,
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(
-                            Icons.send,
-                            color: Colors.white,
+                        : Icon(
+                            Icons.send_rounded,
+                            color: AppColors.white,
                           ),
                     onPressed: _isLoading ? null : _sendMessage,
                   ),
@@ -255,8 +376,89 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
   Widget _buildMessageBubble(Map<String, dynamic> data, String currentUserId) {
     final isMe = data['senderId'] == currentUserId;
     final timestamp = data['timestamp'] as Timestamp?;
-    final message = data['message'] ?? '';
+    final type = data['type'] ?? 'text';
     final senderName = data['senderName'] ?? 'ผู้ใช้';
+    final message = data['message'] ?? '';
+
+    Widget bubbleContent;
+    if (type == 'activity') {
+      // Activity card bubble
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.eco, color: AppColors.primaryTeal, size: 18),
+              const SizedBox(width: 6),
+              Text('กิจกรรมสีเขียว',
+                  style: AppTextStyles.captionBold
+                      .copyWith(color: AppColors.primaryTealDark)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            data['activityTitle'] ?? '',
+            style: AppTextStyles.bodyBold,
+          ),
+          if ((data['activityDescription'] ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: Text(
+                data['activityDescription'],
+                style: AppTextStyles.caption,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          if (data['ecoCoinsReward'] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Row(
+                children: [
+                  Icon(Icons.monetization_on,
+                      color: AppColors.successGreen, size: 16),
+                  const SizedBox(width: 4),
+                  Text('รางวัล: ${data['ecoCoinsReward']} Eco Coins',
+                      style: AppTextStyles.caption),
+                ],
+              ),
+            ),
+          if ((data['activityImageUrl'] ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  data['activityImageUrl'],
+                  height: 100,
+                  width: 160,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else {
+      // Normal text bubble
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isMe)
+            Text(senderName,
+                style: AppTextStyles.caption
+                    .copyWith(fontWeight: FontWeight.bold)),
+          if (!isMe) const SizedBox(height: 4),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16,
+              color: isMe ? AppColors.white : AppColors.grayPrimary,
+              height: 1.3,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -268,14 +470,14 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
           if (!isMe) ...[
             CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF059669),
+              backgroundColor: AppColors.grayBorder,
+              backgroundImage: widget.otherUserPhoto != null
+                  ? NetworkImage(widget.otherUserPhoto!)
+                  : null,
               child: Text(
                 senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.bodyBold
+                    .copyWith(color: AppColors.primaryTeal),
               ),
             ),
             const SizedBox(width: 8),
@@ -290,8 +492,8 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF059669) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                color: isMe ? AppColors.primaryTeal : AppColors.white,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -303,32 +505,15 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!isMe)
-                    Text(
-                      senderName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  if (!isMe) const SizedBox(height: 4),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isMe ? Colors.white : const Color(0xFF1F2937),
-                      height: 1.3,
-                    ),
-                  ),
+                  bubbleContent,
                   const SizedBox(height: 4),
                   Text(
                     _formatTimestamp(timestamp),
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       fontSize: 11,
                       color: isMe
-                          ? Colors.white.withOpacity(0.8)
-                          : Colors.grey[500],
+                          ? AppColors.white.withOpacity(0.8)
+                          : AppColors.graySecondary,
                     ),
                   ),
                 ],
@@ -401,6 +586,16 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
         'lastMessage': message,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'lastMessageSender': currentUser.uid,
+        'participantInfo': {
+          currentUser.uid: {
+            'displayName': userData.displayName ?? 'ผู้ใช้',
+            'photoUrl': userData.photoUrl,
+          },
+          widget.otherUserId: {
+            'displayName': widget.otherUserName,
+            'photoUrl': widget.otherUserPhoto,
+          },
+        },
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 

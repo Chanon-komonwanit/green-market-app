@@ -377,8 +377,7 @@ class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
                   .copyWith(color: AppColors.primaryTeal)),
           const SizedBox(height: 4),
           Text(content,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.modernDarkGrey)),
+              style: AppTextStyles.body.copyWith(color: AppColors.modernGrey)),
         ],
       ),
     );

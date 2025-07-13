@@ -8,6 +8,8 @@ import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
 import '../screens/post_comments_screen.dart';
 import '../widgets/share_dialog.dart';
+import '../utils/constants.dart';
+import '../screens/create_community_post_screen.dart';
 import 'package:provider/provider.dart';
 
 class PostCardWidget extends StatefulWidget {
@@ -89,69 +91,93 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(
-          color: Colors.green.withOpacity(0.08),
-          width: 1.2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(18),
-          splashColor: Colors.greenAccent.withOpacity(0.08),
-          highlightColor: Colors.greenAccent.withOpacity(0.04),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // User Header
-                _buildUserHeader(),
-                const SizedBox(height: 10),
-                // Post Content
-                if (widget.post.content.isNotEmpty) ...[
-                  Text(
-                    widget.post.content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 16,
-                          color: Colors.grey[900],
-                        ),
+    final isActivity = widget.post.tags.contains('activity');
+    final isAchievement = widget.post.tags.contains('achievement');
+    // Use warningAmber for achievement badge color (amber)
+    return Card(
+      margin: const EdgeInsets.symmetric(
+          horizontal: AppTheme.padding, vertical: AppTheme.smallPadding),
+      elevation: AppTheme.cardElevation,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius)),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Badge for Activity or Achievement
+              if (isActivity || isAchievement)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isActivity
+                        ? AppColors.primaryTeal.withOpacity(0.15)
+                        : AppColors.warningAmber.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 10),
-                ],
-                // Images
-                if (widget.post.imageUrls.isNotEmpty) ...[
-                  _buildImages(),
-                  const SizedBox(height: 10),
-                ],
-                // Video (if any)
-                if (widget.post.videoUrl != null) ...[
-                  _buildVideoThumbnail(),
-                  const SizedBox(height: 10),
-                ],
-                // Tags
-                if (widget.post.tags.isNotEmpty) ...[
-                  _buildTags(),
-                  const SizedBox(height: 10),
-                ],
-                // Action Buttons
-                _buildActionButtons(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isActivity ? Icons.eco : Icons.emoji_events,
+                        color: isActivity
+                            ? AppColors.primaryTeal
+                            : AppColors.warningAmber,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isActivity ? 'กิจกรรมสีเขียว' : 'ความสำเร็จสีเขียว',
+                        style: AppTextStyles.captionBold.copyWith(
+                          color: isActivity
+                              ? AppColors.primaryTealDark
+                              : AppColors.warningAmber,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // User Header
+              _buildUserHeader(),
+
+              const SizedBox(height: 12),
+
+              // Post Content
+              if (widget.post.content.isNotEmpty) ...[
+                Text(
+                  widget.post.content,
+                  style: AppTextStyles.body,
+                ),
+                const SizedBox(height: 12),
               ],
-            ),
+
+              // Images
+              if (widget.post.imageUrls.isNotEmpty) ...[
+                _buildImages(),
+                const SizedBox(height: 12),
+              ],
+
+              // Video (if any)
+              if (widget.post.videoUrl != null) ...[
+                _buildVideoThumbnail(),
+                const SizedBox(height: 12),
+              ],
+
+              // Tags
+              if (widget.post.tags.isNotEmpty) ...[
+                _buildTags(),
+                const SizedBox(height: 12),
+              ],
+
+              // Action Buttons
+              _buildActionButtons(),
+            ],
           ),
         ),
       ),
@@ -161,56 +187,35 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   Widget _buildUserHeader() {
     return Row(
       children: [
-        // Profile Image with gradient border (IG style)
-        Container(
-          padding: const EdgeInsets.all(2.2),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.greenAccent.shade100,
-                Colors.teal.shade400,
-                Colors.blue.shade200,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-          ),
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: _postUser?.photoUrl != null
-                ? CachedNetworkImageProvider(_postUser!.photoUrl!)
-                : null,
-            child: _postUser?.photoUrl == null
-                ? Icon(Icons.person, color: Colors.grey[600])
-                : null,
-          ),
+        // Profile Image
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: AppColors.grayBorder,
+          backgroundImage: _postUser?.photoUrl != null
+              ? CachedNetworkImageProvider(_postUser!.photoUrl!)
+              : null,
+          child: _postUser?.photoUrl == null
+              ? const Icon(Icons.person, color: AppColors.graySecondary)
+              : null,
         ),
-        const SizedBox(width: 12),
+
+        const SizedBox(width: AppTheme.padding),
+
         // User Name and Time
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _postUser?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.teal[800],
-                    ),
-              ),
+              Text(_postUser?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
+                  style: AppTextStyles.bodyBold),
               Text(
                 timeago.format(widget.post.createdAt.toDate(), locale: 'th'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                    ),
+                style: AppTextStyles.caption,
               ),
             ],
           ),
         ),
+
         // More Options
         IconButton(
           onPressed: () {
@@ -226,7 +231,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   Widget _buildImages() {
     if (widget.post.imageUrls.length == 1) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
         child: CachedNetworkImage(
           imageUrl: widget.post.imageUrls.first,
           fit: BoxFit.cover,
@@ -234,12 +239,12 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           height: 200,
           placeholder: (context, url) => Container(
             height: 200,
-            color: Colors.grey[300],
+            color: AppColors.surfaceGray,
             child: const Center(child: CircularProgressIndicator()),
           ),
           errorWidget: (context, url, error) => Container(
             height: 200,
-            color: Colors.grey[300],
+            color: AppColors.surfaceGray,
             child: const Icon(Icons.error),
           ),
         ),
@@ -256,16 +261,16 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                   right: index < widget.post.imageUrls.length - 1 ? 8 : 0),
               width: 150,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 child: CachedNetworkImage(
                   imageUrl: widget.post.imageUrls[index],
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
-                    color: Colors.grey[300],
+                    color: AppColors.surfaceGray,
                     child: const Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[300],
+                    color: AppColors.surfaceGray,
                     child: const Icon(Icons.error),
                   ),
                 ),
@@ -282,7 +287,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
       height: 200,
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       child: const Center(
         child: Icon(
@@ -300,25 +305,17 @@ class _PostCardWidgetState extends State<PostCardWidget> {
       runSpacing: 4,
       children: widget.post.tags.map((tag) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.teal.shade50,
-                Colors.greenAccent.shade100,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.teal.shade100, width: 1),
+            color: AppColors.primaryTeal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
           ),
           child: Text(
             '#$tag',
-            style: TextStyle(
-              color: Colors.teal[700],
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.primaryTealDark,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         );
@@ -333,30 +330,27 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         InkWell(
           onTap: _toggleLike,
           borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.redAccent.withOpacity(0.12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
-                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: _isLiked ? Colors.redAccent : Colors.teal[400],
-                  size: 22,
+                  _isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color:
+                      _isLiked ? AppColors.errorRed : AppColors.graySecondary,
+                  size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  _likesCount.toString(),
-                  style: TextStyle(
-                    color: _isLiked ? Colors.redAccent : Colors.teal[700],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
+                Text(_likesCount.toString(), style: AppTextStyles.caption),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 18),
+
+        const SizedBox(width: 16),
+
         // Comment Button
         InkWell(
           onTap: () {
@@ -369,30 +363,25 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             widget.onComment?.call();
           },
           borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.blueAccent.withOpacity(0.10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
-                  Icons.comment_outlined,
-                  color: Colors.blue[400],
-                  size: 21,
+                  Icons.chat_bubble_outline_rounded,
+                  color: AppColors.graySecondary,
+                  size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  widget.post.commentCount.toString(),
-                  style: TextStyle(
-                    color: Colors.blue[700],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
+                Text(widget.post.commentCount.toString(),
+                    style: AppTextStyles.caption),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 18),
+
+        const SizedBox(width: 16),
+
         // Share Button
         InkWell(
           onTap: () {
@@ -403,38 +392,24 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             widget.onShare?.call();
           },
           borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.tealAccent.withOpacity(0.10),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               children: [
                 Icon(
-                  Icons.share_outlined,
-                  color: Colors.teal[400],
-                  size: 21,
+                  Icons.ios_share_rounded,
+                  color: AppColors.graySecondary,
+                  size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  widget.post.shareCount.toString(),
-                  style: TextStyle(
-                    color: Colors.teal[700],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
+                Text(widget.post.shareCount.toString(),
+                    style: AppTextStyles.caption),
               ],
             ),
           ),
         ),
+
         const Spacer(),
-        // Time ago
-        Text(
-          timeago.format(widget.post.createdAt.toDate(), locale: 'th'),
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 11,
-          ),
-        ),
       ],
     );
   }
@@ -451,24 +426,33 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isMyPost) ...[
+                // Options for the post owner
                 ListTile(
                   leading: const Icon(Icons.edit),
                   title: const Text('แก้ไขโพสต์'),
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to edit post
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CreateCommunityPostScreen(postToEdit: widget.post),
+                      ),
+                    );
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
+                  leading: const Icon(Icons.delete_outline,
+                      color: AppColors.errorRed),
                   title: const Text('ลบโพสต์',
-                      style: TextStyle(color: Colors.red)),
+                      style: TextStyle(color: AppColors.errorRed)),
                   onTap: () {
                     Navigator.pop(context);
                     _confirmDeletePost();
                   },
                 ),
               ] else ...[
+                // Options for other users
                 ListTile(
                   leading: const Icon(Icons.report),
                   title: const Text('รายงานโพสต์'),
@@ -507,7 +491,8 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+              child:
+                  const Text('ลบ', style: TextStyle(color: AppColors.errorRed)),
             ),
           ],
         );

@@ -123,9 +123,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('อัปเดตโปรไฟล์สำเร็จ'),
-            backgroundColor: Color(0xFF43A047),
+          SnackBar(
+            content: const Text('อัปเดตโปรไฟล์สำเร็จ'),
+            backgroundColor: AppColors.successGreen,
           ),
         );
         Navigator.pop(context);
@@ -135,7 +135,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorRed,
           ),
         );
       }
@@ -151,29 +151,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FDF8),
+      backgroundColor: AppColors.surfaceGray,
       appBar: AppBar(
-        title: const Text(
-          'แก้ไขโปรไฟล์',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: Text('แก้ไขโปรไฟล์',
+            style:
+                AppTextStyles.headline.copyWith(color: AppColors.surfaceWhite)),
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: AppColors.surfaceWhite,
+        elevation: 1,
         actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _saveProfile,
-              child: const Text(
-                'บันทึก',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: Text('บันทึก', style: AppTextStyles.button),
             ),
         ],
       ),
@@ -194,13 +184,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
-                      ),
+                          colors: AppColors.gradientPrimary),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2E7D32).withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+                          color: AppColors.primaryTeal.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -224,7 +213,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     return const Icon(
                                       Icons.person,
                                       size: 60,
-                                      color: Colors.white,
+                                      color: AppColors.surfaceWhite,
                                     );
                                   },
                                 ),
@@ -232,7 +221,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             : const Icon(
                                 Icons.person,
                                 size: 60,
-                                color: Colors.white,
+                                color: AppColors.surfaceWhite,
                               ),
                   ),
                 ),
@@ -241,10 +230,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: TextButton.icon(
                   onPressed: _pickImage,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('เปลี่ยนรูปโปรไฟล์'),
+                  icon: const Icon(Icons.camera_alt_outlined,
+                      color: AppColors.primaryTeal),
+                  label: Text('เปลี่ยนรูปโปรไฟล์',
+                      style: AppTextStyles.body
+                          .copyWith(color: AppColors.primaryTeal)),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF2E7D32),
+                    foregroundColor: AppColors.primaryTeal,
                   ),
                 ),
               ),
@@ -342,13 +334,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: AppColors.surfaceWhite,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppTheme.padding),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 3,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.borderRadius)),
+                    elevation: 2,
                   ),
                   child: _isLoading
                       ? const Row(
@@ -358,7 +351,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
+                                color: AppColors.surfaceWhite,
                                 strokeWidth: 2,
                               ),
                             ),
@@ -366,13 +359,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             Text('กำลังบันทึก...'),
                           ],
                         )
-                      : const Text(
-                          'บันทึกการเปลี่ยนแปลง',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      : Text('บันทึกการเปลี่ยนแปลง',
+                          style: AppTextStyles.button),
                 ),
               ),
 
@@ -390,24 +378,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.primaryTeal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
           ),
           child: Icon(
             icon,
-            color: const Color(0xFF2E7D32),
+            color: AppColors.primaryTeal,
             size: 20,
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2E7D32),
-          ),
-        ),
+        Text(title,
+            style:
+                AppTextStyles.subtitle.copyWith(color: AppColors.primaryTeal)),
       ],
     );
   }
@@ -423,12 +406,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
+            color: AppColors.grayPrimary.withOpacity(0.08),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -443,26 +426,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           hintText: hintText,
           prefixIcon: Icon(
             icon,
-            color: const Color(0xFF2E7D32),
+            color: AppColors.primaryTeal,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
             borderSide: BorderSide.none,
           ),
-          fillColor: Colors.white,
+          fillColor: AppColors.surfaceWhite,
           filled: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          labelStyle: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
-          hintStyle: TextStyle(
-            color: Colors.grey[400],
-            fontSize: 14,
-          ),
+          contentPadding: const EdgeInsets.all(AppTheme.padding),
+          labelStyle: AppTextStyles.body,
+          hintStyle: AppTextStyles.body,
         ),
       ),
     );

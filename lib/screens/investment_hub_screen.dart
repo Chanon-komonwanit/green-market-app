@@ -58,58 +58,83 @@ class InvestmentHubScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
                 // Header Section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha((0.1 * 255).round()),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.92, end: 1.0),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) => Transform.scale(
+                    scale: scale,
+                    child: child,
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.primaryTeal,
-                              AppColors.primaryGreen
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF99F6E4),
+                          Color(0xFFE0F2FE),
+                          Colors.white
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.teal.withOpacity(0.10),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                AppColors.primaryTeal,
+                                AppColors.primaryGreen
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(50),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.teal.withOpacity(0.13),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(50),
+                          child: const Icon(
+                            Icons.trending_up,
+                            size: 54,
+                            color: Colors.white,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.trending_up,
-                          size: 48,
-                          color: Colors.white,
+                        const SizedBox(height: 18),
+                        Text(
+                          'ลงทุนเพื่ออนาคตที่ยั่งยืน',
+                          style: AppTextStyles.title.copyWith(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryTeal,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'ลงทุนเพื่ออนาคตที่ยั่งยืน',
-                        style: AppTextStyles.title.copyWith(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryTeal,
+                        const SizedBox(height: 10),
+                        Text(
+                          'สร้างผลตอบแทนพร้อมช่วยดูแลโลก\nเลือกรูปแบบการลงทุนที่เหมาะกับคุณ',
+                          style: AppTextStyles.body.copyWith(
+                            color: AppColors.modernGrey,
+                            height: 1.5,
+                            fontSize: 15,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'สร้างผลตอบแทนพร้อมช่วยดูแลโลก\nเลือกรูปแบบการลงทุนที่เหมาะกับคุณ',
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.modernGrey,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
@@ -120,60 +145,72 @@ class InvestmentHubScreen extends StatelessWidget {
                     icon: Icons.account_balance_wallet),
                 const SizedBox(height: 16),
 
-                // Project Crowdfunding Card
-                _buildInvestmentTypeCard(
-                  context,
-                  title: 'ระดมทุนโครงการ',
-                  subtitle: 'ลงทุนในโครงการสีเขียวที่น่าสนใจ',
-                  description:
-                      'เลือกลงทุนในโครงการที่คุณเชื่อมั่น พร้อมติดตามผลตอบแทนและผลกระทบเชิงบวก',
-                  icon: Icons.business_center,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                // Investment Types with animation
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.92, end: 1.0),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) => Transform.scale(
+                    scale: scale,
+                    child: child,
                   ),
-                  isActive: true,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const InvestmentProjectListScreen())),
-                ),
-
-                const SizedBox(height: 16),
-
-                // P2P Lending Card
-                _buildInvestmentTypeCard(
-                  context,
-                  title: 'สนับสนุนธุรกิจสีเขียว',
-                  subtitle: 'P2P Lending สำหรับ SME สีเขียว',
-                  description:
-                      'ให้กู้เงินกับธุรกิจขนาดเล็กที่เน้นความยั่งยืน รับดอกเบี้ยตอบแทนที่น่าสนใจ',
-                  icon: Icons.handshake,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                  child: Column(
+                    children: [
+                      _buildInvestmentTypeCard(
+                        context,
+                        title: 'ระดมทุนโครงการ',
+                        subtitle: 'ลงทุนในโครงการสีเขียวที่น่าสนใจ',
+                        description:
+                            'เลือกลงทุนในโครงการที่คุณเชื่อมั่น พร้อมติดตามผลตอบแทนและผลกระทบเชิงบวก',
+                        icon: Icons.business_center,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                        ),
+                        isActive: true,
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const InvestmentProjectListScreen())),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildInvestmentTypeCard(
+                        context,
+                        title: 'สนับสนุนธุรกิจสีเขียว',
+                        subtitle: 'P2P Lending สำหรับ SME สีเขียว',
+                        description:
+                            'ให้กู้เงินกับธุรกิจขนาดเล็กที่เน้นความยั่งยืน รับดอกเบี้ยตอบแทนที่น่าสนใจ',
+                        icon: Icons.handshake,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                        ),
+                        isActive: false,
+                        comingSoonText: 'เร็วๆ นี้',
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const P2PLendingComingSoonScreen())),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildInvestmentTypeCard(
+                        context,
+                        title: 'กองทุน ESG',
+                        subtitle: 'Environmental, Social & Governance',
+                        description:
+                            'ลงทุนในกองทุนที่คัดเลือกหุ้นจากบริษัทที่มีการดำเนินงานที่ยั่งยืน',
+                        icon: Icons.pie_chart,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF9C27B0), Color(0xFF7B1FA2)],
+                        ),
+                        isActive: false,
+                        comingSoonText: 'เร็วๆ นี้',
+                        onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const ESGFundsComingSoonScreen())),
+                      ),
+                    ],
                   ),
-                  isActive: false,
-                  comingSoonText: 'เร็วๆ นี้',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const P2PLendingComingSoonScreen())),
                 ),
-
-                const SizedBox(height: 16),
-
-                // ESG Funds Card
-                _buildInvestmentTypeCard(
-                  context,
-                  title: 'กองทุน ESG',
-                  subtitle: 'Environmental, Social & Governance',
-                  description:
-                      'ลงทุนในกองทุนที่คัดเลือกหุ้นจากบริษัทที่มีการดำเนินงานที่ยั่งยืน',
-                  icon: Icons.pie_chart,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF9C27B0), Color(0xFF7B1FA2)],
-                  ),
-                  isActive: false,
-                  comingSoonText: 'เร็วๆ นี้',
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const ESGFundsComingSoonScreen())),
-                ),
-
                 const SizedBox(height: 32),
 
                 // Project Summary Section (Only for active crowdfunding)

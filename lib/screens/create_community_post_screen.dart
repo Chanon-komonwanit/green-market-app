@@ -7,9 +7,12 @@ import 'dart:io';
 import '../models/community_post.dart';
 import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
+import '../utils/constants.dart';
 
 class CreateCommunityPostScreen extends StatefulWidget {
-  const CreateCommunityPostScreen({super.key});
+  final CommunityPost? postToEdit;
+
+  const CreateCommunityPostScreen({super.key, this.postToEdit});
 
   @override
   State<CreateCommunityPostScreen> createState() =>
@@ -25,6 +28,18 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
   final List<XFile> _selectedImages = [];
   XFile? _selectedVideo;
   bool _isLoading = false;
+  bool _mediaChanged = false;
+
+  bool get _isEditing => widget.postToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _contentController.text = widget.postToEdit!.content;
+      _tagsController.text = widget.postToEdit!.tags.join(', ');
+    }
+  }
 
   @override
   void dispose() {
@@ -37,48 +52,45 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('สร้างโพสต์ใหม่'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+        title: Text(_isEditing ? 'แก้ไขโพสต์' : 'สร้างโพสต์ใหม่',
+            style:
+                AppTextStyles.headline.copyWith(color: AppColors.surfaceWhite)),
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: AppColors.surfaceWhite,
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _createPost,
-            child: Text(
-              'โพสต์',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            onPressed: _isLoading ? null : _submitPost,
+            child: Text(_isEditing ? 'บันทึก' : 'โพสต์',
+                style: AppTextStyles.button),
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.padding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // User Info Header
                   _buildUserHeader(),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.padding),
 
                   // Content Input
                   _buildContentInput(),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.padding),
 
                   // Tags Input
                   _buildTagsInput(),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.padding),
 
                   // Media Selection Buttons
                   _buildMediaButtons(),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.padding),
 
                   // Selected Images Preview
                   if (_selectedImages.isNotEmpty) _buildImagesPreview(),
@@ -99,23 +111,19 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           children: [
             CircleAvatar(
               radius: 25,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: AppColors.grayBorder,
               backgroundImage:
                   user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
               child: user?.photoUrl == null
-                  ? Icon(Icons.person, color: Colors.grey[600])
+                  ? const Icon(Icons.person, color: AppColors.graySecondary)
                   : null,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.padding),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  user?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+                Text(user?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
+                    style: AppTextStyles.bodyBold),
                 Text(
                   'แชร์กับชุมชนสีเขียว',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -137,14 +145,14 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
       decoration: InputDecoration(
         hintText: 'คุณคิดอะไรอยู่เกี่ยวกับชีวิตสีเขียว?',
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+          borderSide: const BorderSide(color: AppColors.grayBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.green, width: 2),
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+          borderSide: const BorderSide(color: AppColors.primaryTeal, width: 2),
         ),
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.all(AppTheme.padding),
       ),
     );
   }
@@ -154,23 +162,24 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'แท็ก (คั่นด้วยเครื่องหมายจุลภาค)',
-          style: Theme.of(context).textTheme.titleSmall,
+          'แท็ก (คั่นด้วย ,)',
+          style: AppTextStyles.bodyBold,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.smallPadding),
         TextField(
           controller: _tagsController,
           decoration: InputDecoration(
             hintText: 'เช่น สีเขียว, รักษ์โลก, อินทรีย์',
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              borderSide: const BorderSide(color: AppColors.grayBorder),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.green, width: 2),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryTeal, width: 2),
             ),
-            contentPadding: const EdgeInsets.all(16),
+            contentPadding: const EdgeInsets.all(AppTheme.padding),
           ),
         ),
       ],
@@ -186,25 +195,25 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
             icon: const Icon(Icons.photo_library),
             label: const Text('เพิ่มรูปภาพ'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[50],
-              foregroundColor: Colors.green[700],
+              backgroundColor: AppColors.primaryTeal.withOpacity(0.1),
+              foregroundColor: AppColors.primaryTeal,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppTheme.padding),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: _pickVideo,
             icon: const Icon(Icons.videocam),
             label: const Text('เพิ่มวิดีโอ'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[50],
-              foregroundColor: Colors.blue[700],
+              backgroundColor: AppColors.infoBlue.withOpacity(0.1),
+              foregroundColor: AppColors.infoBlue,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),
@@ -222,20 +231,22 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           children: [
             Text(
               'รูปภาพที่เลือก (${_selectedImages.length})',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: AppTextStyles.bodyBold,
             ),
             TextButton(
               onPressed: () {
                 setState(() {
                   _selectedImages.clear();
+                  _mediaChanged = true;
                 });
               },
-              child:
-                  const Text('ลบทั้งหมด', style: TextStyle(color: Colors.red)),
+              child: Text('ลบทั้งหมด',
+                  style:
+                      AppTextStyles.body.copyWith(color: AppColors.errorRed)),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.smallPadding),
         SizedBox(
           height: 100,
           child: ListView.builder(
@@ -243,11 +254,12 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
             itemCount: _selectedImages.length,
             itemBuilder: (context, index) {
               return Container(
-                margin: const EdgeInsets.only(right: 8),
+                margin: const EdgeInsets.only(right: AppTheme.smallPadding),
                 child: Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.borderRadius),
                       child: Image.file(
                         File(_selectedImages[index].path),
                         width: 100,
@@ -266,12 +278,12 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
                         },
                         child: Container(
                           decoration: const BoxDecoration(
-                            color: Colors.red,
+                            color: AppColors.errorRed,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.close,
-                            color: Colors.white,
+                            color: AppColors.white,
                             size: 20,
                           ),
                         ),
@@ -283,7 +295,7 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.padding),
       ],
     );
   }
@@ -297,25 +309,28 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           children: [
             Text(
               'วิดีโอที่เลือก',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: AppTextStyles.bodyBold,
             ),
             TextButton(
               onPressed: () {
                 setState(() {
                   _selectedVideo = null;
+                  _mediaChanged = true;
                 });
               },
-              child: const Text('ลบ', style: TextStyle(color: Colors.red)),
+              child: Text('ลบ',
+                  style:
+                      AppTextStyles.body.copyWith(color: AppColors.errorRed)),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.smallPadding),
         Container(
           width: double.infinity,
           height: 200,
           decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.grayPrimary,
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
           ),
           child: Stack(
             children: [
@@ -325,13 +340,14 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
                   children: [
                     const Icon(
                       Icons.play_circle_fill,
-                      color: Colors.white,
+                      color: AppColors.white,
                       size: 64,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppTheme.smallPadding),
                     Text(
                       _selectedVideo!.name,
-                      style: const TextStyle(color: Colors.white),
+                      style:
+                          AppTextStyles.body.copyWith(color: AppColors.white),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -341,7 +357,7 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.padding),
       ],
     );
   }
@@ -354,6 +370,7 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           _selectedImages.addAll(images);
           // Remove video if images are selected (one media type at a time)
           _selectedVideo = null;
+          _mediaChanged = true;
         });
       }
     } catch (e) {
@@ -371,6 +388,7 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           _selectedVideo = video;
           // Remove images if video is selected (one media type at a time)
           _selectedImages.clear();
+          _mediaChanged = true;
         });
       }
     } catch (e) {
@@ -380,7 +398,7 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
     }
   }
 
-  Future<void> _createPost() async {
+  Future<void> _submitPost() async {
     final content = _contentController.text.trim();
 
     if (content.isEmpty && _selectedImages.isEmpty && _selectedVideo == null) {
@@ -418,40 +436,59 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
       // Upload images if any
       List<String> imageUrls = [];
       if (_selectedImages.isNotEmpty) {
-        for (int i = 0; i < _selectedImages.length; i++) {
-          // TODO: Implement image upload to Firebase Storage
-          // For now, we'll use placeholder URLs
-          imageUrls.add('https://placeholder.com/300x200');
-        }
+        final uploadTasks = _selectedImages.map((image) {
+          final imageFile = File(image.path);
+          final fileName =
+              'community_posts/${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}_${image.name}';
+          return _firebaseService.uploadImageFile(imageFile, fileName);
+        }).toList();
+        imageUrls = await Future.wait(uploadTasks);
       }
 
       // Upload video if any
       String? videoUrl;
       if (_selectedVideo != null) {
-        // TODO: Implement video upload to Firebase Storage
-        // For now, we'll use a placeholder URL
-        videoUrl = 'https://placeholder.com/video.mp4';
+        final videoFile = File(_selectedVideo!.path);
+        final fileName =
+            'community_posts/${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}_${_selectedVideo!.name}';
+        videoUrl = await _firebaseService.uploadVideoFile(videoFile, fileName);
       }
 
-      await _firebaseService.createCommunityPost(
-        userId: currentUser.id,
-        content: content,
-        imageUrls: imageUrls,
-        videoUrl: videoUrl,
-        tags: tags,
-      );
+      if (_isEditing) {
+        await _firebaseService.updateCommunityPost(
+          postId: widget.postToEdit!.id,
+          content: content,
+          tags: tags,
+          imageUrls: _mediaChanged ? imageUrls : null,
+          videoUrl: _mediaChanged ? videoUrl : null,
+        );
+      } else {
+        await _firebaseService.createCommunityPost(
+          userId: currentUser.id,
+          content: content,
+          imageUrls: imageUrls,
+          videoUrl: videoUrl,
+          tags: tags,
+        );
+      }
 
       if (mounted) {
         Navigator.pop(
             context, true); // Return true to indicate post was created
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('โพสต์เรียบร้อยแล้ว!')),
+          SnackBar(
+            content:
+                Text(_isEditing ? 'แก้ไขโพสต์แล้ว!' : 'โพสต์เรียบร้อยแล้ว!'),
+            backgroundColor: AppColors.successGreen,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+          SnackBar(
+              content: Text('เกิดข้อผิดพลาด: $e'),
+              backgroundColor: AppColors.errorRed),
         );
       }
     } finally {

@@ -1,102 +1,87 @@
 // lib/utils/constants.dart
-
-// lib/utils/constants.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppColors {
-  // Alias for compatibility with old code
-  static const Color darkModernGrey = grayPrimary;
   // === Modern Professional Color Palette (World-class Design) ===
 
-  // --- Unified Modern Palette (World-class, Minimal, Professional) ---
-  // Main Brand Colors
-  static const Color primaryTeal = Color(0xFF13B98A); // Teal-500 (main)
-  static const Color primaryTealDark = Color(0xFF0F766E); // Teal-700
-  static const Color primaryTealLight = Color(0xFF5EEAD4); // Teal-300
-  static const Color primaryTealSoft = Color(0xFFE0F7F1); // Teal-100
-
+  // --- Primary Palette (Teal/Emerald) ---
+  // สีหลักสำหรับ Action, ปุ่ม, และส่วนที่ต้องการเน้น
+  static const Color primaryTeal =
+      Color(0xFF14B8A6); // Teal-500 - Modern & Professional
+  static const Color primaryTealDark =
+      Color(0xFF0F766E); // Teal-700 - For gradients or dark mode
+  static const Color primaryTealLight =
+      Color(0xFF99F6E4); // Teal-300 - Light accents
   static const Color emeraldPrimary = Color(0xFF10B981); // Emerald-500
-  static const Color emeraldDark = Color(0xFF047857); // Emerald-700
-  static const Color emeraldLight = Color(0xFF6EE7B7); // Emerald-300
-  static const Color emeraldSoft = Color(0xFFD1FAE5); // Emerald-100
 
-  // Blue/Peacock
-  // (already defined below for compatibility)
+  // --- Secondary Palette (Blue) ---
+  // สีรองสำหรับสร้างมิติ หรือใช้ในส่วนเสริม
+  static const Color infoBlue = Color(0xFF3B82F6); // Blue-500
+  static const Color navyBlue = Color(0xFF1E3A8A); // Blue-800
 
-  // Grays (Minimal, Clean)
-  static const Color grayPrimary = Color(0xFF23272F); // Main text
-  static const Color graySecondary = Color(0xFF6B7280); // Secondary text
-  static const Color grayTertiary = Color(0xFFB0B8C1); // Tertiary text
-  static const Color grayLight = Color(0xFFF4F7FA); // Light backgrounds
-  static const Color grayBorder = Color(0xFFE5E7EB); // Borders
+  // --- Neutral & Utility Palette ---
+  // สีกลางที่ใช้คุมโทนแอปทั้งหมด
+  static const Color grayPrimary = Color(0xFF1F2937); // Gray-800 - Primary text
+  static const Color graySecondary =
+      Color(0xFF6B7280); // Gray-500 - Secondary text
+  static const Color grayBorder = Color(0xFFE5E7EB); // Gray-200 - Borders
 
-  // Surfaces
+  // --- Surface Colors ---
+  // สีสำหรับพื้นผิวต่างๆ เพื่อสร้าง Layer และความสะอาดตา
   static const Color surfaceWhite = Color(0xFFFFFFFF);
-  static const Color surfaceGray = Color(0xFFF8FAFC);
+  static const Color surfaceGray = Color(0xFFF9FAFB); // Gray-50 (Off-white)
   static const Color surfaceCard = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF1E293B);
-  static const Color surfaceDarkCard = Color(0xFF334155);
 
-  // Status Colors - Consistent with modern design
-  static const Color successGreen = Color(0xFF059669); // Emerald-600
-  static const Color warningOrange = Color(0xFFF59E42); // Orange-400 (NEW)
-  static const Color warningYellow = Color(0xFFFACC15); // Yellow-400 (NEW)
-  static const Color errorRed = Color(0xFFDC2626); // Red-600
-  static const Color alertRed = Color(0xFFF87171); // Red-400 (NEW)
-  static const Color infoBlue = Color(0xFF2563EB); // Blue-600
-
-  // Modern Blue/Peacock/Emerald/Teal Palette for world-class look
-  static const Color peacockBlue = Color(0xFF0E7490); // Peacock Blue
-  static const Color modernBlue = Color(0xFF2563EB); // Modern Blue
-  static const Color deepBlue = Color(0xFF1E40AF); // Deep Blue
-  static const Color emeraldGreen = Color(0xFF10B981); // Emerald Green
-
-  // Action Colors - Eye-catching but professional
+  // --- Status & Action Colors ---
+  static const Color successGreen = Color(0xFF10B981); // Emerald-500
+  static const Color warningAmber = Color(0xFFF59E0B); // Amber-500
+  static const Color errorRed = Color(0xFFEF4444); // Red-500
   static const Color accent =
       Color(0xFF8B5CF6); // Violet-500 - For special actions
-  static const Color accentLight = Color(0xFFC4B5FD); // Violet-300
 
-  // Legacy/compatibility for old code
-  static const Color modernDarkGrey = grayPrimary;
-  static const Color darkGrey = grayPrimary;
-  static const Color lightGrey = grayLight;
-  static const Color lightBeige =
-      Color(0xFFFFF8E1); // Soft beige for chat backgrounds
-  static const Color earthyBrown =
-      Color(0xFF8D6E63); // Earthy brown for accents
-
-  // Background Gradients
+  // --- Gradients ---
   static const List<Color> gradientPrimary = [
-    Color(0xFF14B8A6), // Teal-500
-    Color(0xFF10B981), // Emerald-500
+    primaryTeal,
+    emeraldPrimary,
+  ];
+  static const List<Color> gradientBlue = [
+    infoBlue,
+    navyBlue,
   ];
 
-  static const List<Color> gradientSoft = [
-    Color(0xFFECFDF5), // Emerald-50
-    Color(0xFFF0FDFA), // Teal-50
-  ];
-
-  // Dark Mode Colors
+  // --- Dark Mode Palette (ตัวอย่าง) ---
   static const Color darkBackground = Color(0xFF0F172A); // Slate-900
   static const Color darkSurface = Color(0xFF1E293B); // Slate-800
-  static const Color darkCard = Color(0xFF334155); // Slate-700
-  static const Color darkBorder = Color(0xFF475569); // Slate-600
 
-  // Legacy Support (mapped to new colors)
+  // === Legacy Support (เพื่อให้โค้ดเก่าไม่พัง) ===
+  // แมพชื่อสีเก่าไปยังสีใหม่ในระบบ
   static const Color primaryGreen = primaryTeal;
   static const Color accentGreen = emeraldPrimary;
   static const Color primaryDarkGreen = primaryTealDark;
   static const Color lightTeal = primaryTealLight;
-  static const Color veryLightTeal = primaryTealSoft;
+  static const Color veryLightTeal = primaryTealLight; // Fix for legacy code
   static const Color modernGrey = graySecondary;
   static const Color lightModernGrey = grayBorder;
+  static const Color modernDarkGrey = grayPrimary; // Fix for legacy code
+  static const Color darkModernGrey = grayPrimary; // Fix for legacy code
+  static const Color darkGrey = grayPrimary; // Fix for legacy code
+  static const Color lightGrey = grayBorder; // Fix for legacy code
   static const Color white = surfaceWhite;
   static const Color offWhite = surfaceGray;
-  static const Color black = grayPrimary;
+  static const Color black = grayPrimary; // Fix for legacy code
+  static const Color lightBeige = surfaceGray; // Fix for legacy code
+  static const Color earthyBrown = graySecondary; // Fix for legacy code
   static const Color darkText = grayPrimary;
   static const Color lightText = graySecondary;
   static const Color background = surfaceGray;
+  static const Color warningOrange = warningAmber;
+  static const Color warningYellow = warningAmber;
+  static const Color alertRed = errorRed;
+  static const Color emeraldGreen = emeraldPrimary;
+  static const Color modernBlue = infoBlue;
+  static const Color deepBlue = navyBlue;
+  static const Color peacockBlue = primaryTeal;
 }
 
 // Professional 4-level Eco Rating System (ระบบประเมินสินค้าเพื่อสิ่งแวดล้อม 4 ระดับ)
@@ -190,52 +175,52 @@ extension EcoLevelExtension on EcoLevel {
   Color get color {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFC8E6C9); // เขียวอ่อนมาก
+        return AppColors.graySecondary;
       case EcoLevel.standard:
-        return const Color(0xFF2E7D32); // เขียวเข้มพอดี
+        return AppColors.primaryTeal;
       case EcoLevel.premium:
-        return const Color(0xFFFFD700); // สีทอง
+        return AppColors.warningAmber;
       case EcoLevel.hero:
-        return const Color(0xFF6A1B9A); // สีเพชร/ไพลิน (ม่วงเข้ม)
+        return AppColors.accent;
     }
   }
 
   Color get backgroundColor {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFF1F8E9); // เขียวอ่อนมากพื้นหลัง
+        return AppColors.surfaceGray;
       case EcoLevel.standard:
-        return const Color(0xFFE8F5E9); // เขียวเข้มพื้นหลัง
+        return AppColors.primaryTeal.withOpacity(0.1);
       case EcoLevel.premium:
-        return const Color(0xFFFFF8DC); // ทองอ่อน
+        return AppColors.warningAmber.withOpacity(0.1);
       case EcoLevel.hero:
-        return const Color(0xFFF3E5F5); // ม่วงเพชรอ่อนสวยหรู
+        return AppColors.accent.withOpacity(0.1);
     }
   }
 
   Color get gradientStart {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFDCEDC8); // เขียวอ่อนมากไล่โทน
+        return AppColors.graySecondary;
       case EcoLevel.standard:
-        return const Color(0xFF43A047); // เขียวเข้มไล่โทน
+        return AppColors.primaryTeal;
       case EcoLevel.premium:
-        return const Color(0xFFFFE55C); // ทองสว่าง
+        return AppColors.warningAmber;
       case EcoLevel.hero:
-        return const Color(0xFF9C27B0); // เพชรไล่โทน
+        return AppColors.accent;
     }
   }
 
   Color get gradientEnd {
     switch (this) {
       case EcoLevel.basic:
-        return const Color(0xFFC8E6C9); // เขียวอ่อนมาก
+        return AppColors.grayBorder;
       case EcoLevel.standard:
-        return const Color(0xFF2E7D32); // เขียวเข้ม
+        return AppColors.emeraldPrimary;
       case EcoLevel.premium:
-        return const Color(0xFFFFD700); // ทอง
+        return AppColors.warningAmber;
       case EcoLevel.hero:
-        return const Color(0xFF6A1B9A); // เพชร/ไพลิน
+        return AppColors.accent;
     }
   }
 
@@ -333,63 +318,64 @@ class AppTheme {
 
 // App Text Styles
 class AppTextStyles {
+  // ใช้สำหรับหัวข้อใหญ่ที่สุดในหน้า หรือ Hero text
   static const TextStyle title = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.bold,
+    color: AppColors.grayPrimary,
+    letterSpacing: -0.5,
+  );
+
+  // ใช้สำหรับหัวข้อของ Section หรือ AppBar
+  static const TextStyle headline = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.bold,
-    color: AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
+    color: AppColors.grayPrimary,
   );
 
-  static const TextStyle headline = TextStyle(
-    fontSize: 26,
-    fontWeight: FontWeight.bold,
-    color: AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
-  );
-
+  // ใช้สำหรับหัวข้อย่อย หรือชื่อรายการ
   static const TextStyle subtitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.lightText, // เปลี่ยนเป็นสีที่อ่านง่าย
+    color: AppColors.grayPrimary,
   );
 
-  static final TextStyle subtitleBold =
-      subtitle.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkText);
-
+  // ใช้สำหรับเนื้อหาหลัก
   static const TextStyle body = TextStyle(
     fontSize: 16,
-    color: AppColors.lightText, // เปลี่ยนเป็นสีที่อ่านง่าย
+    color: AppColors.graySecondary,
+    height: 1.5, // เพิ่มระยะห่างระหว่างบรรทัดเพื่อให้อ่านง่าย
   );
 
+  static final TextStyle bodyBold =
+      body.copyWith(fontWeight: FontWeight.w600, color: AppColors.grayPrimary);
+  static final TextStyle subtitleBold = subtitle.copyWith(
+      fontWeight: FontWeight.bold, color: AppColors.grayPrimary);
   static final TextStyle bodySmall = body.copyWith(fontSize: 14);
 
+  // ใช้สำหรับแสดงราคา
   static const TextStyle price = TextStyle(
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: FontWeight.bold,
     color: AppColors.primaryTeal,
   );
 
+  // ใช้สำหรับลิงก์
   static const TextStyle link = TextStyle(
     fontSize: 16,
-    color: AppColors.primaryTeal, // เปลี่ยนเป็นสีที่เด่นกว่า
-    decoration: TextDecoration.underline,
+    color: AppColors.infoBlue,
+    fontWeight: FontWeight.w600,
   );
 
-  static const TextStyle bodyBold = TextStyle(
-      fontSize: 16, color: AppColors.darkText, fontWeight: FontWeight.bold);
+  // ใช้สำหรับข้อความขนาดเล็ก เช่นคำอธิบายใต้ภาพ
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    color: AppColors.graySecondary,
+  );
+  static final TextStyle captionBold = caption.copyWith(
+      fontWeight: FontWeight.w600, color: AppColors.grayPrimary);
 
-  static const TextStyle caption =
-      TextStyle(fontSize: 12, color: AppColors.lightText);
-
-  static final TextStyle captionBold =
-      caption.copyWith(fontWeight: FontWeight.bold, color: AppColors.darkText);
-
-  static final TextStyle bodyGreen =
-      body.copyWith(color: AppColors.successGreen);
-
-  static final TextStyle bodyYellow =
-      body.copyWith(color: AppColors.warningYellow);
-
-  static final TextStyle bodyRed = body.copyWith(color: AppColors.errorRed);
-
+  // ใช้สำหรับข้อความบนปุ่ม
   static const TextStyle button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
@@ -421,7 +407,7 @@ extension RiskLevelExtension on RiskLevel {
       case RiskLevel.low:
         return AppColors.successGreen;
       case RiskLevel.medium:
-        return AppColors.warningYellow;
+        return AppColors.warningAmber;
       case RiskLevel.high:
         return AppColors.errorRed;
     }
@@ -471,15 +457,15 @@ extension EcoCoinTransactionTypeExtension on EcoCoinTransactionType {
       case EcoCoinTransactionType.reward:
         return AppColors.primaryTeal;
       case EcoCoinTransactionType.activity:
-        return AppColors.lightTeal;
+        return AppColors.primaryTealLight;
       case EcoCoinTransactionType.adminAdjustment:
-        return AppColors.warningYellow;
+        return AppColors.warningAmber;
       case EcoCoinTransactionType.earned:
         return AppColors.successGreen;
       case EcoCoinTransactionType.spent:
         return AppColors.errorRed;
       case EcoCoinTransactionType.bonus:
-        return AppColors.warningYellow;
+        return AppColors.warningAmber;
     }
   }
 

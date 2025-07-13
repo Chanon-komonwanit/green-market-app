@@ -8,7 +8,9 @@ import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/post_card_widget.dart';
 import '../screens/community_chat_screen.dart';
-import 'create_community_post_screen.dart';
+import '../screens/create_community_post_screen.dart';
+import '../utils/constants.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class CommunityProfileScreen extends StatefulWidget {
   final String? userId; // If null, show current user profile
@@ -130,44 +132,43 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isMyProfile ? 'โปรไฟล์ของฉัน' : 'โปรไฟล์'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          if (_isMyProfile)
-            IconButton(
-              onPressed: () {
-                // TODO: Navigate to edit profile
-                _showEditProfileDialog();
-              },
-              icon: const Icon(Icons.edit),
-            ),
-        ],
-      ),
+      backgroundColor: AppColors.surfaceGray,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refreshData,
-              child: CustomScrollView(
-                slivers: [
-                  // Profile Header
-                  SliverToBoxAdapter(child: _buildProfileHeader()),
-
-                  // Tab Bar
-                  SliverToBoxAdapter(child: _buildTabBar()),
-
-                  // Tab Content
-                  SliverFillRemaining(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildPostsTab(),
-                        _buildStatsTab(),
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverAppBar(
+                      title: Text(_profileUser?.displayName ?? 'โปรไฟล์'),
+                      backgroundColor: AppColors.white,
+                      foregroundColor: AppColors.grayPrimary,
+                      elevation: 1,
+                      pinned: true,
+                      floating: true,
+                      actions: [
+                        if (_isMyProfile)
+                          IconButton(
+                            onPressed: _showEditProfileDialog,
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
                       ],
                     ),
-                  ),
-                ],
+                    SliverToBoxAdapter(child: _buildProfileHeader()),
+                    SliverPersistentHeader(
+                      delegate: _SliverTabBarDelegate(_buildTabBar()),
+                      pinned: true,
+                    ),
+                  ];
+                },
+                body: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildPostsTab(),
+                    _buildStatsTab(),
+                  ],
+                ),
               ),
             ),
       floatingActionButton: _isMyProfile
@@ -183,8 +184,8 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                   _refreshData();
                 }
               },
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.add),
+              backgroundColor: AppColors.primaryTeal,
+              child: const Icon(Icons.add, color: AppColors.white),
             )
           : null,
     );
@@ -193,22 +194,12 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   Widget _buildProfileHeader() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.green[400]!,
-            Colors.green[600]!,
-          ],
-        ),
-      ),
+      color: AppColors.white,
       child: Column(
         children: [
-          // Profile Image
           CircleAvatar(
             radius: 50,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.grayBorder,
             backgroundImage: _profileUser?.photoUrl != null
                 ? CachedNetworkImageProvider(_profileUser!.photoUrl!)
                 : null,
@@ -216,71 +207,40 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                 ? const Icon(
                     Icons.person,
                     size: 50,
-                    color: Colors.grey,
+                    color: AppColors.graySecondary,
                   )
                 : null,
           ),
-
           const SizedBox(height: 16),
-
-          // Name
           Text(
             _profileUser?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.title.copyWith(fontSize: 24),
           ),
-
           const SizedBox(height: 8),
-
-          // Bio or Description
           if (_profileUser?.bio?.isNotEmpty == true)
             Text(
               _profileUser!.bio!,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              style: AppTextStyles.body,
               textAlign: TextAlign.center,
             ),
-
           const SizedBox(height: 20),
-
-          // Stats Row
           _buildStatsRow(),
-
-          const SizedBox(height: 16),
-
-          // Action Buttons
           if (!_isMyProfile && _profileUser != null) ...[
             const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CommunityChatScreen(
-                            otherUserId: _profileUser!.id,
-                            otherUserName:
-                                _profileUser!.displayName ?? 'ผู้ใช้',
-                            otherUserPhoto: _profileUser!.photoUrl,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.message),
+                    onPressed: () => _navigateToChat(_profileUser!),
+                    icon: const Icon(Icons.message_outlined),
                     label: const Text('ส่งข้อความ'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF059669),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.primaryTeal,
+                      foregroundColor: AppColors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.borderRadius),
                       ),
                     ),
                   ),
@@ -288,21 +248,16 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement follow functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('ฟีเจอร์ติดตามจะมาเร็วๆ นี้')),
-                      );
-                    },
-                    icon: const Icon(Icons.person_add),
+                    onPressed: () => _showComingSoonSnackBar('ติดตาม'),
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
                     label: const Text('ติดตาม'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF059669),
-                      side: const BorderSide(color: Color(0xFF059669)),
+                      foregroundColor: AppColors.primaryTeal,
+                      side: const BorderSide(color: AppColors.primaryTeal),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.borderRadius),
                       ),
                     ),
                   ),
@@ -316,61 +271,52 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   }
 
   Widget _buildStatsRow() {
-    final postsCount = _userStats?['postsCount'] ?? 0;
-    final likesCount = _userStats?['likesCount'] ?? 0;
-    final sharesCount = _userStats?['sharesCount'] ?? 0;
+    final postsCount = _userStats?['totalPosts'] ?? 0;
+    final likesCount = _userStats?['totalLikes'] ?? 0;
+    final commentsCount = _userStats?['totalComments'] ?? 0;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildStatItem('โพสต์', postsCount),
-        _buildStatItem('ถูกใจ', likesCount),
-        _buildStatItem('แชร์', sharesCount),
+        _buildStatItem('โพสต์', postsCount.toString()),
+        _buildStatItem('ถูกใจ', likesCount.toString()),
+        _buildStatItem('ความคิดเห็น', commentsCount.toString()),
       ],
     );
   }
 
-  Widget _buildStatItem(String label, int count) {
+  Widget _buildStatItem(String label, String value) {
     return Column(
       children: [
         Text(
-          count.toString(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          value,
+          style: AppTextStyles.headline.copyWith(fontSize: 20),
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: AppTextStyles.caption,
         ),
       ],
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      color: Colors.white,
-      child: TabBar(
-        controller: _tabController,
-        labelColor: Colors.green,
-        unselectedLabelColor: Colors.grey,
-        indicatorColor: Colors.green,
-        tabs: const [
-          Tab(
-            icon: Icon(Icons.grid_on),
-            text: 'โพสต์',
-          ),
-          Tab(
-            icon: Icon(Icons.analytics),
-            text: 'สถิติ',
-          ),
-        ],
-      ),
+  TabBar _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      labelColor: AppColors.primaryTeal,
+      unselectedLabelColor: AppColors.graySecondary,
+      indicatorColor: AppColors.primaryTeal,
+      labelStyle: AppTextStyles.bodyBold,
+      tabs: const [
+        Tab(
+          icon: Icon(Icons.grid_on),
+          text: 'โพสต์',
+        ),
+        Tab(
+          icon: Icon(Icons.analytics),
+          text: 'สถิติ',
+        ),
+      ],
     );
   }
 
@@ -385,26 +331,20 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.post_add,
+              Icons.dynamic_feed_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: AppColors.graySecondary,
             ),
             const SizedBox(height: 16),
             Text(
               _isMyProfile ? 'คุณยังไม่มีโพสต์' : 'ผู้ใช้ยังไม่มีโพสต์',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
+              style: AppTextStyles.subtitle,
             ),
             if (_isMyProfile) ...[
               const SizedBox(height: 8),
               Text(
                 'แตะปุ่ม + เพื่อสร้างโพสต์แรกของคุณ',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+                style: AppTextStyles.body,
               ),
             ],
           ],
@@ -419,21 +359,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
         final post = _userPosts[index];
         return PostCardWidget(
           post: post,
-          onTap: () {
-            // TODO: Navigate to post detail
-            _openPostDetail(post);
-          },
-          onLike: () {
-            _refreshData();
-          },
-          onComment: () {
-            // TODO: Navigate to comments
-            _openComments(post);
-          },
-          onShare: () {
-            // TODO: Share functionality
-            _sharePost(post);
-          },
+          onLike: _refreshData,
         );
       },
     );
@@ -452,18 +378,14 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'สถิติโดยรวม',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
+                  Text('สถิติโดยรวม', style: AppTextStyles.subtitle),
                   const SizedBox(height: 16),
-                  _buildStatRow('จำนวนโพสต์', _userStats?['postsCount'] ?? 0),
-                  _buildStatRow('ถูกใจทั้งหมด', _userStats?['likesCount'] ?? 0),
-                  _buildStatRow('แชร์ทั้งหมด', _userStats?['sharesCount'] ?? 0),
-                  _buildStatRow(
-                      'คอมเมนต์ทั้งหมด', _userStats?['commentsCount'] ?? 0),
+                  _buildStatListItem(
+                      'จำนวนโพสต์', _userStats?['totalPosts'] ?? 0),
+                  _buildStatListItem(
+                      'ถูกใจทั้งหมด', _userStats?['totalLikes'] ?? 0),
+                  _buildStatListItem(
+                      'คอมเมนต์ทั้งหมด', _userStats?['totalComments'] ?? 0),
                 ],
               ),
             ),
@@ -478,12 +400,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'กิจกรรมล่าสุด',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
+                  Text('กิจกรรมล่าสุด', style: AppTextStyles.subtitle),
                   const SizedBox(height: 16),
                   if (_userPosts.isNotEmpty) ...[
                     _buildActivityItem(
@@ -503,18 +420,13 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     );
   }
 
-  Widget _buildStatRow(String label, int value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value.toString(),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
+  Widget _buildStatListItem(String label, int value) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label, style: AppTextStyles.body),
+      trailing: Text(
+        value.toString(),
+        style: AppTextStyles.bodyBold,
       ),
     );
   }
@@ -523,24 +435,9 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
-      subtitle: Text(_formatDate(date)),
+      subtitle: Text(timeago.format(date, locale: 'th')),
       contentPadding: EdgeInsets.zero,
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays} วันที่แล้ว';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} ชั่วโมงที่แล้ว';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} นาทีที่แล้ว';
-    } else {
-      return 'เมื่อสักครู่';
-    }
   }
 
   void _showEditProfileDialog() {
@@ -561,22 +458,47 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     );
   }
 
-  void _openPostDetail(CommunityPost post) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('ฟีเจอร์รายละเอียดโพสต์จะพร้อมใช้งานเร็วๆ นี้')),
+  void _navigateToChat(AppUser otherUser) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommunityChatScreen(
+          otherUserId: otherUser.id,
+          otherUserName: otherUser.displayName ?? 'ผู้ใช้',
+          otherUserPhoto: otherUser.photoUrl,
+        ),
+      ),
     );
   }
 
-  void _openComments(CommunityPost post) {
+  void _showComingSoonSnackBar(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์คอมเมนต์จะพร้อมใช้งานเร็วๆ นี้')),
+      SnackBar(content: Text('ฟีเจอร์$featureจะพร้อมใช้งานเร็วๆ นี้')),
+    );
+  }
+}
+
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverTabBarDelegate(this.tabBar);
+
+  final TabBar tabBar;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppColors.white,
+      child: tabBar,
     );
   }
 
-  void _sharePost(CommunityPost post) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์แชร์จะพร้อมใช้งานเร็วๆ นี้')),
-    );
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
   }
 }

@@ -1,12 +1,14 @@
 // lib/screens/community_notifications_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
-import 'package:green_market/screens/feed_screen.dart';
-import 'package:green_market/screens/comments_screen.dart';
-import 'package:green_market/models/post.dart';
+import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/models/community_post.dart';
+import 'package:green_market/models/app_user.dart';
+import 'package:green_market/screens/post_comments_screen.dart';
+import 'package:green_market/utils/constants.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class CommunityNotificationsScreen extends StatefulWidget {
   const CommunityNotificationsScreen({super.key});
@@ -18,22 +20,19 @@ class CommunityNotificationsScreen extends StatefulWidget {
 
 class _CommunityNotificationsScreenState
     extends State<CommunityNotificationsScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
+
   @override
   Widget build(BuildContext context) {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    
+    final currentUser = context.watch<UserProvider>().currentUser;
+
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'การแจ้งเตือน',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: const Color(0xFF059669),
-          foregroundColor: Colors.white,
+          title: Text('การแจ้งเตือน', style: AppTextStyles.headline),
+          backgroundColor: AppColors.white,
+          elevation: 1,
+          iconTheme: const IconThemeData(color: AppColors.grayPrimary),
         ),
         body: const Center(
           child: Text('กรุณาเข้าสู่ระบบ'),
@@ -42,74 +41,57 @@ class _CommunityNotificationsScreenState
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: AppColors.surfaceGray,
       appBar: AppBar(
-        title: const Text(
-          'การแจ้งเตือน',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF059669),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: Text('การแจ้งเตือน', style: AppTextStyles.headline),
+        backgroundColor: AppColors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: AppColors.grayPrimary),
         actions: [
           IconButton(
             icon: const Icon(Icons.done_all),
+            tooltip: 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมด',
             onPressed: _markAllAsRead,
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('community_notifications')
-            .where('userId', isEqualTo: currentUser.uid)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _firebaseService.getCommunityNotifications(currentUser.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
-              ),
+              child: CircularProgressIndicator(color: AppColors.primaryTeal),
             );
           }
 
           if (snapshot.hasError) {
             return Center(
-              child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+              child: Text(
+                  'เกิดข้อผิดพลาดในการโหลดการแจ้งเตือน: ${snapshot.error}'),
             );
           }
 
-          final notifications = snapshot.data?.docs ?? [];
+          final notifications = snapshot.data ?? [];
 
           if (notifications.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: const [
                   Icon(
                     Icons.notifications_none,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: AppColors.graySecondary,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Text(
                     'ไม่มีการแจ้งเตือน',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                    ),
+                    style: AppTextStyles.subtitle,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'การแจ้งเตือนจะปรากฏที่นี่',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
+                    style: AppTextStyles.body,
                   ),
                 ],
               ),
@@ -117,12 +99,11 @@ class _CommunityNotificationsScreenState
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.padding),
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final notification = notifications[index];
-              final data = notification.data() as Map<String, dynamic>;
-              return _buildNotificationCard(data, notification.id);
+              return _buildNotificationCard(notification);
             },
           );
         },
@@ -130,92 +111,66 @@ class _CommunityNotificationsScreenState
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> data, String notificationId) {
+  Widget _buildNotificationCard(Map<String, dynamic> data) {
+    final notificationId = data['id'] as String;
     final type = data['type'] ?? 'general';
     final isRead = data['isRead'] ?? false;
     final createdAt = data['createdAt'] as Timestamp?;
     final body = data['body'] ?? 'มีข้อความใหม่';
-    final fromUserName = data['fromUserName'] ?? 'ผู้ใช้';
-    final fromUserPhoto = data['fromUserPhoto'] as String?;
+    final senderId = data['senderId'] as String?;
 
-    return InkWell(
-      onTap: () => _handleNotificationTap(data, notificationId),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isRead ? Colors.white : const Color(0xFF059669).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isRead ? Colors.grey.withOpacity(0.2) : const Color(0xFF059669).withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Image / Icon
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: _getNotificationColor(type),
-              backgroundImage: fromUserPhoto != null ? NetworkImage(fromUserPhoto) : null,
-              child: fromUserPhoto == null
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppTheme.smallPadding),
+      color: isRead ? AppColors.white : AppColors.primaryTeal.withOpacity(0.05),
+      elevation: isRead ? 1 : 2,
+      child: ListTile(
+        onTap: () => _handleNotificationTap(data, notificationId),
+        leading: FutureBuilder<AppUser?>(
+          future:
+              senderId != null ? _firebaseService.getUserById(senderId) : null,
+          builder: (context, userSnapshot) {
+            final sender = userSnapshot.data;
+            return CircleAvatar(
+              radius: 22,
+              backgroundColor: _getNotificationColor(type).withOpacity(0.2),
+              backgroundImage: sender?.photoUrl != null
+                  ? NetworkImage(sender!.photoUrl!)
+                  : null,
+              child: sender?.photoUrl == null
                   ? Icon(
                       _getNotificationIcon(type),
-                      color: Colors.white,
+                      color: _getNotificationColor(type),
                       size: 20,
                     )
                   : null,
+            );
+          },
+        ),
+        title: Text(
+          data['title'] ?? 'การแจ้งเตือนใหม่',
+          style: AppTextStyles.bodyBold,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(body, style: AppTextStyles.bodySmall),
+            const SizedBox(height: 4),
+            Text(
+              _formatTimestamp(createdAt),
+              style: AppTextStyles.caption.copyWith(fontSize: 11),
             ),
-            const SizedBox(width: 12),
-            
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1F2937),
-                        height: 1.4,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: fromUserName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        TextSpan(text: ' $body'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatTimestamp(createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Unread indicator
-            if (!isRead)
-              Container(
+          ],
+        ),
+        trailing: !isRead
+            ? Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF059669),
+                  color: AppColors.primaryTeal,
                   shape: BoxShape.circle,
                 ),
-              ),
-          ],
-        ),
+              )
+            : null,
       ),
     );
   }
@@ -223,13 +178,13 @@ class _CommunityNotificationsScreenState
   Color _getNotificationColor(String type) {
     switch (type) {
       case 'like':
-        return Colors.red;
+      case 'community_like':
+        return AppColors.errorRed;
       case 'comment':
-        return Colors.blue;
-      case 'follow':
-        return Colors.green;
-      case 'mention':
-        return Colors.orange;
+      case 'community_comment':
+        return AppColors.infoBlue;
+      case 'community_share':
+        return AppColors.primaryGreen;
       default:
         return const Color(0xFF059669);
     }
@@ -238,13 +193,13 @@ class _CommunityNotificationsScreenState
   IconData _getNotificationIcon(String type) {
     switch (type) {
       case 'like':
+      case 'community_like':
         return Icons.favorite;
       case 'comment':
+      case 'community_comment':
         return Icons.comment;
-      case 'follow':
-        return Icons.person_add;
-      case 'mention':
-        return Icons.alternate_email;
+      case 'community_share':
+        return Icons.share;
       default:
         return Icons.notifications;
     }
@@ -252,86 +207,46 @@ class _CommunityNotificationsScreenState
 
   String _formatTimestamp(Timestamp? timestamp) {
     if (timestamp == null) return 'เมื่อสักครู่';
-    
-    final now = DateTime.now();
-    final time = timestamp.toDate();
-    final difference = now.difference(time);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays} วันที่แล้ว';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} ชั่วโมงที่แล้ว';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} นาทีที่แล้ว';
-    } else {
-      return 'เมื่อสักครู่';
-    }
+    return timeago.format(timestamp.toDate(), locale: 'th');
   }
 
-  Future<void> _handleNotificationTap(Map<String, dynamic> data, String notificationId) async {
+  Future<void> _handleNotificationTap(
+      Map<String, dynamic> data, String notificationId) async {
     // Mark as read
-    await FirebaseFirestore.instance
-        .collection('community_notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
+    await _firebaseService.markNotificationAsRead(notificationId);
 
     // Navigate based on type
-    final type = data['type'] ?? 'general';
-    final postId = data['postId'] as String?;
+    final notificationData = data['data'] as Map<String, dynamic>?;
+    final postId = notificationData?['postId'] as String?;
 
-    if (postId != null && (type == 'like' || type == 'comment')) {
-      // Navigate to post
+    if (postId != null) {
       try {
-        final postDoc = await FirebaseFirestore.instance
-            .collection('posts')
-            .doc(postId)
-            .get();
-
-        if (postDoc.exists) {
-          final post = Post.fromFirestore(postDoc);
-          
-          if (type == 'comment') {
-            // Navigate to comments
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CommentsScreen(post: post),
-              ),
-            );
-          } else {
-            // Navigate to feed
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const FeedScreen(),
-              ),
-            );
-          }
+        final postData = await _firebaseService.getCommunityPostById(postId);
+        if (postData != null && mounted) {
+          final post = CommunityPost.fromMap(postData, postData['id']);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PostCommentsScreen(post: post),
+            ),
+          );
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('ไม่สามารถเปิดโพสต์ได้: $e')),
+          );
+        }
       }
     }
   }
 
   Future<void> _markAllAsRead() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = context.read<UserProvider>().currentUser;
     if (currentUser == null) return;
 
     try {
-      final notifications = await FirebaseFirestore.instance
-          .collection('community_notifications')
-          .where('userId', isEqualTo: currentUser.uid)
-          .where('isRead', isEqualTo: false)
-          .get();
-
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in notifications.docs) {
-        batch.update(doc.reference, {'isRead': true});
-      }
-      await batch.commit();
+      await _firebaseService.markAllNotificationsAsRead(currentUser.id);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

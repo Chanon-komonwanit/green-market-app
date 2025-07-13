@@ -1,9 +1,13 @@
 // lib/screens/community_chat_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/community_chat_screen.dart';
+import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/utils/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CommunityChatListScreen extends StatefulWidget {
   const CommunityChatListScreen({super.key});
@@ -14,6 +18,7 @@ class CommunityChatListScreen extends StatefulWidget {
 }
 
 class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -25,14 +30,14 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = context.watch<UserProvider>().currentUser;
 
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('แชท'),
-          backgroundColor: const Color(0xFF059669),
-          foregroundColor: Colors.white,
+          title: Text('แชท', style: AppTextStyles.headline),
+          backgroundColor: AppColors.white,
+          elevation: 1,
         ),
         body: const Center(
           child: Text('กรุณาเข้าสู่ระบบ'),
@@ -41,40 +46,85 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      appBar: AppBar(
-        title: const Text(
-          'แชท',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      backgroundColor: AppColors.surfaceGray,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primaryTeal, AppColors.emeraldPrimary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x22059B6A),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.forum_rounded,
+                      color: Colors.white, size: 32),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('เปิดโลกสีเขียว',
+                            style: AppTextStyles.headline.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
+                            )),
+                        const SizedBox(height: 2),
+                        Text('แชทของฉัน',
+                            style: AppTextStyles.caption.copyWith(
+                              color: Colors.white.withOpacity(0.85),
+                              fontWeight: FontWeight.w500,
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        backgroundColor: const Color(0xFF059669),
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Column(
         children: [
           // Search Bar
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            margin:
+                const EdgeInsets.only(top: 18, left: 18, right: 18, bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius * 2),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryTeal.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'ค้นหาการสนทนา...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
+                hintText: 'ค้นหาการสนทนา... ',
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.graySecondary),
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
               onChanged: (value) {
                 setState(() {
@@ -83,72 +133,66 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
               },
             ),
           ),
-
           // Chat List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('community_chats')
-                  .where('participants', arrayContains: currentUser.uid)
-                  .orderBy('lastMessageTime', descending: true)
-                  .snapshots(),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _firebaseService.streamCommunityChats(currentUser.id),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
-                    ),
+                    child:
+                        CircularProgressIndicator(color: AppColors.primaryTeal),
                   );
                 }
-
                 if (snapshot.hasError) {
                   return Center(
                     child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
                   );
                 }
+                final allChats = snapshot.data ?? [];
 
-                final chats = snapshot.data?.docs ?? [];
+                final filteredChats = allChats.where((chat) {
+                  if (_searchQuery.isEmpty) return true;
+                  final lastMessage =
+                      (chat['lastMessage'] as String? ?? '').toLowerCase();
+                  final participantInfo =
+                      chat['participantInfo'] as Map<String, dynamic>? ?? {};
+                  final otherUserId = (chat['participants'] as List<dynamic>)
+                      .firstWhere((id) => id != currentUser.id,
+                          orElse: () => '');
+                  final otherUserName = (participantInfo[otherUserId]
+                              as Map<String, dynamic>?)?['displayName']
+                          as String? ??
+                      '';
+                  return lastMessage.contains(_searchQuery) ||
+                      otherUserName.toLowerCase().contains(_searchQuery);
+                }).toList();
 
-                if (chats.isEmpty) {
+                if (filteredChats.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'ยังไม่มีการสนทนา',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+                        const Icon(Icons.forum_rounded,
+                            size: 72, color: AppColors.primaryTeal),
+                        const SizedBox(height: 18),
+                        Text('ยังไม่มีการสนทนา',
+                            style: AppTextStyles.subtitle
+                                .copyWith(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        Text(
-                          'เริ่มการสนทนาจากโปรไฟล์ของสมาชิก',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        Text('เริ่มการสนทนากับเพื่อนในชุมชนสีเขียว!',
+                            style: AppTextStyles.body,
+                            textAlign: TextAlign.center),
                       ],
                     ),
                   );
                 }
-
                 return ListView.builder(
-                  itemCount: chats.length,
+                  padding: const EdgeInsets.only(top: 8, bottom: 16),
+                  itemCount: filteredChats.length,
                   itemBuilder: (context, index) {
-                    final chat = chats[index];
-                    final data = chat.data() as Map<String, dynamic>;
-                    return _buildChatItem(data, chat.id, currentUser.uid);
+                    final chatData = filteredChats[index];
+                    return _buildChatItem(chatData, currentUser.id);
                   },
                 );
               },
@@ -156,126 +200,117 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showNewChatDialog,
-        backgroundColor: const Color(0xFF059669),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_comment_rounded),
+        label: const Text('เริ่มแชทใหม่'),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }
 
-  Widget _buildChatItem(
-      Map<String, dynamic> data, String chatId, String currentUserId) {
-    final participants = List<String>.from(data['participants'] ?? []);
+  Widget _buildChatItem(Map<String, dynamic> chatData, String currentUserId) {
+    final chatId = chatData['id'] as String;
+    // ใช้ chatId ในอนาคตสำหรับฟีเจอร์เพิ่มเติม เช่น pin, mute, ฯลฯ
+    final participants = List<String>.from(chatData['participants'] ?? []);
     final otherUserId =
         participants.firstWhere((id) => id != currentUserId, orElse: () => '');
-    final lastMessage = data['lastMessage'] ?? '';
-    final lastMessageTime = data['lastMessageTime'] as Timestamp?;
-    final lastMessageSender = data['lastMessageSender'] ?? '';
+
+    if (otherUserId.isEmpty) return const SizedBox.shrink();
+
+    final participantInfo =
+        chatData['participantInfo'] as Map<String, dynamic>? ?? {};
+    final otherUserInfo =
+        participantInfo[otherUserId] as Map<String, dynamic>? ?? {};
+
+    final otherUserName = otherUserInfo['displayName'] as String? ??
+        '\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49';
+    final otherUserPhoto = otherUserInfo['photoUrl'] as String?;
+
+    final lastMessage = chatData['lastMessage'] as String? ?? '';
+    final lastMessageTime = chatData['lastMessageTime'] as Timestamp?;
+    final lastMessageSender = chatData['lastMessageSender'] as String? ?? '';
     final isUnread = lastMessageSender != currentUserId;
 
-    return FutureBuilder<DocumentSnapshot>(
-      future:
-          FirebaseFirestore.instance.collection('users').doc(otherUserId).get(),
-      builder: (context, userSnapshot) {
-        String otherUserName = 'ผู้ใช้';
-        String? otherUserPhoto;
-
-        if (userSnapshot.hasData && userSnapshot.data!.exists) {
-          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-          otherUserName = userData['displayName'] ?? 'ผู้ใช้';
-          otherUserPhoto = userData['photoUrl'];
-        }
-
-        // Apply search filter
-        if (_searchQuery.isNotEmpty &&
-            !otherUserName.toLowerCase().contains(_searchQuery) &&
-            !lastMessage.toLowerCase().contains(_searchQuery)) {
-          return const SizedBox.shrink();
-        }
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: ListTile(
-            leading: CircleAvatar(
-              radius: 28,
-              backgroundColor: const Color(0xFF059669),
-              backgroundImage:
-                  otherUserPhoto != null ? NetworkImage(otherUserPhoto) : null,
-              child: otherUserPhoto == null
-                  ? Text(
-                      otherUserName.isNotEmpty
-                          ? otherUserName[0].toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
-            ),
-            title: Text(
-              otherUserName,
-              style: TextStyle(
-                fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              lastMessage.isNotEmpty ? lastMessage : 'ยังไม่มีข้อความ',
-              style: TextStyle(
-                color: isUnread ? const Color(0xFF059669) : Colors.grey[600],
-                fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatTimestamp(lastMessageTime),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        isUnread ? const Color(0xFF059669) : Colors.grey[500],
-                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                if (isUnread) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF059669),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CommunityChatScreen(
-                    otherUserId: otherUserId,
-                    otherUserName: otherUserName,
-                    otherUserPhoto: otherUserPhoto,
-                  ),
-                ),
-              );
-            },
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            tileColor: Colors.white,
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 25,
+          backgroundColor: AppColors.primaryTeal.withOpacity(0.2),
+          backgroundImage:
+              otherUserPhoto != null ? NetworkImage(otherUserPhoto) : null,
+          child: otherUserPhoto == null
+              ? Text(
+                  otherUserName.isNotEmpty
+                      ? otherUserName[0].toUpperCase()
+                      : 'U',
+                  style: AppTextStyles.headline
+                      .copyWith(color: AppColors.primaryTeal, fontSize: 20),
+                )
+              : null,
+        ),
+        title: Text(
+          otherUserName,
+          style: isUnread ? AppTextStyles.bodyBold : AppTextStyles.body,
+        ),
+        subtitle: Text(
+          lastMessage.isNotEmpty
+              ? lastMessage
+              : '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: isUnread ? AppColors.primaryTeal : AppColors.graySecondary,
+            fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
           ),
-        );
-      },
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _formatTimestamp(lastMessageTime),
+              style: AppTextStyles.caption.copyWith(
+                color:
+                    isUnread ? AppColors.primaryTeal : AppColors.graySecondary,
+                fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (isUnread) ...[
+              const SizedBox(height: 4),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
+        onTap: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CommunityChatScreen(
+                  otherUserId: otherUserId,
+                  otherUserName: otherUserName,
+                  otherUserPhoto: otherUserPhoto,
+                ),
+              ));
+        },
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        ),
+        tileColor: isUnread
+            ? AppColors.primaryTeal.withOpacity(0.05)
+            : AppColors.white,
+      ),
     );
   }
 
@@ -340,7 +375,8 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF059669),
+                          backgroundColor:
+                              AppColors.primaryTeal.withOpacity(0.2),
                           backgroundImage: userPhoto != null
                               ? NetworkImage(userPhoto)
                               : null,
@@ -349,10 +385,8 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
                                   userName.isNotEmpty
                                       ? userName[0].toUpperCase()
                                       : 'U',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: AppTextStyles.bodyBold
+                                      .copyWith(color: AppColors.primaryTeal),
                                 )
                               : null,
                         ),

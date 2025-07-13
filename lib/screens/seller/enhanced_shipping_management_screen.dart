@@ -150,9 +150,9 @@ class _EnhancedShippingManagementScreenState
       return const Center(child: Text('กรุณาเข้าสู่ระบบ'));
     }
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: Provider.of<FirebaseService>(context, listen: false)
-          .getOrdersBySellerAndStatus(currentUser.uid, statuses),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: Provider.of<FirebaseService>(context, listen: false)
+          .streamOrdersForSellerByStatus(currentUser.uid, statuses),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -267,7 +267,8 @@ class _EnhancedShippingManagementScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
+                      // Removed const
+                      children: [
                         Icon(Icons.person,
                             size: 16, color: AppColors.primaryTeal),
                         SizedBox(width: 8),
@@ -303,6 +304,7 @@ class _EnhancedShippingManagementScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      // Removed const
                       children: [
                         Icon(Icons.shopping_cart,
                             size: 16, color: AppColors.primaryTeal),

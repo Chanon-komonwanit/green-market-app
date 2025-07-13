@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/community_post.dart';
 import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
+import '../utils/constants.dart';
 import 'package:provider/provider.dart';
 
 class ShareDialog extends StatefulWidget {
@@ -33,70 +34,53 @@ class _ShareDialogState extends State<ShareDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Row(
               children: [
                 const Icon(
-                  Icons.share,
-                  color: Color(0xFF2E7D32),
+                  Icons.ios_share_rounded,
+                  color: AppColors.primaryTeal,
                   size: 28,
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'แชร์โพสต์',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E7D32),
-                  ),
+                  style: AppTextStyles.headline,
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, color: AppColors.graySecondary),
                 ),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            // Share Options
+            const SizedBox(height: 12),
             _buildShareOption(
-              icon: Icons.repeat,
+              icon: Icons.forum_outlined,
               title: 'แชร์ในชุมชนสีเขียว',
               subtitle: 'แชร์โพสต์นี้ในฟีดของคุณ',
               onTap: _shareInCommunity,
             ),
-
-            const SizedBox(height: 12),
-
             _buildShareOption(
-              icon: Icons.link,
+              icon: Icons.link_rounded,
               title: 'คัดลอกลิงก์',
               subtitle: 'คัดลอกลิงก์เพื่อแชร์ภายนอก',
               onTap: _copyLink,
             ),
-
-            const SizedBox(height: 12),
-
             _buildShareOption(
-              icon: Icons.message,
+              icon: Icons.send_outlined,
               title: 'ส่งข้อความ',
               subtitle: 'ส่งให้เพื่อนใน Green Market',
               onTap: _sendMessage,
             ),
-
-            const SizedBox(height: 12),
-
             _buildShareOption(
-              icon: Icons.more_horiz,
+              icon: Icons.more_horiz_rounded,
               title: 'แชร์ภายนอก',
               subtitle: 'แชร์ไปยังแอปอื่น',
               onTap: _shareExternal,
@@ -113,59 +97,32 @@ class _ShareDialogState extends State<ShareDialog> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(AppTheme.smallPadding),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.primaryTeal.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF2E7D32),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
-            ),
-          ],
+        child: Icon(
+          icon,
+          color: AppColors.primaryTeal,
+          size: 24,
         ),
+      ),
+      title: Text(title, style: AppTextStyles.bodyBold),
+      subtitle: Text(
+        subtitle,
+        style: AppTextStyles.caption,
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: AppColors.graySecondary,
+      ),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
     );
   }
@@ -175,7 +132,9 @@ class _ShareDialogState extends State<ShareDialog> {
     if (user == null) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเข้าสู่ระบบก่อน')),
+        const SnackBar(
+            content: Text('กรุณาเข้าสู่ระบบก่อน'),
+            backgroundColor: AppColors.warningAmber),
       );
       return;
     }
@@ -189,7 +148,8 @@ class _ShareDialogState extends State<ShareDialog> {
     if (result != null) {
       Navigator.pop(context);
       setState(() {
-        _isSharing = true;
+        // No need to set loading state here as it's handled in the dialog
+        // _isSharing = true;
       });
 
       try {
@@ -201,13 +161,19 @@ class _ShareDialogState extends State<ShareDialog> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('แชร์โพสต์เรียบร้อยแล้ว')),
+            const SnackBar(
+              content: Text('แชร์โพสต์เรียบร้อยแล้ว'),
+              backgroundColor: AppColors.successGreen,
+            ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาด: $e'),
+              backgroundColor: AppColors.errorRed,
+            ),
           );
         }
       } finally {
@@ -223,7 +189,10 @@ class _ShareDialogState extends State<ShareDialog> {
     Clipboard.setData(ClipboardData(text: postUrl));
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คัดลอกลิงก์เรียบร้อยแล้ว')),
+      const SnackBar(
+        content: Text('คัดลอกลิงก์เรียบร้อยแล้ว'),
+        backgroundColor: AppColors.infoBlue,
+      ),
     );
   }
 
@@ -231,7 +200,10 @@ class _ShareDialogState extends State<ShareDialog> {
     Navigator.pop(context);
     // TODO: Navigate to message screen with post content
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้')),
+      const SnackBar(
+        content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
+        backgroundColor: AppColors.infoBlue,
+      ),
     );
   }
 
@@ -239,7 +211,10 @@ class _ShareDialogState extends State<ShareDialog> {
     Navigator.pop(context);
     // TODO: Implement system share
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้')),
+      const SnackBar(
+        content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
+        backgroundColor: AppColors.infoBlue,
+      ),
     );
   }
 }
@@ -267,53 +242,43 @@ class _ShareWithCommentDialogState extends State<_ShareWithCommentDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
-            const Text(
+            Text(
               'แชร์พร้อมความคิดเห็น',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2E7D32),
-              ),
+              style: AppTextStyles.subtitle,
             ),
-
-            const SizedBox(height: 20),
-
-            // Comment input
+            const SizedBox(height: AppTheme.padding),
             TextField(
               controller: _commentController,
               decoration: InputDecoration(
                 hintText: 'เขียนความคิดเห็นเกี่ยวกับโพสต์นี้...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                  borderSide: const BorderSide(color: AppColors.grayBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2E7D32)),
+                  borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                  borderSide:
+                      const BorderSide(color: AppColors.primaryTeal, width: 2),
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.all(AppTheme.padding),
               ),
               maxLines: 3,
               maxLength: 200,
             ),
-
-            const SizedBox(height: 20),
-
-            // Preview of original post
+            const SizedBox(height: AppTheme.padding),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                color: AppColors.surfaceGray,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                border: Border.all(color: AppColors.grayBorder),
               ),
               child: Row(
                 children: [
@@ -321,7 +286,7 @@ class _ShareWithCommentDialogState extends State<_ShareWithCommentDialog> {
                     width: 4,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32),
+                      color: AppColors.primaryTeal,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -330,20 +295,13 @@ class _ShareWithCommentDialogState extends State<_ShareWithCommentDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.post.userDisplayName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                        Text(widget.post.userDisplayName,
+                            style: AppTextStyles.captionBold),
                         const SizedBox(height: 2),
                         Text(
                           widget.post.content,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[700],
-                          ),
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.graySecondary),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -353,17 +311,15 @@ class _ShareWithCommentDialogState extends State<_ShareWithCommentDialog> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Action buttons
+            const SizedBox(height: AppTheme.largePadding),
             Row(
               children: [
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppTheme.padding - 4),
                     ),
                     child: const Text('ยกเลิก'),
                   ),
@@ -375,11 +331,13 @@ class _ShareWithCommentDialogState extends State<_ShareWithCommentDialog> {
                       Navigator.pop(context, _commentController.text);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E7D32),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: AppColors.primaryTeal,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppTheme.padding - 4),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.borderRadius),
                       ),
                     ),
                     child: const Text('แชร์'),

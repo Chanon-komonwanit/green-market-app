@@ -37,6 +37,36 @@ import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
 class FirebaseService {
+  /// Stream community chats for a user (for chat list)
+  Stream<List<Map<String, dynamic>>> streamCommunityChats(String userId) {
+    return _firestore
+        .collection('community_chats')
+        .where('participants', arrayContains: userId)
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return data;
+            }).toList());
+  }
+
+  /// Get community notifications for a user (for notifications screen)
+  Stream<List<Map<String, dynamic>>> getCommunityNotifications(String userId) {
+    return _firestore
+        .collection('community_notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return data;
+            }).toList());
+  }
+
+  // (Merged with the first definition, avoid duplicate)
+  // Use the first getUserById definition only. If you need to extend, add logic to the first one.
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -1178,6 +1208,22 @@ class FirebaseService {
       return downloadURL;
     } catch (e) {
       logger.e("Error uploading image file: $e");
+      rethrow;
+    }
+  }
+
+  Future<String> uploadVideoFile(File videoFile, String fileName) async {
+    try {
+      final ref = _storage.ref().child('videos/$fileName');
+      final uploadTask = await ref.putFile(
+        videoFile,
+        SettableMetadata(contentType: 'video/mp4'),
+      );
+      final downloadURL = await uploadTask.ref.getDownloadURL();
+      logger.i("Video file uploaded: $downloadURL");
+      return downloadURL;
+    } catch (e) {
+      logger.e("Error uploading video file: $e");
       rethrow;
     }
   }
@@ -2501,7 +2547,7 @@ class FirebaseService {
       final userData = userDoc.data()!;
       final userDisplayName =
           userData['displayName'] ?? userData['name'] ?? 'ผู้ใช้';
-      final userProfileImage = userData['profileImageUrl'];
+      final userProfileImage = userData['photoUrl'];
 
       // สร้างโพสต์ใหม่
       final postRef = _firestore.collection('community_posts').doc();
@@ -2528,6 +2574,40 @@ class FirebaseService {
       return postRef.id;
     } catch (e) {
       logger.e("Error creating community post: $e");
+      rethrow;
+    }
+  }
+
+  /// แก้ไขโพสต์ในชุมชน
+  Future<void> updateCommunityPost({
+    required String postId,
+    required String content,
+    List<String>? imageUrls,
+    String? videoUrl,
+    List<String>? tags,
+  }) async {
+    try {
+      final postRef = _firestore.collection('community_posts').doc(postId);
+
+      final updateData = <String, dynamic>{
+        'content': content,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (imageUrls != null) {
+        updateData['imageUrls'] = imageUrls;
+      }
+      if (videoUrl != null) {
+        updateData['videoUrl'] = videoUrl;
+      }
+      if (tags != null) {
+        updateData['tags'] = tags;
+      }
+
+      await postRef.update(updateData);
+      logger.i("Community post updated: $postId");
+    } catch (e) {
+      logger.e("Error updating community post: $e");
       rethrow;
     }
   }
@@ -2633,9 +2713,8 @@ class FirebaseService {
       }
 
       final userData = userDoc.data()!;
-      final userDisplayName =
-          userData['displayName'] ?? userData['name'] ?? 'ผู้ใช้';
-      final userProfileImage = userData['profileImageUrl'];
+      final userDisplayName = userData['displayName'] ?? 'ผู้ใช้';
+      final userProfileImage = userData['photoUrl'];
 
       await _firestore.runTransaction((transaction) async {
         // สร้างคอมเมนต์ใหม่
@@ -2709,6 +2788,21 @@ class FirebaseService {
         return {'id': doc.id, ...doc.data()};
       }).toList();
     });
+  }
+
+  /// ดึงข้อมูลโพสต์เดียวด้วย ID
+  Future<Map<String, dynamic>?> getCommunityPostById(String postId) async {
+    try {
+      final doc =
+          await _firestore.collection('community_posts').doc(postId).get();
+      if (doc.exists) {
+        return {'id': doc.id, ...doc.data()!};
+      }
+      return null;
+    } catch (e) {
+      logger.e("Error getting community post by ID: $e");
+      return null;
+    }
   }
 
   /// แชร์โพสต์ (สร้างโพสต์ใหม่ที่อ้างอิงโพสต์เดิม)
@@ -3089,6 +3183,32 @@ class FirebaseService {
     } catch (e) {
       logger.e("Error getting orders by seller and status: $e");
       return [];
+    }
+  }
+
+  /// Streams orders for a specific seller, filtered by status.
+  Stream<List<Map<String, dynamic>>> streamOrdersForSellerByStatus(
+      String sellerId, List<String> statuses) {
+    try {
+      Query query = _firestore
+          .collection('orders')
+          .where('sellerIds', arrayContains: sellerId);
+
+      if (statuses.isNotEmpty) {
+        query = query.where('status', whereIn: statuses);
+      }
+
+      return query
+          .orderBy('orderDate', descending: true)
+          .snapshots()
+          .map((snapshot) => snapshot.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['id'] = doc.id;
+                return data;
+              }).toList());
+    } catch (e) {
+      logger.e("Error getting orders by seller and status: $e");
+      return Stream.value([]);
     }
   }
 
