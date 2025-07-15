@@ -839,7 +839,6 @@ class FirebaseService {
   }
 
   // --- News & Articles --- (Commented out until NewsArticle model is available)
-  /*
   Future<void> addNewsArticle(NewsArticle article) async {
     final docId =
         article.id.isEmpty ? generateNewDocId('news_articles') : article.id;
@@ -876,10 +875,10 @@ class FirebaseService {
   }
 
   Future<NewsArticle?> getNewsArticleById(String articleId) async {
-    final doc = await _firestore.collection('news_articles').doc(articleId).get();
+    final doc =
+        await _firestore.collection('news_articles').doc(articleId).get();
     return doc.exists ? NewsArticle.fromMap(doc.data()!, doc.id) : null;
   }
-  */
 
   // --- Notifications ---
   Future<void> sendNotification(AppNotification notification) async {
@@ -1345,6 +1344,28 @@ class FirebaseService {
         .doc(activityId)
         .update({'submissionStatus': 'approved', 'isActive': true});
     logger.i("Sustainable activity $activityId approved");
+
+    // Fetch the approved activity details
+    final activityDoc = await _firestore
+        .collection('sustainable_activities')
+        .doc(activityId)
+        .get();
+    if (activityDoc.exists) {
+      final activityData = activityDoc.data()!;
+      // Create a NewsArticle for the community feed
+      final newsArticle = NewsArticle(
+        id: '', // Let Firestore generate ID
+        title: activityData['title'] ?? 'กิจกรรมใหม่',
+        summary: activityData['description'] ?? '',
+        imageUrl: activityData['imageUrl'],
+        originalUrl: null,
+        source: activityData['organizerName'] ?? '',
+        publishedDate: DateTime.now(),
+        content: activityData['description'] ?? '',
+      );
+      await addNewsArticle(newsArticle);
+      logger.i("Community feed post created for approved activity $activityId");
+    }
   }
 
   Future<void> rejectSustainableActivity(

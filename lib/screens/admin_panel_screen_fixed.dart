@@ -18,6 +18,7 @@ import 'package:green_market/screens/admin/admin_manage_investment_projects_scre
 import 'package:green_market/screens/admin/admin_manage_sustainable_activities_screen.dart';
 import 'package:green_market/screens/admin/dynamic_app_config_screen.dart';
 import 'package:green_market/utils/constants.dart';
+import 'dart:io';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -900,10 +901,72 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('จัดการรูปภาพระบบ'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 400,
-          height: 300,
-          child: Center(child: Text('ฟีเจอร์จัดการรูปภาพระบบ\n(Coming Soon)')),
+          height: 400,
+          child: Column(
+            children: [
+              _selectedBannerImage != null
+                  ? Image.file(
+                      File(_selectedBannerImage!.path),
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    )
+                  : const Text('ยังไม่มีรูปภาพแบนเนอร์'),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.image),
+                label: const Text('เลือกรูปภาพแบนเนอร์'),
+                onPressed: () async {
+                  final picked =
+                      await _picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => _selectedBannerImage = picked);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _selectedLogoImage != null
+                  ? Image.file(
+                      File(_selectedLogoImage!.path),
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    )
+                  : const Text('ยังไม่มีโลโก้'),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.image),
+                label: const Text('เลือกรูปโลโก้'),
+                onPressed: () async {
+                  final picked =
+                      await _picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => _selectedLogoImage = picked);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _selectedBackgroundImage != null
+                  ? Image.file(
+                      File(_selectedBackgroundImage!.path),
+                      width: 120,
+                      height: 60,
+                      fit: BoxFit.cover,
+                    )
+                  : const Text('ยังไม่มีรูปพื้นหลัง'),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.image),
+                label: const Text('เลือกรูปพื้นหลัง'),
+                onPressed: () async {
+                  final picked =
+                      await _picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => _selectedBackgroundImage = picked);
+                  }
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -920,10 +983,24 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ปรับแต่ง UI และสี'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 400,
           height: 300,
-          child: Center(child: Text('ฟีเจอร์ปรับแต่ง UI\n(Coming Soon)')),
+          child: Column(
+            children: [
+              const Text('Floating Action Button Preview:'),
+              const SizedBox(height: 16),
+              FloatingActionButton(
+                onPressed: () {},
+                backgroundColor: _selectedFloatingActionColor,
+                child: Icon(_selectedFloatingActionIcon),
+              ),
+              const SizedBox(height: 24),
+              Text('Icon: ${_selectedFloatingActionIcon.codePoint}'),
+              Text(
+                  'Color: ${_selectedFloatingActionColor.value.toRadixString(16)}'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -940,10 +1017,39 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('จัดการโฆษณาแบนเนอร์'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 400,
-          height: 300,
-          child: Center(child: Text('ฟีเจอร์จัดการโฆษณา\n(Coming Soon)')),
+          height: 350,
+          child: Form(
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _bannerTitleController,
+                  decoration: _inputDecoration('ชื่อแบนเนอร์'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _bannerDescriptionController,
+                  decoration: _inputDecoration('รายละเอียดแบนเนอร์'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _bannerOrderController,
+                  decoration: _inputDecoration('ลำดับแบนเนอร์'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.save),
+                  label: const Text('บันทึกข้อมูลแบนเนอร์'),
+                  onPressed: () {
+                    // TODO: Implement save logic
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(

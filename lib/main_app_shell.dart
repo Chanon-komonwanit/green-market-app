@@ -114,9 +114,9 @@ class _MainAppShellState extends State<MainAppShell> {
     }
 
     // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
-    items.add(BottomNavigationBarItem(
-        icon: Text('🌱', style: TextStyle(fontSize: 24)),
-        activeIcon: Text('🌱', style: TextStyle(fontSize: 24)),
+    items.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.groups_3_rounded, size: 28),
+        activeIcon: Icon(Icons.groups_3_rounded, size: 32),
         label: 'ชุมชนสีเขียว'));
 
     // เพิ่มแท็บสำหรับแอดมิน

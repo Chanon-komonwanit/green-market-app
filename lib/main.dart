@@ -24,6 +24,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/services/firebase_data_seeder.dart';
 import 'package:flutter/foundation.dart';
+import 'package:green_market/screens/investment_hub_screen.dart';
+import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -143,6 +145,16 @@ class MyApp extends StatelessWidget {
                     builder: (_) => EditProductScreen(product: product),
                   );
                 }
+              }
+              if (settings.name == '/investment-hub') {
+                return MaterialPageRoute(
+                  builder: (_) => const InvestmentHubScreen(),
+                );
+              }
+              if (settings.name == '/sustainable-activities-hub') {
+                return MaterialPageRoute(
+                  builder: (_) => const SustainableActivitiesHubScreen(),
+                );
               }
               // หากไม่ตรงกับ route ที่กำหนดไว้ ให้ return null
               return null;

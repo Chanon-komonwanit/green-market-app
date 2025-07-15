@@ -13,6 +13,7 @@ import 'package:green_market/screens/admin/admin_promotion_management_screen.dar
 import 'package:green_market/screens/admin/admin_rewards_management_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/screens/admin/admin_manage_investment_projects_screen.dart';
 import 'package:green_market/screens/admin/admin_manage_sustainable_activities_screen.dart';
@@ -208,10 +209,21 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       length: 13,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            'แผงควบคุมผู้ดูแลระบบ',
-            style: AppTextStyles.title
-                .copyWith(color: AppColors.white, fontSize: 20),
+          title: Row(
+            children: [
+              if (_selectedLogoImage != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: kIsWeb
+                      ? Image.network(_selectedLogoImage!.path, height: 32)
+                      : Image.file(File(_selectedLogoImage!.path), height: 32),
+                ),
+              Text(
+                'แผงควบคุมผู้ดูแลระบบ',
+                style: AppTextStyles.title
+                    .copyWith(color: AppColors.white, fontSize: 20),
+              ),
+            ],
           ),
           backgroundColor: AppColors.primaryTeal,
           iconTheme: const IconThemeData(color: AppColors.white),
@@ -252,22 +264,44 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildAdminDashboard(),
-            _buildProductApprovalTab(),
-            _buildOrderManagementTab(),
-            const AdminCategoryManagementScreen(),
-            const AdminPromotionManagementScreen(),
-            const AdminUserManagementScreen(),
-            const AdminSellerApplicationScreen(),
-            const AdminManageInvestmentProjectsScreen(),
-            const AdminManageSustainableActivitiesScreen(),
-            const AdminRewardsManagementScreen(),
-            const DynamicAppConfigScreen(),
-            _buildSystemManagementTab(),
-            _buildAdditionalAdminToolsTab(),
-          ],
+        body: Container(
+          decoration: _selectedBackgroundImage != null
+              ? BoxDecoration(
+                  image: DecorationImage(
+                    image: kIsWeb
+                        ? NetworkImage(_selectedBackgroundImage!.path)
+                        : FileImage(File(_selectedBackgroundImage!.path))
+                            as ImageProvider,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : null,
+          child: TabBarView(
+            children: [
+              _buildAdminDashboard(),
+              _buildProductApprovalTab(),
+              _buildOrderManagementTab(),
+              const AdminCategoryManagementScreen(),
+              const AdminPromotionManagementScreen(),
+              const AdminUserManagementScreen(),
+              const AdminSellerApplicationScreen(),
+              const AdminManageInvestmentProjectsScreen(),
+              const AdminManageSustainableActivitiesScreen(),
+              const AdminRewardsManagementScreen(),
+              const DynamicAppConfigScreen(),
+              _buildSystemManagementTab(),
+              _buildAdditionalAdminToolsTab(),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Floating Action Button กำลังใช้งาน!')),
+            );
+          },
+          backgroundColor: _selectedFloatingActionColor,
+          child: Icon(_selectedFloatingActionIcon, color: Colors.white),
         ),
       ),
     );
@@ -896,18 +930,84 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   // Dialog methods
   void _showImageManagementDialog() {
+    // TODO (ภาษาไทย):
+    // - เพิ่มปุ่ม "บันทึกโลโก้" และ "บันทึกพื้นหลัง" เพื่ออัปโหลดไฟล์ไปยัง Storage และบันทึก URL ใน Firestore (collection app_config)
+    // - เพิ่มปุ่ม "ลบโลโก้" และ "ลบพื้นหลัง" เพื่อลบรูปภาพที่เลือกและลบข้อมูลใน Firestore
+    // - เพิ่มระบบแจ้งเตือน (Notification) เมื่อมีการเปลี่ยนแปลงข้อมูลสำคัญ
+    // - รองรับหลายภาษา (i18n) ด้วย package flutter_localizations
+    // - เพิ่ม accessibility เช่น alt text, semantic label ให้กับรูปภาพและปุ่มต่าง ๆ
+    // - เชื่อมต่อกับระบบ analytics/logging เพื่อติดตามการใช้งาน admin panel
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('จัดการรูปภาพระบบ'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 400,
-          height: 300,
-          child: Center(child: Text('ฟีเจอร์จัดการรูปภาพระบบ\n(Coming Soon)')),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final picked =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null && mounted) {
+                      setState(() {
+                        _selectedLogoImage = picked;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.image),
+                  label: Text(_selectedLogoImage == null
+                      ? 'เลือกรูปภาพโลโก้'
+                      : 'เปลี่ยนโลโก้'),
+                ),
+                if (_selectedLogoImage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: kIsWeb
+                        ? Image.network(_selectedLogoImage!.path, height: 80)
+                        : Image.file(File(_selectedLogoImage!.path),
+                            height: 80),
+                  ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final picked =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null && mounted) {
+                      setState(() {
+                        _selectedBackgroundImage = picked;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.image),
+                  label: Text(_selectedBackgroundImage == null
+                      ? 'เลือกรูปภาพพื้นหลัง'
+                      : 'เปลี่ยนพื้นหลัง'),
+                ),
+                if (_selectedBackgroundImage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: kIsWeb
+                        ? Image.network(_selectedBackgroundImage!.path,
+                            height: 80)
+                        : Image.file(File(_selectedBackgroundImage!.path),
+                            height: 80),
+                  ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              setState(() {
+                _selectedLogoImage = null;
+                _selectedBackgroundImage = null;
+              });
+              Navigator.pop(context);
+            },
             child: const Text('ปิด'),
           ),
         ],
@@ -940,15 +1040,130 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('จัดการโฆษณาแบนเนอร์'),
-        content: const SizedBox(
+        content: SizedBox(
           width: 400,
-          height: 300,
-          child: Center(child: Text('ฟีเจอร์จัดการโฆษณา\n(Coming Soon)')),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _bannerTitleController,
+                  decoration: _inputDecoration('ชื่อแบนเนอร์'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _bannerDescriptionController,
+                  decoration: _inputDecoration('รายละเอียดแบนเนอร์'),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _bannerOrderController,
+                  decoration: _inputDecoration('ลำดับการแสดง'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final picked =
+                        await _picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null && mounted) {
+                      setState(() {
+                        _selectedBannerImage = picked;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.image),
+                  label: Text(_selectedBannerImage == null
+                      ? 'เลือกรูปภาพแบนเนอร์'
+                      : 'เปลี่ยนรูปภาพ'),
+                ),
+                if (_selectedBannerImage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: kIsWeb
+                        ? Image.network(_selectedBannerImage!.path, height: 120)
+                        : Image.file(
+                            // ต้อง import 'dart:io' ด้านบนไฟล์
+                            // ignore: prefer_const_constructors
+                            File(_selectedBannerImage!.path),
+                            height: 120,
+                          ),
+                  ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ปิด'),
+            onPressed: () {
+              _bannerTitleController.clear();
+              _bannerDescriptionController.clear();
+              _bannerOrderController.clear();
+              setState(() {
+                _selectedBannerImage = null;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_bannerTitleController.text.trim().isEmpty ||
+                  _bannerDescriptionController.text.trim().isEmpty ||
+                  _bannerOrderController.text.trim().isEmpty ||
+                  _selectedBannerImage == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('กรุณากรอกข้อมูลและเลือกรูปภาพให้ครบถ้วน')),
+                );
+                return;
+              }
+
+              final firebaseService =
+                  Provider.of<FirebaseService>(context, listen: false);
+              String? imageUrl;
+              try {
+                var uuid = const Uuid();
+                String extension = _selectedBannerImage!.name.split('.').last;
+                String fileName = 'banner_${uuid.v4()}.$extension';
+                if (kIsWeb) {
+                  final bytes = await _selectedBannerImage!.readAsBytes();
+                  imageUrl = await firebaseService.uploadImageBytes(
+                      'banners', fileName, bytes);
+                } else {
+                  imageUrl = await firebaseService.uploadImage(
+                      'banners', _selectedBannerImage!.path,
+                      fileName: fileName);
+                }
+
+                await FirebaseFirestore.instance.collection('banners').add({
+                  'title': _bannerTitleController.text.trim(),
+                  'description': _bannerDescriptionController.text.trim(),
+                  'order':
+                      int.tryParse(_bannerOrderController.text.trim()) ?? 0,
+                  'imageUrl': imageUrl,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('บันทึกข้อมูลแบนเนอร์เรียบร้อย')),
+                );
+                _bannerTitleController.clear();
+                _bannerDescriptionController.clear();
+                _bannerOrderController.clear();
+                setState(() {
+                  _selectedBannerImage = null;
+                });
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('บันทึก'),
           ),
         ],
       ),

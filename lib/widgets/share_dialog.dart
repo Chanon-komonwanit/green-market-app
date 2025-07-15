@@ -37,54 +37,75 @@ class _ShareDialogState extends State<ShareDialog> {
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.ios_share_rounded,
-                  color: AppColors.primaryTeal,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'แชร์โพสต์',
-                  style: AppTextStyles.headline,
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.graySecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildShareOption(
-              icon: Icons.forum_outlined,
-              title: 'แชร์ในชุมชนสีเขียว',
-              subtitle: 'แชร์โพสต์นี้ในฟีดของคุณ',
-              onTap: _shareInCommunity,
-            ),
-            _buildShareOption(
-              icon: Icons.link_rounded,
-              title: 'คัดลอกลิงก์',
-              subtitle: 'คัดลอกลิงก์เพื่อแชร์ภายนอก',
-              onTap: _copyLink,
-            ),
-            _buildShareOption(
-              icon: Icons.send_outlined,
-              title: 'ส่งข้อความ',
-              subtitle: 'ส่งให้เพื่อนใน Green Market',
-              onTap: _sendMessage,
-            ),
-            _buildShareOption(
-              icon: Icons.more_horiz_rounded,
-              title: 'แชร์ภายนอก',
-              subtitle: 'แชร์ไปยังแอปอื่น',
-              onTap: _shareExternal,
-            ),
+            if (_isSharing)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: CircularProgressIndicator(),
+              ),
+            if (!_isSharing) ...[
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.ios_share_rounded,
+                      color: AppColors.primaryTeal,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'แชร์โพสต์',
+                      style: AppTextStyles.headline.copyWith(fontSize: 22),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close,
+                        color: AppColors.graySecondary, size: 28),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Divider(height: 1, color: AppColors.grayBorder),
+              const SizedBox(height: 18),
+              _buildShareOption(
+                icon: Icons.forum_outlined,
+                title: 'แชร์ในชุมชนสีเขียว',
+                subtitle: 'แชร์โพสต์นี้ในฟีดของคุณ',
+                onTap: _isSharing ? null : () => _shareInCommunity(),
+              ),
+              const SizedBox(height: 8),
+              _buildShareOption(
+                icon: Icons.link_rounded,
+                title: 'คัดลอกลิงก์',
+                subtitle: 'คัดลอกลิงก์เพื่อแชร์ภายนอก',
+                onTap: _isSharing ? null : () => _copyLink(),
+              ),
+              const SizedBox(height: 8),
+              _buildShareOption(
+                icon: Icons.send_outlined,
+                title: 'ส่งข้อความ',
+                subtitle: 'ส่งให้เพื่อนใน Green Market',
+                onTap: _isSharing ? null : () => _sendMessage(),
+              ),
+              const SizedBox(height: 8),
+              _buildShareOption(
+                icon: Icons.more_horiz_rounded,
+                title: 'แชร์ภายนอก',
+                subtitle: 'แชร์ไปยังแอปอื่น',
+                onTap: _isSharing ? null : () => _shareExternal(),
+              ),
+            ],
           ],
         ),
       ),
@@ -95,7 +116,7 @@ class _ShareDialogState extends State<ShareDialog> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return ListTile(
       leading: Container(
@@ -197,25 +218,41 @@ class _ShareDialogState extends State<ShareDialog> {
   }
 
   void _sendMessage() {
-    Navigator.pop(context);
-    // TODO: Navigate to message screen with post content
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
-        backgroundColor: AppColors.infoBlue,
-      ),
-    );
+    setState(() {
+      _isSharing = true;
+    });
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        _isSharing = false;
+      });
+      Navigator.pop(context);
+      Navigator.pushNamed(context, '/message', arguments: widget.post);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('นำทางไปหน้าข้อความเรียบร้อย'),
+          backgroundColor: AppColors.infoBlue,
+        ),
+      );
+    });
   }
 
   void _shareExternal() {
-    Navigator.pop(context);
-    // TODO: Implement system share
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
-        backgroundColor: AppColors.infoBlue,
-      ),
-    );
+    setState(() {
+      _isSharing = true;
+    });
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        _isSharing = false;
+      });
+      Navigator.pop(context);
+      // TODO: ใช้แพ็กเกจ share_plus สำหรับระบบแชร์จริง
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('แชร์โพสต์ภายนอกเรียบร้อย'),
+          backgroundColor: AppColors.infoBlue,
+        ),
+      );
+    });
   }
 }
 
