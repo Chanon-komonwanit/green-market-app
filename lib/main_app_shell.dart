@@ -17,6 +17,7 @@ import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/screens/notifications_center_screen.dart';
 import 'package:green_market/services/notification_service.dart';
+import 'package:green_market/widgets/green_world_icon.dart';
 
 class MainAppShell extends StatefulWidget {
   const MainAppShell({super.key});
@@ -45,15 +46,14 @@ class _MainAppShellState extends State<MainAppShell> {
     List<Widget> pages = [
       const HomeScreen(), // 0. ตลาด (ทุกคน) - จาก home_screen_beautiful.dart
       const MyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications)
+      const GreenCommunityScreen(), // 2. ชุมชนสีเขียว
+      const GreenWorldHubScreen(), // 3. โลกสีเขียว
     ];
 
     // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
     if (userProvider.isSeller) {
       pages.add(const SellerDashboardScreen()); // 2. ร้านค้าของฉัน
     }
-
-    // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
-    pages.add(const GreenCommunityScreen()); // 3. ชุมชนสีเขียว
 
     // เพิ่มแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
@@ -70,15 +70,14 @@ class _MainAppShellState extends State<MainAppShell> {
     List<String> titles = [
       'ตลาด',
       'My Home',
+      'ชุมชนสีเขียว',
+      'โลกสีเขียว',
     ];
 
     // เพิ่มชื่อแท็บสำหรับผู้ขายที่อนุมัติแล้ว
     if (userProvider.isSeller) {
       titles.add('ร้านค้าของฉัน');
     }
-
-    // เพิ่มชื่อแท็บชุมชนสีเขียว (ทุกคน)
-    titles.add('ชุมชนสีเขียว');
 
     // เพิ่มชื่อแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
@@ -89,44 +88,40 @@ class _MainAppShellState extends State<MainAppShell> {
   }
 
   // --- Bottom Navigation Bar Items - Simplified to 3 main tabs ---
-  static const List<BottomNavigationBarItem> _baseNavItems = [
-    BottomNavigationBarItem(
-        icon: Icon(Icons.store_outlined),
-        activeIcon: Icon(Icons.store),
-        label: 'ตลาด'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.home_outlined),
-        activeIcon: Icon(Icons.home),
-        label: 'My Home'),
-  ];
-
   List<BottomNavigationBarItem> _getAllNavItems() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    List<BottomNavigationBarItem> items = _baseNavItems.toList();
-
-    // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
+    List<BottomNavigationBarItem> items = [
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.store_outlined),
+          activeIcon: Icon(Icons.store),
+          label: 'ตลาด'),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'My Home'),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.groups_3_rounded, size: 28),
+          activeIcon: Icon(Icons.groups_3_rounded, size: 32),
+          label: 'ชุมชนสีเขียว'),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.public, color: Colors.green, size: 28),
+          activeIcon: Icon(Icons.public, color: Colors.green, size: 32),
+          label: 'โลกสีเขียว'),
+    ];
     if (userProvider.isSeller) {
       items.add(const BottomNavigationBarItem(
-          icon: Icon(Icons.storefront_outlined),
-          activeIcon: Icon(Icons.storefront),
-          label: 'ร้านค้า'));
+        icon: Icon(Icons.storefront_outlined),
+        activeIcon: Icon(Icons.storefront),
+        label: 'ร้านค้าของฉัน',
+      ));
     }
-
-    // เพิ่มแท็บชุมชนสีเขียว (ทุกคน)
-    items.add(const BottomNavigationBarItem(
-        icon: Icon(Icons.groups_3_rounded, size: 28),
-        activeIcon: Icon(Icons.groups_3_rounded, size: 32),
-        label: 'ชุมชนสีเขียว'));
-
-    // เพิ่มแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
       items.add(const BottomNavigationBarItem(
-          icon: Icon(Icons.admin_panel_settings_outlined),
-          activeIcon: Icon(Icons.admin_panel_settings),
-          label: 'จัดการ'));
+        icon: Icon(Icons.admin_panel_settings_outlined),
+        activeIcon: Icon(Icons.admin_panel_settings),
+        label: 'จัดการระบบ',
+      ));
     }
-
     return items;
   }
 
@@ -235,20 +230,6 @@ class _MainAppShellState extends State<MainAppShell> {
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const GreenWorldHubScreen(),
-            ),
-          );
-        },
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        tooltip: 'เปิดโลกสีเขียว',
-        child: const Icon(Icons.eco), // เปลี่ยนเป็นต้นไม้เล็ก
       ),
     );
   }

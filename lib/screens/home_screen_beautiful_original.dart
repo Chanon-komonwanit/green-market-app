@@ -455,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: const [
                 Row(
                   children: [
-                    GreenWorldIcon(),
+                    Icon(Icons.door_front_door, color: Colors.white, size: 22),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -576,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // TODO: Navigate to investment screen
+                          Navigator.pushNamed(context, '/investment-hub');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -592,7 +592,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // TODO: Navigate to investment info screen
+                          Navigator.pushNamed(context, '/investment-info');
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white),
@@ -690,7 +690,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // TODO: Navigate to community activities screen
+                          Navigator.pushNamed(context, '/community-activities');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -706,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // TODO: Navigate to create activity screen
+                          Navigator.pushNamed(context, '/create-activity');
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white),
@@ -819,7 +819,12 @@ class _HomeScreenState extends State<HomeScreen>
                     const Spacer(),
                     ElevatedButton(
                       onPressed: () {
-                        // TODO: Apply promotion
+                        // ตัวอย่างการใช้โปรโมชั่น
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'ใช้โปรโมชั่น ${promotion.title} เรียบร้อย!')),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,

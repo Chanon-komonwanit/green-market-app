@@ -33,6 +33,10 @@ class AppUser {
   final int consecutiveLoginDays; // เพิ่ม field สำหรับจำนวนวันล็อกอินติดต่อกัน
   final double
       loginRewardProgress; // เพิ่ม field สำหรับ progress การได้รางวัลจากการล็อกอิน (0.0-1.0)
+  final bool? showEmail; // เพิ่ม field สำหรับ visibility
+  final bool? showFacebook;
+  final bool? showInstagram;
+  final bool? showLine;
 
   AppUser({
     required this.id,
@@ -63,6 +67,10 @@ class AppUser {
     this.lastLoginDate, // เพิ่ม field ใน constructor
     this.consecutiveLoginDays = 0, // เพิ่ม field ใน constructor
     this.loginRewardProgress = 0.0, // เพิ่ม field ใน constructor
+    this.showEmail,
+    this.showFacebook,
+    this.showInstagram,
+    this.showLine,
   });
 
   // A derived property for convenience, but the source of truth are the boolean flags.
@@ -112,6 +120,10 @@ class AppUser {
           map['consecutiveLoginDays'] as int? ?? 0, // เพิ่ม field ใน fromMap
       loginRewardProgress: (map['loginRewardProgress'] as num?)?.toDouble() ??
           0.0, // เพิ่ม field ใน fromMap
+      showEmail: map['showEmail'] as bool? ?? false,
+      showFacebook: map['showFacebook'] as bool? ?? false,
+      showInstagram: map['showInstagram'] as bool? ?? false,
+      showLine: map['showLine'] as bool? ?? false,
     );
   }
 
@@ -147,6 +159,10 @@ class AppUser {
           : null, // เพิ่ม field ใน toMap
       'consecutiveLoginDays': consecutiveLoginDays, // เพิ่ม field ใน toMap
       'loginRewardProgress': loginRewardProgress, // เพิ่ม field ใน toMap
+      'showEmail': showEmail ?? false,
+      'showFacebook': showFacebook ?? false,
+      'showInstagram': showInstagram ?? false,
+      'showLine': showLine ?? false,
     };
   }
 
@@ -177,6 +193,10 @@ class AppUser {
     DateTime? lastLoginDate, // เพิ่ม field ใน copyWith
     int? consecutiveLoginDays, // เพิ่ม field ใน copyWith
     double? loginRewardProgress, // เพิ่ม field ใน copyWith
+    bool? showEmail,
+    bool? showFacebook,
+    bool? showInstagram,
+    bool? showLine,
   }) {
     return AppUser(
       id: id,
@@ -212,6 +232,10 @@ class AppUser {
           this.consecutiveLoginDays, // เพิ่ม field ใน copyWith return
       loginRewardProgress: loginRewardProgress ??
           this.loginRewardProgress, // เพิ่ม field ใน copyWith return
+      showEmail: showEmail ?? this.showEmail,
+      showFacebook: showFacebook ?? this.showFacebook,
+      showInstagram: showInstagram ?? this.showInstagram,
+      showLine: showLine ?? this.showLine,
     );
   }
 }

@@ -122,7 +122,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         Row(
                           children: [
                             Icon(
-                              Icons.public,
+                              Icons.door_front_door,
                               size: 16,
                               color: Colors.grey[600],
                             ),

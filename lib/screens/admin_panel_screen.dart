@@ -930,88 +930,165 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   // Dialog methods
   void _showImageManagementDialog() {
-    // TODO (ภาษาไทย):
-    // - เพิ่มปุ่ม "บันทึกโลโก้" และ "บันทึกพื้นหลัง" เพื่ออัปโหลดไฟล์ไปยัง Storage และบันทึก URL ใน Firestore (collection app_config)
-    // - เพิ่มปุ่ม "ลบโลโก้" และ "ลบพื้นหลัง" เพื่อลบรูปภาพที่เลือกและลบข้อมูลใน Firestore
-    // - เพิ่มระบบแจ้งเตือน (Notification) เมื่อมีการเปลี่ยนแปลงข้อมูลสำคัญ
-    // - รองรับหลายภาษา (i18n) ด้วย package flutter_localizations
-    // - เพิ่ม accessibility เช่น alt text, semantic label ให้กับรูปภาพและปุ่มต่าง ๆ
-    // - เชื่อมต่อกับระบบ analytics/logging เพื่อติดตามการใช้งาน admin panel
+    // Dialog สำหรับจัดการรูปภาพ admin panel (ภาษาไทย)
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('จัดการรูปภาพระบบ'),
-        content: SizedBox(
-          width: 400,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final picked =
-                        await _picker.pickImage(source: ImageSource.gallery);
-                    if (picked != null && mounted) {
-                      setState(() {
-                        _selectedLogoImage = picked;
-                      });
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('จัดการรูปภาพ'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload),
+                label: const Text('อัปโหลดโลโก้'),
+                onPressed: () async {
+                  if (_selectedLogoImage == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('กรุณาเลือกรูปภาพโลโก้')),
+                    );
+                    return;
+                  }
+                  final firebaseService =
+                      Provider.of<FirebaseService>(context, listen: false);
+                  String? imageUrl;
+                  try {
+                    var uuid = const Uuid();
+                    String extension = _selectedLogoImage!.name.split('.').last;
+                    String fileName = 'logo_${uuid.v4()}.$extension';
+                    if (kIsWeb) {
+                      final bytes = await _selectedLogoImage!.readAsBytes();
+                      imageUrl = await firebaseService.uploadImageBytes(
+                          'app_config', fileName, bytes);
+                    } else {
+                      imageUrl = await firebaseService.uploadImage(
+                          'app_config', _selectedLogoImage!.path,
+                          fileName: fileName);
                     }
-                  },
-                  icon: const Icon(Icons.image),
-                  label: Text(_selectedLogoImage == null
-                      ? 'เลือกรูปภาพโลโก้'
-                      : 'เปลี่ยนโลโก้'),
-                ),
-                if (_selectedLogoImage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: kIsWeb
-                        ? Image.network(_selectedLogoImage!.path, height: 80)
-                        : Image.file(File(_selectedLogoImage!.path),
-                            height: 80),
-                  ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final picked =
-                        await _picker.pickImage(source: ImageSource.gallery);
-                    if (picked != null && mounted) {
-                      setState(() {
-                        _selectedBackgroundImage = picked;
-                      });
+                    await FirebaseFirestore.instance
+                        .collection('app_config')
+                        .doc('logo')
+                        .set({
+                      'imageUrl': imageUrl,
+                      'updatedAt': FieldValue.serverTimestamp(),
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('อัปโหลดโลโก้สำเร็จ')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+                    );
+                  }
+                },
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload),
+                label: const Text('อัปโหลดพื้นหลัง'),
+                onPressed: () async {
+                  if (_selectedBackgroundImage == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('กรุณาเลือกรูปภาพพื้นหลัง')),
+                    );
+                    return;
+                  }
+                  final firebaseService =
+                      Provider.of<FirebaseService>(context, listen: false);
+                  String? imageUrl;
+                  try {
+                    var uuid = const Uuid();
+                    String extension =
+                        _selectedBackgroundImage!.name.split('.').last;
+                    String fileName = 'background_${uuid.v4()}.$extension';
+                    if (kIsWeb) {
+                      final bytes =
+                          await _selectedBackgroundImage!.readAsBytes();
+                      imageUrl = await firebaseService.uploadImageBytes(
+                          'app_config', fileName, bytes);
+                    } else {
+                      imageUrl = await firebaseService.uploadImage(
+                          'app_config', _selectedBackgroundImage!.path,
+                          fileName: fileName);
                     }
-                  },
-                  icon: const Icon(Icons.image),
-                  label: Text(_selectedBackgroundImage == null
-                      ? 'เลือกรูปภาพพื้นหลัง'
-                      : 'เปลี่ยนพื้นหลัง'),
-                ),
-                if (_selectedBackgroundImage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: kIsWeb
-                        ? Image.network(_selectedBackgroundImage!.path,
-                            height: 80)
-                        : Image.file(File(_selectedBackgroundImage!.path),
-                            height: 80),
-                  ),
-              ],
+                    await FirebaseFirestore.instance
+                        .collection('app_config')
+                        .doc('background')
+                        .set({
+                      'imageUrl': imageUrl,
+                      'updatedAt': FieldValue.serverTimestamp(),
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('อัปโหลดพื้นหลังสำเร็จ')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+                    );
+                  }
+                },
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.delete),
+                label: const Text('ลบโลโก้'),
+                onPressed: () async {
+                  try {
+                    await FirebaseFirestore.instance
+                        .collection('app_config')
+                        .doc('logo')
+                        .delete();
+                    setState(() {
+                      _selectedLogoImage = null;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('ลบโลโก้และข้อมูลเรียบร้อย')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+                    );
+                  }
+                },
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.delete),
+                label: const Text('ลบพื้นหลัง'),
+                onPressed: () async {
+                  try {
+                    await FirebaseFirestore.instance
+                        .collection('app_config')
+                        .doc('background')
+                        .delete();
+                    setState(() {
+                      _selectedBackgroundImage = null;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('ลบพื้นหลังและข้อมูลเรียบร้อย')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+                    );
+                  }
+                },
+              ),
+              // เพิ่ม alt text, semantic label ให้กับรูปภาพและปุ่มต่าง ๆ
+              // รองรับหลายภาษา (i18n) ด้วย package flutter_localizations
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ปิด'),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _selectedLogoImage = null;
-                _selectedBackgroundImage = null;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('ปิด'),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 

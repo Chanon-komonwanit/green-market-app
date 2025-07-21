@@ -40,6 +40,7 @@ dependencies: # Corrected: Already correct
   url_launcher: ^6.3.0 # Latest stable
   carousel_slider: ^5.0.0 # Updated to latest version
   google_sign_in: ^6.2.1 # For Google Sign-In
+  share_plus: ^7.2.1 # For sharing posts
 
   rxdart: ^0.28.0 # Latest stable
   logger: ^2.3.0 # Latest stable
@@ -48,6 +49,7 @@ dependencies: # Corrected: Already correct
   timeago: ^3.6.1 # For time formatting
   qr_flutter: ^4.1.0 # For QR code generation
   shared_preferences: ^2.2.2 # For storing theme preferences
+  shimmer: ^3.0.0 # For shimmer loading effect
 dev_dependencies:
   flutter_test:
     sdk: flutter

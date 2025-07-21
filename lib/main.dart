@@ -1,6 +1,14 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'screens/search_screen.dart';
+import 'screens/flash_sale_screen.dart';
+import 'screens/category_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/order_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/payment_screen.dart';
+import 'models/order.dart';
 import 'package:green_market/screens/notifications_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -155,6 +163,62 @@ class MyApp extends StatelessWidget {
                 return MaterialPageRoute(
                   builder: (_) => const SustainableActivitiesHubScreen(),
                 );
+              }
+              if (settings.name == '/search') {
+                return MaterialPageRoute(
+                  builder: (_) => const SearchScreen(),
+                );
+              }
+              if (settings.name == '/flash-sale') {
+                return MaterialPageRoute(
+                  builder: (_) => FlashSaleScreen(),
+                );
+              }
+              if (settings.name == '/categories') {
+                return MaterialPageRoute(
+                  builder: (_) => CategoryScreen(),
+                );
+              }
+              if (settings.name == '/notifications') {
+                return MaterialPageRoute(
+                  builder: (_) => NotificationScreen(),
+                );
+              }
+              if (settings.name == '/orders') {
+                final userId = settings.arguments as String?;
+                if (userId != null) {
+                  return MaterialPageRoute(
+                    builder: (_) => OrderScreen(userId: userId),
+                  );
+                }
+              }
+              if (settings.name == '/chat') {
+                final args = settings.arguments as Map<String, dynamic>?;
+                if (args != null &&
+                    args['productId'] != null &&
+                    args['productName'] != null &&
+                    args['productImageUrl'] != null &&
+                    args['buyerId'] != null &&
+                    args['sellerId'] != null) {
+                  return MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      chatId: args['chatId'],
+                      productId: args['productId'],
+                      productName: args['productName'],
+                      productImageUrl: args['productImageUrl'],
+                      buyerId: args['buyerId'],
+                      sellerId: args['sellerId'],
+                    ),
+                  );
+                }
+              }
+              if (settings.name == '/payment') {
+                final order = settings.arguments as Order?;
+                if (order != null) {
+                  return MaterialPageRoute(
+                    builder: (_) => PaymentScreen(order: order),
+                  );
+                }
               }
               // หากไม่ตรงกับ route ที่กำหนดไว้ ให้ return null
               return null;

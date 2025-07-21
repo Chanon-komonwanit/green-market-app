@@ -28,6 +28,24 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
+  // ฟังก์ชันบันทึกข้อมูลแบนเนอร์ (ตัวอย่างเบื้องต้น สามารถปรับปรุง logic เพิ่มเติมได้)
+  void saveData() async {
+    // ตัวอย่าง: บันทึกข้อมูล Banner ไปยัง Firestore จริง
+    final bannerData = {
+      'title': _bannerTitleController.text,
+      'description': _bannerDescriptionController.text,
+      'order': int.tryParse(_bannerOrderController.text) ?? 0,
+      'imagePath': _selectedBannerImage?.path ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+    await FirebaseFirestore.instance.collection('banners').add(bannerData);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('บันทึกข้อมูลแบนเนอร์สำเร็จ!')),
+      );
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -1043,7 +1061,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   icon: const Icon(Icons.save),
                   label: const Text('บันทึกข้อมูลแบนเนอร์'),
                   onPressed: () {
-                    // TODO: Implement save logic
+                    saveData(); // ฟังก์ชันบันทึกข้อมูล (ต้องสร้างเพิ่มถ้ายังไม่มี)
                     Navigator.pop(context);
                   },
                 ),

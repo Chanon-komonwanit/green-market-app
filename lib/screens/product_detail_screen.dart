@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/seller.dart';
 import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
@@ -129,6 +130,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          Builder(
+            builder: (context) {
+              final user =
+                  Provider.of<UserProvider>(context, listen: false).currentUser;
+              if (user == null || user.id == widget.product.sellerId) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: const Icon(Icons.chat_bubble_outline),
+                tooltip: 'แชทกับผู้ขาย',
+                onPressed: () {
+                  Navigator.of(context).pushNamed(
+                    '/chat',
+                    arguments: {
+                      'productId': widget.product.id,
+                      'productName': widget.product.name,
+                      'productImageUrl': widget.product.imageUrls.isNotEmpty
+                          ? widget.product.imageUrls.first
+                          : '',
+                      'buyerId': user.id,
+                      'sellerId': widget.product.sellerId,
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

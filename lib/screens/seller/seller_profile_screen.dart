@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
@@ -621,11 +622,13 @@ class _EnhancedAddReviewFormState extends State<EnhancedAddReviewForm> {
                             // TODO: อัปโหลดรูปภาพไปยัง Firebase Storage และได้ URLs
                             List<String> imageUrls = [];
                             if (_selectedImages.isNotEmpty) {
-                              // สำหรับ Demo ใช้ placeholder URLs
-                              imageUrls = _selectedImages
-                                  .map((img) =>
-                                      'https://via.placeholder.com/150?text=Review+Image')
-                                  .toList();
+                              for (final img in _selectedImages) {
+                                final ref = FirebaseStorage.instance.ref().child(
+                                    'review_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+                                await ref.putFile(img);
+                                final url = await ref.getDownloadURL();
+                                imageUrls.add(url);
+                              }
                             }
 
                             await FirebaseFirestore.instance
@@ -1241,7 +1244,16 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // TODO: เชื่อมต่อ backend เพื่อบันทึกข้อมูลจริง
+              // เชื่อมต่อ backend เพื่อบันทึกข้อมูลจริง
+              await FirebaseFirestore.instance
+                  .collection('shops')
+                  .doc(seller.id)
+                  .update({
+                'shopName': nameController.text,
+                'shopDescription': descController.text,
+                'website': websiteController.text,
+                'socialMediaLink': socialController.text,
+              });
               setState(() {
                 _seller = Seller(
                   id: seller.id,
@@ -1601,8 +1613,18 @@ class _ReviewModerationDialogState extends State<ReviewModerationDialog> {
   Future<void> _reportReview() async {
     setState(() => _loading = true);
     try {
-      // TODO: Implement review reporting system
-      await Future.delayed(const Duration(seconds: 1)); // Demo delay
+      // ระบบรายงานรีวิว: เพิ่มข้อมูลไปยัง Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw 'กรุณาเข้าสู่ระบบ';
+      await FirebaseFirestore.instance.collection('review_reports').add({
+        'reviewId': widget.review['id'],
+        'shopId': widget.review['shopId'],
+        'userId': user.uid,
+        'userName': user.displayName ?? '',
+        'reason': 'รายงานรีวิว',
+        'comment': widget.review['comment'],
+        'date': Timestamp.now(),
+      });
       ReviewNotificationManager.showReviewNotification(
           context, 'success', 'รายงานรีวิวเรียบร้อย');
       widget.onAction();

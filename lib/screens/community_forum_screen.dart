@@ -479,10 +479,84 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
   }
 
   void _showComments(String postId) {
-    // TODO: Implement comments functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('ฟีเจอร์ความคิดเห็นจะเปิดให้ใช้งานเร็วๆ นี้')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        final TextEditingController commentController = TextEditingController();
+        return Padding(
+          padding: MediaQuery.of(context).viewInsets,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              const Text('คอมเมนต์',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('forum_posts')
+                    .doc(postId)
+                    .collection('comments')
+                    .orderBy('createdAt', descending: false)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final comments = snapshot.data!.docs;
+                  return SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final c =
+                            comments[index].data() as Map<String, dynamic>;
+                        return ListTile(
+                          title: Text(c['text'] ?? ''),
+                          subtitle: Text(c['userName'] ?? ''),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: commentController,
+                        decoration:
+                            const InputDecoration(hintText: 'เขียนคอมเมนต์...'),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () async {
+                        final text = commentController.text.trim();
+                        if (text.isNotEmpty) {
+                          await FirebaseFirestore.instance
+                              .collection('forum_posts')
+                              .doc(postId)
+                              .collection('comments')
+                              .add({
+                            'text': text,
+                            'userName':
+                                'Guest', // ปรับเป็นชื่อผู้ใช้จริงถ้ามีระบบ auth
+                            'createdAt': FieldValue.serverTimestamp(),
+                          });
+                          commentController.clear();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

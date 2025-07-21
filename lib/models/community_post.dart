@@ -1,5 +1,6 @@
 // lib/models/community_post.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class CommunityPost {
   final String id;
@@ -42,22 +43,58 @@ class CommunityPost {
 
   // Factory constructor from Firestore document
   factory CommunityPost.fromMap(Map<String, dynamic> map, [String? docId]) {
-    return CommunityPost(
-      id: docId ?? map['id'] ?? '',
-      userId: map['userId'] ?? '',
-      userDisplayName: map['userDisplayName'] ?? '',
-      userProfileImage: map['userProfileImage'],
-      content: map['content'] ?? '',
-      imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      videoUrl: map['videoUrl'],
-      likes: List<String>.from(map['likes'] ?? []),
-      commentCount: map['commentCount'] ?? 0,
-      shareCount: map['shareCount'] ?? 0,
-      createdAt: map['createdAt'] ?? Timestamp.now(),
-      updatedAt: map['updatedAt'],
-      isActive: map['isActive'] ?? true,
-      tags: List<String>.from(map['tags'] ?? []),
-    );
+    List<String> safeStringList(dynamic value, String field) {
+      try {
+        if (value == null) return [];
+        if (value is List<String>) return value;
+        if (value is List) {
+          return value
+              .map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        return [];
+      } catch (e) {
+        throw Exception('Field "$field" type error: $e, value=$value');
+      }
+    }
+
+    Timestamp safeTimestamp(dynamic value, String field) {
+      try {
+        if (value is Timestamp) return value;
+        if (value is DateTime) return Timestamp.fromDate(value);
+        return Timestamp.now();
+      } catch (e) {
+        throw Exception('Field "$field" type error: $e, value=$value');
+      }
+    }
+
+    try {
+      return CommunityPost(
+        id: docId ?? map['id']?.toString() ?? '',
+        userId: map['userId']?.toString() ?? '',
+        userDisplayName: map['userDisplayName']?.toString() ?? '',
+        userProfileImage: map['userProfileImage']?.toString(),
+        content: map['content']?.toString() ?? '',
+        imageUrls: safeStringList(map['imageUrls'], 'imageUrls'),
+        videoUrl: map['videoUrl']?.toString(),
+        likes: safeStringList(map['likes'], 'likes'),
+        commentCount: (map['commentCount'] is int)
+            ? map['commentCount']
+            : int.tryParse(map['commentCount']?.toString() ?? '') ?? 0,
+        shareCount: (map['shareCount'] is int)
+            ? map['shareCount']
+            : int.tryParse(map['shareCount']?.toString() ?? '') ?? 0,
+        createdAt: safeTimestamp(map['createdAt'], 'createdAt'),
+        updatedAt: map['updatedAt'] is Timestamp ? map['updatedAt'] : null,
+        isActive: map['isActive'] is bool ? map['isActive'] : true,
+        tags: safeStringList(map['tags'], 'tags'),
+      );
+    } catch (e, stack) {
+      // log รายละเอียด error พร้อมข้อมูล map
+      debugPrint('CommunityPost.fromMap ERROR: $e\n$stack\nmap=$map');
+      rethrow;
+    }
   }
 
   // Convert to Map for Firestore

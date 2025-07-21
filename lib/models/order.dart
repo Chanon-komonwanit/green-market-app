@@ -1,4 +1,3 @@
-// lib/models/order.dart
 import 'package:cloud_firestore/cloud_firestore.dart'; // สำหรับ Timestamp
 import 'package:green_market/models/order_item.dart'; // สำหรับ OrderItem model (assuming this model exists)
 
@@ -62,6 +61,18 @@ class Order {
     this.deliveredAt,
     this.updatedAt,
   });
+
+  // Factory for Firestore DocumentSnapshot
+  factory Order.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Order.fromMap({
+      ...data,
+      'id': doc.id, // Use Firestore doc ID
+    });
+  }
+
+  // Getter for total (for PaymentScreen compatibility)
+  double get total => totalAmount;
 
   // ใช้สำหรับแปลงจาก Map (ที่มาจาก Firestore) ไปเป็น Order object
   factory Order.fromMap(Map<String, dynamic> data) {

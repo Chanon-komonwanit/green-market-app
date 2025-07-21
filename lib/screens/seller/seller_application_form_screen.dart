@@ -73,18 +73,25 @@ class _SellerApplicationFormScreenState
                           setState(() => _isSubmitting = true);
 
                           try {
-                            // ส่งข้อมูลการสมัครไปยัง Firebase
-                            // final firebaseService = Provider.of<FirebaseService>(context, listen: false);
-
-                            // TODO: เพิ่มการส่งข้อมูลการสมัครเป็นผู้ขาย
-                            // await firebaseService.submitSellerApplication(_shopName, _contactEmail, _phoneNumber);
-                            await Future.delayed(const Duration(
-                                seconds: 2)); // จำลองการส่งข้อมูล
+                            final firebaseService =
+                                Provider.of<FirebaseService>(context,
+                                    listen: false);
+                            final userProvider = Provider.of<UserProvider>(
+                                context,
+                                listen: false);
+                            final userId = userProvider.currentUser?.id;
+                            if (userId == null) {
+                              throw Exception('ไม่พบข้อมูลผู้ใช้');
+                            }
+                            await firebaseService.submitSellerApplication(
+                              userId: userId,
+                              shopName: _shopName,
+                              contactEmail: _contactEmail,
+                              phoneNumber: _phoneNumber,
+                            );
 
                             if (mounted) {
                               setState(() => _isSubmitting = false);
-
-                              // แสดงข้อความสำเร็จ
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -92,8 +99,6 @@ class _SellerApplicationFormScreenState
                                   backgroundColor: Colors.green,
                                 ),
                               );
-
-                              // กลับไปหน้าก่อนหน้า
                               Navigator.pop(context);
                             }
                           } catch (e) {

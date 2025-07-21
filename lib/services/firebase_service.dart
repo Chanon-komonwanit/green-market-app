@@ -37,6 +37,38 @@ import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
 class FirebaseService {
+  /// Get new products for a specific seller (สินค้าใหม่)
+  Future<List<Product>> getNewProductsBySeller(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('createdAt', descending: true)
+        .limit(10)
+        .get();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+  }
+
+  /// Get best seller products for a specific seller (สินค้าขายดี)
+  Future<List<Product>> getBestSellerProductsBySeller(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('soldCount', descending: true)
+        .limit(10)
+        .get();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+  }
+
+  /// Get approved products for a specific seller (for seller shop page)
+  Future<List<Product>> getApprovedProductsBySeller(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('isApproved', isEqualTo: true)
+        .get();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+  }
+
   /// Stream community chats for a user (for chat list)
   Stream<List<Map<String, dynamic>>> streamCommunityChats(String userId) {
     return _firestore
@@ -3326,5 +3358,30 @@ class FirebaseService {
       logger.e("Error getting tracking events: $e");
       return [];
     }
+  }
+
+  Future<List<Product>> getFeaturedProductsBySeller(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('isFeatured', isEqualTo: true)
+        .get();
+    return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+  }
+
+  Future<Map<String, dynamic>> getShopReviewSummary(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('shop_reviews')
+        .where('sellerId', isEqualTo: sellerId)
+        .get();
+    double totalRating = 0;
+    int count = snapshot.docs.length;
+    for (var doc in snapshot.docs) {
+      totalRating += (doc.data()['rating'] as num?)?.toDouble() ?? 0.0;
+    }
+    return {
+      'rating': count > 0 ? totalRating / count : 0.0,
+      'count': count,
+    };
   }
 }

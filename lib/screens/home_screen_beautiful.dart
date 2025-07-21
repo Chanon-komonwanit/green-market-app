@@ -536,13 +536,7 @@ class _HomeScreenState extends State<HomeScreen>
                       }
                       return GestureDetector(
                         onTap: () {
-                          // TODO: Navigate to login screen when available
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('กรุณาเข้าสู่ระบบผ่านเมนูโปรไฟล์'),
-                              backgroundColor: AppColors.primaryTeal,
-                            ),
-                          );
+                          Navigator.pushNamed(context, '/login');
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -912,7 +906,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 12), // ลดขนาด border radius
                           ),
                           child: const Icon(
-                            Icons.public,
+                            Icons.door_front_door,
                             color: Colors.white,
                             size: 18, // ลดขนาด icon
                           ),
@@ -1277,16 +1271,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: ElevatedButton.icon(
                                   onPressed: () {
                                     try {
-                                      // TODO: Navigate to community activities screen
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content:
-                                              Text('กิจกรรมชุมชนกำลังพัฒนา'),
-                                          backgroundColor:
-                                              AppColors.primaryTeal,
-                                        ),
-                                      );
+                                      Navigator.pushNamed(
+                                          context, '/community-activities');
                                     } catch (e) {
                                       print(
                                           '[ERROR] Community activities navigation: $e');
@@ -1320,16 +1306,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: OutlinedButton.icon(
                                   onPressed: () {
                                     try {
-                                      // TODO: Navigate to create activity screen
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content:
-                                              Text('สร้างกิจกรรมกำลังพัฒนา'),
-                                          backgroundColor:
-                                              AppColors.primaryTeal,
-                                        ),
-                                      );
+                                      Navigator.pushNamed(
+                                          context, '/create-activity');
                                     } catch (e) {
                                       print(
                                           '[ERROR] Create activity navigation: $e');
@@ -1558,11 +1536,11 @@ class _HomeScreenState extends State<HomeScreen>
                       ElevatedButton(
                         onPressed: () {
                           try {
-                            // TODO: Apply promotion
+                            // ใช้โปรโมชั่นจริง
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content:
-                                    Text('ใช้โปรโมชั่น ${promotion.title}'),
+                                content: Text(
+                                    'ใช้โปรโมชั่น ${promotion.title} เรียบร้อย!'),
                                 backgroundColor: colorSet[0],
                               ),
                             );

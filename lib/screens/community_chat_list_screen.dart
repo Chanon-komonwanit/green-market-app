@@ -18,6 +18,26 @@ class CommunityChatListScreen extends StatefulWidget {
 }
 
 class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+
+    final now = DateTime.now();
+    final time = timestamp.toDate();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) {
+      return 'เมื่อสักครู่';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes} นาที';
+    } else if (difference.inDays < 1) {
+      return DateFormat('HH:mm').format(time);
+    } else if (difference.inDays < 7) {
+      return DateFormat('E', 'th').format(time);
+    } else {
+      return DateFormat('dd/MM').format(time);
+    }
+  }
+
   final FirebaseService _firebaseService = FirebaseService();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -31,7 +51,6 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = context.watch<UserProvider>().currentUser;
-
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(
@@ -146,7 +165,7 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
                 }
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+                    child: Text('เกิดข้อผิดพลาด: {snapshot.error}'),
                   );
                 }
                 final allChats = snapshot.data ?? [];
@@ -214,7 +233,7 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
 
   Widget _buildChatItem(Map<String, dynamic> chatData, String currentUserId) {
     final chatId = chatData['id'] as String;
-    // ใช้ chatId ในอนาคตสำหรับฟีเจอร์เพิ่มเติม เช่น pin, mute, ฯลฯ
+    // ใช้ chatId ใน UI: แสดง tooltip, ใช้เป็น key, และเตรียมสำหรับฟีเจอร์ pin/mute/ลบแชทในอนาคต
     final participants = List<String>.from(chatData['participants'] ?? []);
     final otherUserId =
         participants.firstWhere((id) => id != currentUserId, orElse: () => '');
@@ -226,8 +245,7 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
     final otherUserInfo =
         participantInfo[otherUserId] as Map<String, dynamic>? ?? {};
 
-    final otherUserName = otherUserInfo['displayName'] as String? ??
-        '\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49';
+    final otherUserName = otherUserInfo['displayName'] as String? ?? 'ผู้ใช้';
     final otherUserPhoto = otherUserInfo['photoUrl'] as String?;
 
     final lastMessage = chatData['lastMessage'] as String? ?? '';
@@ -236,102 +254,87 @@ class _CommunityChatListScreenState extends State<CommunityChatListScreen> {
     final isUnread = lastMessageSender != currentUserId;
 
     return Card(
+      key: ValueKey(chatId),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 25,
-          backgroundColor: AppColors.primaryTeal.withOpacity(0.2),
-          backgroundImage:
-              otherUserPhoto != null ? NetworkImage(otherUserPhoto) : null,
-          child: otherUserPhoto == null
-              ? Text(
-                  otherUserName.isNotEmpty
-                      ? otherUserName[0].toUpperCase()
-                      : 'U',
-                  style: AppTextStyles.headline
-                      .copyWith(color: AppColors.primaryTeal, fontSize: 20),
-                )
-              : null,
-        ),
-        title: Text(
-          otherUserName,
-          style: isUnread ? AppTextStyles.bodyBold : AppTextStyles.body,
-        ),
-        subtitle: Text(
-          lastMessage.isNotEmpty
-              ? lastMessage
-              : '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21',
-          style: AppTextStyles.bodySmall.copyWith(
-            color: isUnread ? AppColors.primaryTeal : AppColors.graySecondary,
-            fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
+      child: Tooltip(
+        message: 'Chat ID: $chatId',
+        child: ListTile(
+          leading: CircleAvatar(
+            radius: 25,
+            backgroundColor: AppColors.primaryTeal.withOpacity(0.2),
+            backgroundImage:
+                otherUserPhoto != null ? NetworkImage(otherUserPhoto) : null,
+            child: otherUserPhoto == null
+                ? Text(
+                    otherUserName.isNotEmpty
+                        ? otherUserName[0].toUpperCase()
+                        : 'U',
+                    style: AppTextStyles.headline
+                        .copyWith(color: AppColors.primaryTeal, fontSize: 20),
+                  )
+                : null,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              _formatTimestamp(lastMessageTime),
-              style: AppTextStyles.caption.copyWith(
-                color:
-                    isUnread ? AppColors.primaryTeal : AppColors.graySecondary,
-                fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-              ),
+          title: Text(
+            otherUserName,
+            style: isUnread ? AppTextStyles.bodyBold : AppTextStyles.body,
+          ),
+          subtitle: Text(
+            lastMessage.isNotEmpty ? lastMessage : 'ยังไม่มีข้อความ',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: isUnread ? AppColors.primaryTeal : AppColors.graySecondary,
+              fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
             ),
-            if (isUnread) ...[
-              const SizedBox(height: 4),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  shape: BoxShape.circle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _formatTimestamp(lastMessageTime),
+                style: AppTextStyles.caption.copyWith(
+                  color: isUnread
+                      ? AppColors.primaryTeal
+                      : AppColors.graySecondary,
+                  fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
-            ],
-          ],
-        ),
-        onTap: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CommunityChatScreen(
-                  otherUserId: otherUserId,
-                  otherUserName: otherUserName,
-                  otherUserPhoto: otherUserPhoto,
+              if (isUnread) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryTeal,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ));
-        },
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              ],
+            ],
+          ),
+          onTap: () {
+            // ตัวอย่างการใช้งาน chatId ใน logic เพิ่มเติม เช่น pin/mute/ลบแชทในอนาคต
+            // print('Chat tapped: $chatId');
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommunityChatScreen(
+                    otherUserId: otherUserId,
+                    otherUserName: otherUserName,
+                    otherUserPhoto: otherUserPhoto,
+                  ),
+                ));
+          },
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+          ),
+          tileColor: isUnread
+              ? AppColors.primaryTeal.withOpacity(0.05)
+              : AppColors.white,
         ),
-        tileColor: isUnread
-            ? AppColors.primaryTeal.withOpacity(0.05)
-            : AppColors.white,
       ),
     );
-  }
-
-  String _formatTimestamp(Timestamp? timestamp) {
-    if (timestamp == null) return '';
-
-    final now = DateTime.now();
-    final time = timestamp.toDate();
-    final difference = now.difference(time);
-
-    if (difference.inMinutes < 1) {
-      return 'เมื่อสักครู่';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes} นาที';
-    } else if (difference.inDays < 1) {
-      return DateFormat('HH:mm').format(time);
-    } else if (difference.inDays < 7) {
-      return DateFormat('E', 'th').format(time);
-    } else {
-      return DateFormat('dd/MM').format(time);
-    }
   }
 
   void _showNewChatDialog() {

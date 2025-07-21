@@ -160,7 +160,6 @@ class _AdminActivityReportsScreenState
           report['activityId'] ?? ''); // Assuming this method exists
       if (activity != null) {
         if (context.mounted) {
-          // TODO: Create SustainableActivityDetailScreen that accepts Map
           Navigator.push(
             context,
             MaterialPageRoute(

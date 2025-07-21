@@ -346,10 +346,11 @@ class AdminPromotionManagementScreen extends StatelessWidget {
                     try {
                       final newPromo = Promotion(
                         id: promotion?.id ?? '',
+                        sellerId: 'admin', // ระบุว่าโปรนี้สร้างโดยแอดมิน
                         title: titleController.text.trim(),
                         code: codeController.text.trim(),
                         description: descriptionController.text.trim(),
-                        image: '', // TODO: เพิ่ม image picker สำหรับโปรโมชั่น
+                        image: selectedImageUrl,
                         discountType: selectedDiscountType!,
                         discountValue:
                             double.parse(discountController.text.trim()),

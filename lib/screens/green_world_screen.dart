@@ -14,7 +14,7 @@ class GreenWorldScreen extends StatelessWidget {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.public, color: Color(0xFF14B8A6), size: 30),
+            Icon(Icons.door_front_door, color: Color(0xFF14B8A6), size: 30),
             SizedBox(width: 10),
             Text(
               'เปิดโลกสีเขียว',
@@ -245,7 +245,7 @@ class GreenWorldScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _InvestmentTypeCard(
-                      icon: Icons.public,
+                      icon: Icons.door_front_door,
                       color: Color(0xFF3B82F6),
                       title: 'หุ้นยั่งยืน',
                       enabled: false,
@@ -264,7 +264,58 @@ class GreenWorldScreen extends StatelessWidget {
                   Spacer(),
                 ],
               ),
-              // TODO: Add more animation, connect to real data, polish further
+              // Animation: Fade-in ป้ายเร็วๆนี้
+              Row(
+                children: const [
+                  Spacer(),
+                  AnimatedOpacity(
+                    opacity: 1.0,
+                    duration: Duration(milliseconds: 1200),
+                    child: _ComingSoonLabel(enabled: false),
+                  ),
+                  SizedBox(width: 60),
+                  AnimatedScale(
+                    scale: 1.0,
+                    duration: Duration(milliseconds: 900),
+                    child: _ComingSoonLabel(enabled: false),
+                  ),
+                  Spacer(),
+                ],
+              ),
+
+              // Mock: ข้อมูลโครงการลงทุน/กิจกรรม (สามารถเชื่อมต่อ Firestore ได้)
+              const SizedBox(height: 24),
+              Text('ตัวอย่างโครงการล่าสุด',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF14B8A6))),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 110,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _ZoneCard(
+                      icon: Icons.eco,
+                      color: Color(0xFF10B981),
+                      title: 'ปลูกป่า 1 ล้านต้น',
+                      description: 'ร่วมลงทุนและปลูกต้นไม้ทั่วไทย',
+                      ctaText: 'ดูรายละเอียด',
+                      onTap: () {},
+                    ),
+                    SizedBox(width: 12),
+                    _ZoneCard(
+                      icon: Icons.energy_savings_leaf,
+                      color: Color(0xFF14B8A6),
+                      title: 'พลังงานสะอาด',
+                      description: 'ลงทุนโซลาร์ฟาร์มและพลังงานลม',
+                      ctaText: 'ดูรายละเอียด',
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

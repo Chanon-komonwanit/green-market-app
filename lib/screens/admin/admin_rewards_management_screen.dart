@@ -502,16 +502,49 @@ class _AdminRewardsManagementScreenState
   }
 
   void _editReward(EcoReward reward) {
-    // TODO: Navigate to edit reward screen
+    final nameController = TextEditingController(text: reward.title);
+    final descController = TextEditingController(text: reward.description);
+    final coinController =
+        TextEditingController(text: reward.requiredCoins.toString());
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('แก้ไขรางวัล'),
-        content: const Text('ฟีเจอร์แก้ไขรางวัลจะเพิ่มในเวอร์ชันต่อไป'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'ชื่อรางวัล'),
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'รายละเอียด'),
+            ),
+            TextField(
+              controller: coinController,
+              decoration: const InputDecoration(labelText: 'เหรียญที่ต้องใช้'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ตกลง'),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await Provider.of<FirebaseService>(context, listen: false)
+                  .updateEcoReward(reward.id, {
+                'title': nameController.text.trim(),
+                'description': descController.text.trim(),
+                'requiredCoins': double.tryParse(coinController.text.trim()) ??
+                    reward.requiredCoins,
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('บันทึก'),
           ),
         ],
       ),

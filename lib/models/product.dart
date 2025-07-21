@@ -1,8 +1,36 @@
-// lib/models/product.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/utils/constants.dart';
 
 class Product {
+  // ...fields and constructor remain unchanged...
+
+  // Factory for Firestore DocumentSnapshot
+  factory Product.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Product.fromMap({
+      ...data,
+      'id': doc.id, // Use Firestore doc ID
+    });
+  }
+
+  // Returns the first image URL or promotional image if available
+  String? get imageUrl {
+    if (promotionalImageUrl != null && promotionalImageUrl!.isNotEmpty) {
+      return promotionalImageUrl;
+    }
+    if (imageUrls.isNotEmpty) {
+      return imageUrls.first;
+    }
+    return null;
+  }
+
+  // Returns the flash sale end time if available (assumes updatedAt is used for flash sale end)
+  DateTime? get flashSaleEndTime {
+    // If you have a dedicated flashSaleEndTime field, use it here
+    // For now, fallback to updatedAt as a placeholder
+    return updatedAt?.toDate();
+  }
+
   final String id;
   final String sellerId;
   final String name;
@@ -229,6 +257,46 @@ class Product {
       averageRating: averageRating ?? this.averageRating,
       reviewCount: reviewCount ?? this.reviewCount,
       approvalStatus: approvalStatus ?? this.approvalStatus,
+    );
+  }
+
+  static Product mock() {
+    return Product(
+      id: 'mock-id',
+      sellerId: 'mock-seller',
+      name: 'สินค้า Mock',
+      description: 'รายละเอียดสินค้า Mock',
+      price: 99.0,
+      stock: 10,
+      categoryId: 'mock-category',
+      categoryName: 'หมวดหมู่ Mock',
+      imageUrls: [
+        'https://via.placeholder.com/150',
+        'https://via.placeholder.com/150',
+      ],
+      promotionalImageUrl: 'https://via.placeholder.com/300x150',
+      ecoScore: 5,
+      materialDescription: 'วัสดุ Mock',
+      ecoJustification: 'Justification Mock',
+      verificationVideoUrl: 'https://www.youtube.com/watch?v=mockvideo',
+      status: 'approved',
+      rejectionReason: null,
+      createdAt: Timestamp.now(),
+      approvedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+
+      // Additional properties
+      stockQuantity: 10,
+      weight: 1.0,
+      dimensions: '10x10x10',
+      keywords: ['mock', 'สินค้า', 'ตัวอย่าง'],
+      condition: 'ใหม่',
+      allowReturns: true,
+      isActive: true,
+      isFeatured: true,
+      averageRating: 4.5,
+      reviewCount: 100,
+      approvalStatus: 'approved',
     );
   }
 }

@@ -1,4 +1,3 @@
-// lib/models/category.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart'; // For IconData
 
@@ -18,6 +17,15 @@ class Category {
     this.iconData,
     required this.createdAt,
   });
+
+  // Factory for Firestore DocumentSnapshot
+  factory Category.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Category.fromMap({
+      ...data,
+      'id': doc.id,
+    });
+  }
 
   factory Category.fromMap(Map<String, dynamic> map) {
     return Category(

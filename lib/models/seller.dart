@@ -11,9 +11,13 @@ class Seller {
   final Timestamp createdAt;
   // --- Added fields to fix errors ---
   final String? shopImageUrl;
+  final String? shopCoverUrl;
   final String? shopDescription;
   final String? website;
   final String? socialMediaLink;
+  final String? openHours;
+  final String? address;
+  final String? shopTemplate; // เทมเพจร้านค้า
 
   Seller({
     required this.id,
@@ -25,9 +29,13 @@ class Seller {
     required this.totalRatings,
     required this.createdAt,
     this.shopImageUrl,
+    this.shopCoverUrl,
     this.shopDescription,
     this.website,
     this.socialMediaLink,
+    this.openHours,
+    this.address,
+    this.shopTemplate,
   });
 
   // Getters for compatibility
@@ -46,9 +54,13 @@ class Seller {
       totalRatings: map['totalRatings'] ?? 0,
       createdAt: map['createdAt'] ?? Timestamp.now(),
       shopImageUrl: map['shopImageUrl'],
+      shopCoverUrl: map['shopCoverUrl'],
       shopDescription: map['shopDescription'],
       website: map['website'],
       socialMediaLink: map['socialMediaLink'],
+      openHours: map['openHours'],
+      address: map['address'],
+      shopTemplate: map['shopTemplate'],
     );
   }
 
@@ -63,9 +75,13 @@ class Seller {
       'totalRatings': totalRatings,
       'createdAt': createdAt,
       'shopImageUrl': shopImageUrl,
+      'shopCoverUrl': shopCoverUrl,
       'shopDescription': shopDescription,
       'website': website,
       'socialMediaLink': socialMediaLink,
+      'openHours': openHours,
+      'address': address,
+      'shopTemplate': shopTemplate,
     };
   }
 

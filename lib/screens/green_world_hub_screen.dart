@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/widgets/green_world_icon.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/models/green_activity.dart';
@@ -15,7 +16,6 @@ import 'package:green_market/screens/community_forum_screen.dart';
 import 'package:green_market/screens/feed_screen.dart';
 import 'package:green_market/screens/eco_challenges_screen.dart';
 import 'package:green_market/widgets/debug_panel.dart';
-import 'dart:ui';
 // -------------------- END IMPORTS --------------------
 
 // --- Helper Methods for user stats ---
@@ -245,94 +245,78 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
       tag: 'greenWorldHeader',
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: const [
-              Color(0xFF145A32),
-              Color(0xFF43B48C),
-              Color(0xFFE6F4F1)
-            ],
+            colors: [Color(0xFF43B48C), Color(0xFF4FC3F7), Color(0xFFE6F4F1)],
           ),
           borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(36),
-            bottomRight: Radius.circular(36),
+            bottomLeft: Radius.circular(18),
+            bottomRight: Radius.circular(18),
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x33145A32),
-              blurRadius: 24,
-              offset: Offset(0, 10),
+              color: Colors.teal.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: Duration(milliseconds: 700),
-              curve: Curves.easeInOut,
+            Container(
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: const [Color(0xFF059669), Color(0xFF34D399)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.18),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
+                color: Colors.white.withOpacity(0.13),
                 borderRadius: BorderRadius.circular(32),
               ),
-              padding: EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.8, end: 1.0),
-                    duration: Duration(seconds: 2),
-                    curve: Curves.elasticOut,
-                    builder: (context, scale, child) => Transform.scale(
-                      scale: scale,
-                      child: child,
-                    ),
-                    child: Icon(Icons.travel_explore,
-                        size: 64, color: Colors.white),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'เปิดโลกสีเขียว',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x33000000),
-                          blurRadius: 16,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'สร้างอนาคตที่ยั่งยืนไปด้วยกัน',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Color(0xFFE0F2F1),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.95, end: 1.0),
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.elasticOut,
+                builder: (context, scale, child) => Transform.scale(
+                  scale: scale,
+                  child: child,
+                ),
+                child: const Text(
+                  '🌱',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
               ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'เปิดโลกสีเขียว',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 1.1,
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x33000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'สร้างอนาคตที่ยั่งยืนไปด้วยกัน',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withOpacity(0.92),
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -355,39 +339,38 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
                 child: child,
               ),
               child: Container(
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: const [Color(0xFF145A32), Color(0xFF43B48C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x33145A32),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
-                child:
-                    Icon(Icons.groups_rounded, color: Colors.white, size: 30),
+                child: Text('🌻', style: TextStyle(fontSize: 22)),
               ),
             ),
-            SizedBox(width: 16),
+            SizedBox(width: 10),
             Text(
               'กิจกรรมเด่น',
               style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
                 color: Color(0xFF145A32),
-                letterSpacing: 1.0,
+                letterSpacing: 0.8,
                 shadows: const [
                   Shadow(
                     color: Color(0x22000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
                   ),
                 ],
               ),
@@ -530,11 +513,10 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
             CircleAvatar(
               radius: 28,
               backgroundColor: badge?['color'] ?? Colors.grey[300],
-              child: Icon(
-                badge?['icon'] ?? Icons.person,
-                color: Colors.white,
-                size: 32,
-              ),
+              child: Text('🦋',
+                  style: TextStyle(
+                      fontSize:
+                          32)), // โปรไฟล์ผู้ใช้ (🦋 สื่อถึงการเปลี่ยนแปลง/สิ่งแวดล้อม)
             ),
             const SizedBox(width: 18),
             Expanded(
@@ -618,13 +600,18 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
                   FirebaseFirestore.instance.collection('users').snapshots(),
               builder: (context, snapshot) {
                 final userCount = snapshot.data?.docs.length ?? 0;
-                Widget buildCommunityStatItem(
-                    String emoji, String value, String label) {
+                Widget buildCommunityStatItem(IconData icon, Color iconColor,
+                    String value, String label) {
                   return Column(
                     children: [
-                      Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 24),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.13),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: Text('🧑‍🤝‍🧑',
+                            style: TextStyle(fontSize: 28, color: iconColor)),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -653,21 +640,24 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
                   children: [
                     Expanded(
                       child: buildCommunityStatItem(
-                        '👥',
+                        Icons.groups_rounded,
+                        Colors.amberAccent,
                         userCount.toString(),
                         'สมาชิก',
                       ),
                     ),
                     Expanded(
                       child: buildCommunityStatItem(
-                        '🌱',
+                        Icons.eco,
+                        Colors.greenAccent,
                         '${(userCount * 2.5).toInt()}',
                         'กิจกรรมที่เสร็จ',
                       ),
                     ),
                     Expanded(
                       child: buildCommunityStatItem(
-                        '🌍',
+                        Icons.door_front_door,
+                        Colors.lightBlueAccent,
                         '${(userCount * 15.7).toStringAsFixed(1)} ตัน',
                         'CO₂ ที่ลดได้',
                       ),
@@ -841,138 +831,93 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
 
   Widget buildSocialActivitySection(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 700;
-    final isWide = MediaQuery.of(context).size.width > 1000;
     return Padding(
       padding:
-          EdgeInsets.fromLTRB(isMobile ? 8 : 24, 28, isMobile ? 8 : 24, 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: isWide
-              ? ImageFilter.blur(sigmaX: 12, sigmaY: 12)
-              : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-          child: Card(
-            color: Colors.white.withOpacity(isWide ? 0.7 : 1.0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          EdgeInsets.fromLTRB(isMobile ? 16 : 24, 24, isMobile ? 16 : 24, 10),
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 5,
+        shadowColor: const Color(0xFF059669).withOpacity(0.10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.groups_3_rounded,
-                            size: 30, color: Color(0xFF059669)),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Text(
-                          'กิจกรรมเพื่อสังคมและสิ่งแวดล้อม',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF059669)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'ร่วมสร้างสังคมสีเขียวกับกิจกรรมดีๆ เพื่อโลกของเรา ช่วยเหลือสังคมและสิ่งแวดล้อมได้ทันที',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Tooltip(
-                          message: 'เข้าร่วมกิจกรรมเพื่อสร้างผลกระทบเชิงบวก',
-                          child: AnimatedScale(
-                            scale: 1.0,
-                            duration: const Duration(milliseconds: 150),
-                            child: ElevatedButton.icon(
-                              onPressed: () => navigateToActivities(context),
-                              icon:
-                                  const Icon(Icons.groups_3_rounded, size: 26),
-                              label: const Text('เข้าร่วมกิจกรรม'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF059669),
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(48),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
-                                elevation: 4,
-                                shadowColor:
-                                    const Color(0xFF059669).withOpacity(0.3),
-                                textStyle: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 18),
-                              ).copyWith(
-                                overlayColor:
-                                    MaterialStateProperty.resolveWith<Color?>(
-                                  (states) =>
-                                      states.contains(MaterialState.hovered)
-                                          ? const Color(0xFF10B981)
-                                              .withOpacity(0.15)
-                                          : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton(
-                        onPressed: () => navigateToActivities(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF059669),
-                          side: const BorderSide(
-                              color: Color(0xFF059669), width: 1.5),
-                          minimumSize: const Size(48, 48),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          textStyle: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        child: const Text('ดูทั้งหมด'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  if (isMobile)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        children: const [
-                          Expanded(
-                              child:
-                                  Divider(color: Colors.grey, thickness: 1.2)),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Text('หรือ',
-                                style: TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                          Expanded(
-                              child:
-                                  Divider(color: Colors.grey, thickness: 1.2)),
-                        ],
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2F1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  buildFeaturedActivities(),
-                  const SizedBox(height: 18),
-                  buildPersonalizedSuggestionSection(),
+                    child: const Icon(Icons.volunteer_activism,
+                        size: 22, color: Color(0xFF059669)),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'กิจกรรมเพื่อสังคมและสิ่งแวดล้อม',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF059669)),
+                    ),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              const Text(
+                'ร่วมสร้างสังคมสีเขียวกับกิจกรรมดีๆ เพื่อโลกของเรา ช่วยเหลือสังคมและสิ่งแวดล้อมได้ทันที',
+                style: TextStyle(fontSize: 15, color: Color(0xFF4B5563)),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Tooltip(
+                      message: 'เข้าร่วมกิจกรรมเพื่อสร้างผลกระทบเชิงบวก',
+                      child: ElevatedButton.icon(
+                        onPressed: () => navigateToActivities(context),
+                        icon: const Icon(Icons.groups_3_rounded, size: 24),
+                        label: const Text('เข้าร่วมกิจกรรม'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          elevation: 4,
+                          shadowColor: const Color(0xFF059669).withOpacity(0.2),
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 17),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => navigateToActivities(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF059669),
+                      side: const BorderSide(
+                          color: Color(0xFF059669), width: 1.5),
+                      minimumSize: const Size(48, 48),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                    child: const Text('ดูทั้งหมด'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              buildFeaturedActivities(),
+              const SizedBox(height: 18),
+              buildPersonalizedSuggestionSection(),
+            ],
           ),
         ),
       ),
@@ -981,114 +926,91 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
 
   Widget buildSustainableInvestmentSection(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 700;
-    final isWide = MediaQuery.of(context).size.width > 1000;
     return Padding(
       padding:
-          EdgeInsets.fromLTRB(isMobile ? 8 : 24, 10, isMobile ? 8 : 24, 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: isWide
-              ? ImageFilter.blur(sigmaX: 12, sigmaY: 12)
-              : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-          child: Card(
-            color: const Color(0xFFF3F4F6).withOpacity(isWide ? 0.7 : 1.0),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          EdgeInsets.fromLTRB(isMobile ? 16 : 24, 24, isMobile ? 16 : 24, 10),
+      child: Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 5,
+        shadowColor: const Color(0xFF1D4ED8).withOpacity(0.10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.public,
-                            size: 28, color: Color(0xFF1D4ED8)),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Text(
-                          'การลงทุนเพื่อความยั่งยืน',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1D4ED8)),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.trending_up,
+                        size: 22, color: Color(0xFF1D4ED8)),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'เปิดประตูสู่การลงทุนที่สร้างผลตอบแทนและโลกที่ดีขึ้น เลือกลงทุนในโปรเจกต์ยั่งยืนได้ทันที',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'การลงทุนเพื่อความยั่งยืน',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1D4ED8)),
+                    ),
                   ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Tooltip(
-                          message: 'เริ่มต้นลงทุนเพื่ออนาคตที่ยั่งยืน',
-                          child: AnimatedScale(
-                            scale: 1.0,
-                            duration: const Duration(milliseconds: 150),
-                            child: ElevatedButton.icon(
-                              onPressed: () => navigateToInvestment(context),
-                              icon: const Icon(Icons.door_front_door, size: 24),
-                              label: const Text('เริ่มลงทุน'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1D4ED8),
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(48),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
-                                elevation: 4,
-                                shadowColor:
-                                    const Color(0xFF1D4ED8).withOpacity(0.3),
-                                textStyle: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 18),
-                              ).copyWith(
-                                overlayColor:
-                                    MaterialStateProperty.resolveWith<Color?>(
-                                  (states) =>
-                                      states.contains(MaterialState.hovered)
-                                          ? const Color(0xFF60A5FA)
-                                              .withOpacity(0.15)
-                                          : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton(
-                        onPressed: () => navigateToInvestment(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1D4ED8),
-                          side: const BorderSide(
-                              color: Color(0xFF1D4ED8), width: 1.5),
-                          minimumSize: const Size(48, 48),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          textStyle: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        child: const Text('ดูพอร์ต'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  buildPersonalizedSuggestionSection(),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              const Text(
+                'เปิดประตูสู่การลงทุนที่สร้างผลตอบแทนและโลกที่ดีขึ้น เลือกลงทุนในโปรเจกต์ยั่งยืนได้ทันที',
+                style: TextStyle(fontSize: 15, color: Color(0xFF374151)),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Tooltip(
+                      message: 'เริ่มต้นลงทุนเพื่ออนาคตที่ยั่งยืน',
+                      child: ElevatedButton.icon(
+                        onPressed: () => navigateToInvestment(context),
+                        icon: const Icon(Icons.door_front_door, size: 22),
+                        label: const Text('เริ่มลงทุน'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1D4ED8),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          elevation: 4,
+                          shadowColor: const Color(0xFF1D4ED8).withOpacity(0.2),
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 17),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => navigateToInvestment(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1D4ED8),
+                      side: const BorderSide(
+                          color: Color(0xFF1D4ED8), width: 1.5),
+                      minimumSize: const Size(48, 48),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                    child: const Text('ดูพอร์ต'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              buildPersonalizedSuggestionSection(),
+            ],
           ),
         ),
       ),

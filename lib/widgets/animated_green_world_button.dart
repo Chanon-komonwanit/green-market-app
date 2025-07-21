@@ -113,27 +113,42 @@ class _AnimatedGreenWorldButtonState extends State<AnimatedGreenWorldButton>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Enhanced Animated Globe Icon
+                      // ผสมผสานไอคอนโลกกับใบไม้
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 2,
+                            color: Colors.white.withOpacity(0.35),
+                            width: 2.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                              color: Colors.teal.withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
-                        child: const AnimatedGlobeIcon(
-                          size: 40,
-                          color: Colors.white,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: const [
+                            Icon(
+                              Icons.public,
+                              size: 44,
+                              color: Colors.white,
+                            ),
+                            Positioned(
+                              bottom: 4,
+                              right: 4,
+                              child: Icon(
+                                Icons.eco,
+                                size: 18,
+                                color: Colors.greenAccent,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -142,21 +157,45 @@ class _AnimatedGreenWorldButtonState extends State<AnimatedGreenWorldButton>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            '🌍 เปิดโลกสีเขียว',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 0.5,
-                              shadows: [
-                                Shadow(
-                                  color: Color(0xFF1B5E20),
-                                  blurRadius: 3,
-                                  offset: Offset(0, 1),
+                          Row(
+                            children: const [
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.public,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                  Positioned(
+                                    bottom: 2,
+                                    right: 2,
+                                    child: Icon(
+                                      Icons.eco,
+                                      color: Colors.greenAccent,
+                                      size: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'เปิดโลกสีเขียว',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.7,
+                                  shadows: [
+                                    Shadow(
+                                      color: Color(0xFF00897B),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(
