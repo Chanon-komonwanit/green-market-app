@@ -12,6 +12,7 @@ import 'package:green_market/providers/cart_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/models/order.dart' as app_order;
+import 'package:green_market/models/app_user.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/cart_item.dart';
 import 'package:green_market/widgets/product_card.dart';
@@ -249,6 +250,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                   title: Text('แชท $chatId'),
                   onTap: () {
                     // TODO: Navigate to chat
+                    // TODO: [ภาษาไทย] เมื่อผู้ใช้แตะรายการแชท ให้เปลี่ยนหน้าไปยังหน้าสนทนา (Chat Screen)
                   },
                 );
               },
@@ -478,6 +480,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                     subtitle: Text(notificationData['message'] ?? ''),
                     onTap: () {
                       // TODO: Handle notification tap
+                      // TODO: [ภาษาไทย] เมื่อผู้ใช้แตะรายการแจ้งเตือน ให้เปิดรายละเอียดหรือดำเนินการตามประเภทแจ้งเตือน
                     },
                   ),
                 );
@@ -653,7 +656,7 @@ class _UserInfoHeaderModern extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(currentUser) {
+  Widget _buildStatusBadge(AppUser? currentUser) {
     if (currentUser?.isAdmin == true) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -732,10 +735,10 @@ class _UserInfoHeaderModern extends StatelessWidget {
     }
   }
 
-  String _getUserLevelText(currentUser) {
+  String _getUserLevelText(AppUser? currentUser) {
     if (currentUser == null) return 'ระดับ: ผู้เริ่มต้น';
 
-    final ecoCoinCount = currentUser.ecoCoins ?? 0;
+    final ecoCoinCount = currentUser.ecoCoins;
     if (ecoCoinCount >= 1000) {
       return 'ระดับ: Eco Legend ($ecoCoinCount เหรียญ)';
     } else if (ecoCoinCount >= 500) {

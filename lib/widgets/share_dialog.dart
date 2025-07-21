@@ -246,6 +246,7 @@ class _ShareDialogState extends State<ShareDialog> {
       });
       Navigator.pop(context);
       // TODO: ใช้แพ็กเกจ share_plus สำหรับระบบแชร์จริง
+      // TODO: [ภาษาไทย] นำแพ็กเกจ share_plus มาใช้สำหรับแชร์โพสต์ไปยังแอปอื่น ๆ จริง
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('แชร์โพสต์ภายนอกเรียบร้อย'),

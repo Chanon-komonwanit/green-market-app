@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/models/eco_reward.dart';
+import 'package:green_market/models/app_user.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/widgets/enhanced_eco_coins_widget.dart';
@@ -137,10 +138,10 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
     );
   }
 
-  Widget _buildDailyLoginCard(currentUser) {
+  Widget _buildDailyLoginCard(AppUser currentUser) {
     final now = DateTime.now();
     final lastLogin = currentUser.lastLoginDate;
-    final consecutiveDays = currentUser.consecutiveLoginDays ?? 0;
+    final consecutiveDays = currentUser.consecutiveLoginDays;
 
     // ตรวจสอบว่าสามารถรับเหรียญได้หรือไม่ (ปลอดภัยด้วย server-side validation)
     final canClaimToday = _canClaimDailyReward(lastLogin, now);
@@ -407,7 +408,7 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
     );
   }
 
-  Widget _buildLoginHistoryCard(currentUser) {
+  Widget _buildLoginHistoryCard(AppUser currentUser) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -456,7 +457,7 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
                 Expanded(
                   child: _buildStatItem(
                     'เหรียญทั้งหมด',
-                    '${currentUser.ecoCoins ?? 0}',
+                    '${currentUser.ecoCoins}',
                     Icons.eco,
                     const Color(0xFFB8860B),
                   ),
@@ -464,7 +465,7 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
                 Expanded(
                   child: _buildStatItem(
                     'ล็อกอินติดต่อกัน',
-                    '${currentUser.consecutiveLoginDays ?? 0} วัน',
+                    '${currentUser.consecutiveLoginDays} วัน',
                     Icons.calendar_today,
                     const Color(0xFF43A047),
                   ),
@@ -477,7 +478,7 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
                 Expanded(
                   child: _buildStatItem(
                     'เหรียญจากล็อกอิน',
-                    '${((currentUser.consecutiveLoginDays ?? 0) / 15).floor()}',
+                    '${((currentUser.consecutiveLoginDays) / 15).floor()}',
                     Icons.login,
                     const Color(0xFF1976D2),
                   ),
@@ -548,7 +549,7 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
   }
 
   // ฟังก์ชันรับเหรียญประจำวัน (ปลอดภัยด้วย server validation)
-  Future<void> _claimDailyReward(currentUser) async {
+  Future<void> _claimDailyReward(AppUser currentUser) async {
     setState(() {
       _isRedeeming = true;
     });

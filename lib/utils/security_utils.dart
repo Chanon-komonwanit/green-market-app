@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:math';
 
 class SecurityUtils {
+  // TODO: [ภาษาไทย] ตรวจสอบความปลอดภัยและอัปเดต security rules ตามรอบเวลา
   // Validate email format
   static bool isValidEmail(String email) {
     final emailRegex = RegExp(

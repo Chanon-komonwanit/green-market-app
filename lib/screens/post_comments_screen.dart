@@ -478,6 +478,7 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
 
     try {
       // TODO: Implement comment like toggle in Firebase service
+      // TODO: [ภาษาไทย] เพิ่มฟีเจอร์กดถูกใจ/เลิกถูกใจคอมเมนต์ โดยบันทึกข้อมูลไปยัง Firebase
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),

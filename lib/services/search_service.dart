@@ -14,6 +14,7 @@ class SearchService {
 
   Stream<List<Product>> filterProducts(Map<String, dynamic> filters) {
     // TODO: implement dynamic filter logic
+    // TODO: [ภาษาไทย] พัฒนาฟีเจอร์กรองสินค้าแบบไดนามิกตามเงื่อนไขที่ผู้ใช้เลือก
     return _productRef.snapshots().map(
         (snap) => snap.docs.map((doc) => Product.fromFirestore(doc)).toList());
   }

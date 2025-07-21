@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// ModernButton: ปุ่มดีไซน์ระดับโลก รองรับ animation, accessibility, adaptive ripple, loading, icon ซ้าย/ขวา
+/// ModernButton
+/// ปุ่ม UI ที่ทันสมัย รองรับ animation, accessibility, ripple, loading, icon ซ้าย/ขวา
+/// - [label]: ข้อความบนปุ่ม
+/// - [onPressed]: ฟังก์ชันเมื่อกดปุ่ม
+/// - [isLoading]: แสดง loading indicator
+/// - [isDisabled]: ปุ่มถูกปิดใช้งาน
+/// - [iconLeft], [iconRight]: ไอคอนซ้าย/ขวา
+/// - [semanticLabel]: สำหรับ accessibility
+/// - [color], [height], [borderRadius], [elevation], [padding]: ปรับแต่ง UI
 class ModernButton extends StatelessWidget {
+  // TODO: [ภาษาไทย] เพิ่มการตั้งค่าฟอนต์ (Custom Fonts) ให้รองรับฟอนต์ไทยและฟอนต์เฉพาะกลุ่ม
   final String label;
   final VoidCallback? onPressed;
   final Color? color;

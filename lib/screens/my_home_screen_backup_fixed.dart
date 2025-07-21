@@ -7,6 +7,9 @@ import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/edit_profile_screen.dart';
 import 'package:green_market/screens/user/enhanced_edit_profile_screen.dart';
 import 'package:green_market/widgets/eco_coins_widget.dart';
+import 'package:green_market/widgets/modern_home_header.dart';
+import 'package:green_market/widgets/modern_card.dart';
+import 'package:green_market/widgets/modern_button.dart';
 import 'package:green_market/screens/notifications_center_screen.dart';
 import 'package:green_market/providers/cart_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
@@ -61,16 +64,31 @@ class _MyHomeScreenState extends State<MyHomeScreen>
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Enhanced User Info Header
-                  _UserInfoHeaderModern(),
+                  // Modern Home Header
+                  ModernHomeHeader(
+                      title: 'Green Market',
+                      subtitle: 'ตลาดสีเขียวเพื่อชุมชน',
+                      backgroundGradient: const LinearGradient(colors: [
+                        Color(0xFF059669),
+                        Color(0xFF10B981),
+                        Color(0xFF34D399)
+                      ], begin: Alignment.topLeft, end: Alignment.bottomRight)),
                   const SizedBox(height: 8),
 
-                  // Enhanced Eco Coins Zone
-                  _EcoCoinsSection(),
+                  // Modern Card for Eco Coins
+                  ModernCard(
+                    color: const Color(0xFFFFF8DC),
+                    borderRadius: 18,
+                    child: _EcoCoinsSection(),
+                  ),
                   const SizedBox(height: 8),
 
-                  // Modern Quick Actions
-                  _QuickActionsModern(),
+                  // Modern Card for Quick Actions
+                  ModernCard(
+                    color: Colors.white,
+                    borderRadius: 20,
+                    child: _QuickActionsModern(),
+                  ),
                   const SizedBox(height: 8),
 
                   // Modern Tab Bar
@@ -249,6 +267,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                   title: Text('แชท $chatId'),
                   onTap: () {
                     // TODO: Navigate to chat
+                    // TODO: [ภาษาไทย] เมื่อผู้ใช้แตะรายการแชท ให้เปลี่ยนหน้าไปยังหน้าสนทนา (Chat Screen)
                   },
                 );
               },
@@ -293,22 +312,9 @@ class _MyHomeScreenState extends State<MyHomeScreen>
         return Column(
           children: [
             // Cart Summary
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+            ModernCard(
+              color: const Color(0xFF2E7D32),
+              borderRadius: 16,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -337,7 +343,9 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: cartItems
-                      .map((cartItem) => Card(
+                      .map((cartItem) => ModernCard(
+                            color: Colors.white,
+                            borderRadius: 12,
                             child: ListTile(
                               title: Text(cartItem.product.name),
                               subtitle:
@@ -359,7 +367,8 @@ class _MyHomeScreenState extends State<MyHomeScreen>
               padding: const EdgeInsets.all(16),
               child: SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: ModernButton(
+                  label: 'ดำเนินการสั่งซื้อ',
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -367,17 +376,9 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                           builder: (context) => const CartScreen()),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'ดำเนินการสั่งซื้อ',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  color: const Color(0xFF2E7D32),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -478,6 +479,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                     subtitle: Text(notificationData['message'] ?? ''),
                     onTap: () {
                       // TODO: Handle notification tap
+                      // TODO: [ภาษาไทย] เมื่อผู้ใช้แตะรายการแจ้งเตือน ให้เปิดรายละเอียดหรือดำเนินการตามประเภทแจ้งเตือน
                     },
                   ),
                 );
@@ -516,239 +518,6 @@ class _MyHomeScreenState extends State<MyHomeScreen>
 }
 
 // --- Modern User Info Header (ปรับปรุงให้แสดงข้อมูลจริง) ---
-class _UserInfoHeaderModern extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        final currentUser = userProvider.currentUser;
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Colors.white, Color(0xFFF8F9FA)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF64748B).withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-            border: Border.all(
-              color: const Color(0xFF64748B).withOpacity(0.1),
-              width: 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                // Profile Avatar with Real Image or Gradient
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF059669).withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: currentUser?.photoUrl != null &&
-                            currentUser!.photoUrl!.isNotEmpty
-                        ? Image.network(
-                            currentUser.photoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildDefaultAvatar(),
-                          )
-                        : _buildDefaultAvatar(),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              currentUser?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                          ),
-                          _buildStatusBadge(currentUser),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _getUserLevelText(currentUser),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Edit Profile Button
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF059669).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      color: Color(0xFF059669),
-                      size: 20,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EnhancedEditProfileScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDefaultAvatar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF059669), Color(0xFF10B981)],
-        ),
-      ),
-      child: const Icon(
-        Icons.account_circle_outlined,
-        color: Colors.white,
-        size: 40,
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(currentUser) {
-    if (currentUser?.isAdmin == true) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.admin_panel_settings, color: Colors.white, size: 12),
-            SizedBox(width: 4),
-            Text(
-              'Admin',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (currentUser?.isSeller == true) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.store, color: Colors.white, size: 12),
-            SizedBox(width: 4),
-            Text(
-              'ผู้ขาย',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF059669), Color(0xFF10B981)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.verified, color: Colors.white, size: 12),
-            SizedBox(width: 4),
-            Text(
-              'ผู้ใช้',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  String _getUserLevelText(currentUser) {
-    if (currentUser == null) return 'ระดับ: ผู้เริ่มต้น';
-
-    final ecoCoinCount = currentUser.ecoCoins ?? 0;
-    if (ecoCoinCount >= 1000) {
-      return 'ระดับ: Eco Legend ($ecoCoinCount เหรียญ)';
-    } else if (ecoCoinCount >= 500) {
-      return 'ระดับ: Eco Master ($ecoCoinCount เหรียญ)';
-    } else if (ecoCoinCount >= 200) {
-      return 'ระดับ: Eco Hero ($ecoCoinCount เหรียญ)';
-    } else if (ecoCoinCount >= 50) {
-      return 'ระดับ: Eco Friend ($ecoCoinCount เหรียญ)';
-    } else {
-      return 'ระดับ: ผู้เริ่มต้น ($ecoCoinCount เหรียญ)';
-    }
-  }
-}
 
 // Enhanced Eco Coins Section (ปรับปรุงให้เด่นและใช้งานได้จริง)
 class _EcoCoinsSection extends StatelessWidget {

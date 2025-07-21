@@ -1,10 +1,14 @@
+/// ErrorHandler
+/// Utility สำหรับจัดการ error, logging, reporting, และ UI feedback (SnackBar/Dialog)
+/// - รองรับ error หลายรูปแบบ (network, auth, permission, storage, firestore)
+library;
 // lib/utils/error_handler.dart
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ErrorHandler {
-  // Show error dialog
+  /// Show error dialog (AlertDialog)
   static void showErrorDialog(
       BuildContext context, String title, String message) {
     showDialog(
@@ -22,7 +26,7 @@ class ErrorHandler {
     );
   }
 
-  // Show error snackbar
+  /// Show error snackbar (SnackBar)
   static void showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -40,7 +44,7 @@ class ErrorHandler {
     );
   }
 
-  // Show success snackbar
+  /// Show success snackbar (SnackBar)
   static void showSuccessSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -51,7 +55,7 @@ class ErrorHandler {
     );
   }
 
-  // Handle Firebase Auth errors
+  /// Handle Firebase Auth errors (return readable message)
   static String handleFirebaseAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
@@ -79,7 +83,7 @@ class ErrorHandler {
     }
   }
 
-  // Handle Firestore errors
+  /// Handle Firestore errors (return readable message)
   static String handleFirestoreError(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':
@@ -113,7 +117,7 @@ class ErrorHandler {
     }
   }
 
-  // Handle Firebase Storage errors
+  /// Handle Firebase Storage errors (return readable message)
   static String handleStorageError(FirebaseException e) {
     switch (e.code) {
       case 'object-not-found':
@@ -141,7 +145,7 @@ class ErrorHandler {
     }
   }
 
-  // Handle network errors
+  /// Handle network errors (return readable message)
   static String handleNetworkError(dynamic error) {
     final errorString = error.toString().toLowerCase();
 
@@ -164,7 +168,7 @@ class ErrorHandler {
     return 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่';
   }
 
-  // Generic error handler
+  /// Generic error handler (auto detect error type and show message)
   static void handleError(BuildContext context, dynamic error,
       {String? customMessage}) {
     String message = customMessage ?? 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
@@ -184,7 +188,7 @@ class ErrorHandler {
     showErrorSnackBar(context, message);
   }
 
-  // Log error for debugging
+  /// Log error for debugging (print to console)
   static void logError(String operation, dynamic error,
       {StackTrace? stackTrace}) {
     print('🔴 Error in $operation: $error');
@@ -193,7 +197,7 @@ class ErrorHandler {
     }
   }
 
-  // Validate form and show errors
+  /// Validate form and show errors (show dialog if error)
   static bool validateAndShowErrors(
     BuildContext context,
     Map<String, String?> validationErrors,
@@ -213,7 +217,7 @@ class ErrorHandler {
     return true;
   }
 
-  // Show confirmation dialog
+  /// Show confirmation dialog (AlertDialog with confirm/cancel)
   static Future<bool> showConfirmationDialog(
     BuildContext context,
     String title,
@@ -242,7 +246,7 @@ class ErrorHandler {
     return result ?? false;
   }
 
-  // Show loading dialog
+  /// Show loading dialog (AlertDialog with CircularProgressIndicator)
   static void showLoadingDialog(BuildContext context,
       {String message = 'กำลังโหลด...'}) {
     showDialog(
@@ -261,7 +265,7 @@ class ErrorHandler {
     );
   }
 
-  // Hide loading dialog
+  /// Hide loading dialog (pop current dialog)
   static void hideLoadingDialog(BuildContext context) {
     Navigator.of(context).pop();
   }

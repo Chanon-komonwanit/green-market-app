@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// ส่วนหัวหน้า Home ดีไซน์ทันสมัย รองรับ title, subtitle, รูป, action, และ background gradient
 class ModernHomeHeader extends StatelessWidget {
+  // TODO: [ภาษาไทย] รองรับหลายภาษา (Multi-language Support) ในข้อความ header
   final String title;
   final String? subtitle;
   final Widget? leadingImage;

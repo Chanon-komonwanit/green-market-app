@@ -37,6 +37,7 @@ import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
 class FirebaseService {
+  // TODO: [ภาษาไทย] เพิ่มระบบแจ้งเตือนข้อผิดพลาด (Crashlytics) และ Audit Log
   /// Get new products for a specific seller (สินค้าใหม่)
   Future<List<Product>> getNewProductsBySeller(String sellerId) async {
     final snapshot = await _firestore
@@ -134,7 +135,7 @@ class FirebaseService {
   // Lazy initialization of GoogleSignIn with error handling
   GoogleSignIn? _getGoogleSignIn() {
     try {
-      return GoogleSignIn();
+      return GoogleSignIn.instance;
     } catch (e) {
       logger.w('Google Sign-In not available: $e');
       return null;
@@ -212,21 +213,15 @@ class FirebaseService {
     }
 
     try {
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        logger.w("Google sign-in was cancelled by the user.");
-        return null;
-      }
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       logger.i("Google sign-in successful, signing in with credential.");
       return await _auth.signInWithCredential(credential);
     } catch (e) {
-      logger.e("Google Sign-In Error: ");
+      logger.e("Google Sign-In Error: $e");
       rethrow;
     }
   }

@@ -126,40 +126,32 @@ class AuthService {
   }
 
   // Google Sign-In
+
   Future<User?> signInWithGoogle() async {
     try {
       // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return null;
-      }
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       // Sign in to Firebase with the Google credential
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-
+      final user = userCredential.user;
       if (user != null) {
         print('Google Sign-In successful: ${user.email}');
-
         // Check if this is a new user and create profile if needed
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
-
         if (!userDoc.exists) {
           // Create new user profile
           await FirebaseFirestore.instance
@@ -188,56 +180,10 @@ class AuthService {
           });
         }
       }
-
       return user;
     } catch (e) {
       print('Error with Google Sign-In: $e');
       return null;
-    }
-  }
-
-  // Apple Sign-In (placeholder for future implementation)
-  Future<User?> signInWithApple() async {
-    // TODO: Implement Apple Sign-In when needed
-    // This requires apple_sign_in package and iOS configuration
-    throw UnimplementedError('Apple Sign-In not yet implemented');
-  }
-
-  // Email verification
-  Future<bool> sendEmailVerification() async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
-        print('Email verification sent');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error sending email verification: $e');
-      return false;
-    }
-  }
-
-  // Check if email is verified
-  bool isEmailVerified() {
-    final user = _auth.currentUser;
-    return user?.emailVerified ?? false;
-  }
-
-  // Update user password
-  Future<bool> updatePassword(String newPassword) async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null) {
-        await user.updatePassword(newPassword);
-        print('Password updated successfully');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error updating password: $e');
-      return false;
     }
   }
 
@@ -282,5 +228,11 @@ class AuthService {
       print('Error deleting account: $e');
       return false;
     }
+  }
+
+  // Apple Sign-In (placeholder for future implementation)
+  Future<User?> signInWithApple() async {
+    // TODO: [ภาษาไทย] พัฒนา Apple Sign-In เมื่อพร้อมใช้งาน (ต้องใช้ apple_sign_in package และตั้งค่า iOS)
+    throw UnimplementedError('Apple Sign-In not yet implemented');
   }
 }

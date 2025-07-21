@@ -1,3 +1,4 @@
+# TODO: [ภาษาไทย] อัปเดต dependencies และตรวจสอบ changelog package ตามรอบเวลา
 # pubspec.yaml
 # pubspec.yaml
 name: green_market
@@ -25,26 +26,26 @@ dependencies: # Corrected: Already correct
 
   provider: ^6.1.2 # Using a slightly older version for broader compatibility
   image_picker: ^1.1.2 # Latest stable
-  intl: ^0.19.0 # Latest stable
+  intl: ^0.20.2 # Latest stable
 
   # Added for new features and fixes
   flutter_colorpicker: ^1.1.0 # Latest stable
-  fl_chart: ^0.68.0 # Keep this version for now
+  fl_chart: ^1.0.0 # Keep this version for now
   collection: ^1.18.0 # Latest stable
   flutter_markdown: ^0.7.7+1 # Downgraded as per pub's suggestion to resolve dependency conflict
-  flutter_local_notifications: ^17.2.1 # Latest stable
+  flutter_local_notifications: ^19.3.1 # Latest stable
   # Added for product reviews
   flutter_rating_bar: ^4.0.1 # Latest stable
   uuid: ^4.4.0 # Latest stable
   photo_view: ^0.15.0 # Latest stable
   url_launcher: ^6.3.0 # Latest stable
   carousel_slider: ^5.0.0 # Updated to latest version
-  google_sign_in: ^6.2.1 # For Google Sign-In
-  share_plus: ^7.2.1 # For sharing posts
+  google_sign_in: ^7.1.1 # For Google Sign-In
+  share_plus: ^11.0.0 # For sharing posts
 
   rxdart: ^0.28.0 # Latest stable
   logger: ^2.3.0 # Latest stable
-  file_picker: ^8.0.0+1 # Latest stable for file picking
+  file_picker: ^10.2.0 # Latest stable for file picking
   cached_network_image: ^3.3.1 # For caching network images
   timeago: ^3.6.1 # For time formatting
   qr_flutter: ^4.1.0 # For QR code generation
@@ -53,7 +54,7 @@ dependencies: # Corrected: Already correct
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   mockito: ^5.4.4 # For mocking in tests
   build_runner: ^2.4.9 # For code generation
   fake_cloud_firestore: ^3.1.0 # For mocking Firestore in tests

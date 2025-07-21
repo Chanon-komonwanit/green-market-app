@@ -65,7 +65,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                 const SizedBox(height: 8),
 
                 // Modern Tab Bar
-                _ModernTabBar(),
+                modernTabBar(),
                 const SizedBox(height: 4),
 
                 // TabBarView - ตลาด และ My Home
@@ -73,8 +73,8 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _MarketTab(),
-                      _MyHomeTab(),
+                      marketTab(),
+                      myHomeTab(),
                     ],
                   ),
                 ),
@@ -84,11 +84,11 @@ class _MyHomeScreenState extends State<MyHomeScreen>
         ),
       );
     } catch (e) {
-      return _ErrorScreen(error: e.toString());
+      return errorScreen(error: e.toString());
     }
   }
 
-  Widget _ModernTabBar() {
+  Widget modernTabBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -129,7 +129,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- Market Tab ---
-  Widget _MarketTab() {
+  Widget marketTab() {
     return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -147,7 +147,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- My Home Tab (รวมทุกฟีเจอร์) ---
-  Widget _MyHomeTab() {
+  Widget myHomeTab() {
     return DefaultTabController(
       length: 4,
       child: Column(
@@ -197,9 +197,9 @@ class _MyHomeScreenState extends State<MyHomeScreen>
             child: TabBarView(
               children: [
                 _MyActivityTab(),
-                _ChatTab(),
-                _CartTab(),
-                _NotificationsTab(),
+                chatTab(),
+                cartTab(),
+                notificationsTab(),
               ],
             ),
           ),
@@ -209,7 +209,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- Chat Tab ---
-  Widget _ChatTab() {
+  Widget chatTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -294,7 +294,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- Cart Tab ---
-  Widget _CartTab() {
+  Widget cartTab() {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, child) {
         final cartItems = cartProvider.items.values.toList();
@@ -502,7 +502,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- Notifications Tab ---
-  Widget _NotificationsTab() {
+  Widget notificationsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: const NotificationsCenterScreen(),
@@ -510,7 +510,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // --- Error Screen ---
-  Widget _ErrorScreen({required String error}) {
+  Widget errorScreen({required String error}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),

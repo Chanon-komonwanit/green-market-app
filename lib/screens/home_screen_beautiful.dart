@@ -22,6 +22,7 @@ import 'package:green_market/utils/thai_fuzzy_search.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
+  // TODO: [ภาษาไทย] เพิ่มระบบตรวจสอบประสิทธิภาพ (Performance Monitoring) และ Analytics Dashboard
   const HomeScreen({super.key});
 
   @override

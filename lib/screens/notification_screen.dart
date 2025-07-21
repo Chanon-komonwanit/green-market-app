@@ -44,6 +44,7 @@ class NotificationScreen extends StatelessWidget {
                     : const Icon(Icons.fiber_new, color: Colors.red),
                 onTap: () {
                   // TODO: handle notification action (deep link, etc.)
+                  // TODO: [ภาษาไทย] เมื่อผู้ใช้แตะแจ้งเตือน ให้เปิดหน้าที่เกี่ยวข้อง (deep link หรือแสดงรายละเอียด)
                 },
               );
             },

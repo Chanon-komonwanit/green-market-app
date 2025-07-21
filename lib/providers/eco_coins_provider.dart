@@ -1,3 +1,8 @@
+/// EcoCoinsProvider
+/// Provider สำหรับจัดการระบบ Eco Coins, mission, balance, และ transaction
+/// - ใช้ร่วมกับ EcoCoinsService
+library;
+
 // lib/providers/eco_coins_provider.dart
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,18 +28,19 @@ class EcoCoinsProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Stream subscriptions
+  /// Set loading state (private)
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
 
+  /// Set error message (private)
   void _setError(String? error) {
     _error = error;
     notifyListeners();
   }
 
-  // Initialize provider with mock data only
+  /// Initialize provider with mock data only
   void initialize() {
     // Always use mock data to prevent hanging
     _loadMockData();
@@ -45,7 +51,7 @@ class EcoCoinsProvider with ChangeNotifier {
     _loadMockData();
   }
 
-  // Load mock data for development
+  /// Load mock data for development (private)
   void _loadMockData() {
     _balance = EcoCoinsService.getMockBalance();
     _transactions = EcoCoinsService.getMockTransactions();
@@ -54,7 +60,7 @@ class EcoCoinsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Award coins (for testing purposes)
+  /// Award coins to user (for testing/development)
   Future<void> awardCoins({
     required int amount,
     required String source,
@@ -80,7 +86,7 @@ class EcoCoinsProvider with ChangeNotifier {
     }
   }
 
-  // Spend coins
+  /// Spend coins from user balance
   Future<bool> spendCoins({
     required int amount,
     required String source,
@@ -107,7 +113,7 @@ class EcoCoinsProvider with ChangeNotifier {
     }
   }
 
-  // Complete mission
+  /// Complete mission by missionId
   Future<void> completeMission(String missionId) async {
     try {
       _setLoading(true);
@@ -123,7 +129,7 @@ class EcoCoinsProvider with ChangeNotifier {
     }
   }
 
-  // Helper methods for common scenarios
+  /// Helper methods for common scenarios
   Future<void> awardPurchaseCoins(double purchaseAmount, String orderId) async {
     await _ecoCoinsService.awardPurchaseCoins(purchaseAmount, orderId);
   }
@@ -141,7 +147,7 @@ class EcoCoinsProvider with ChangeNotifier {
     await _ecoCoinsService.awardEcoActivityCoins(activityType, coinAmount);
   }
 
-  // Get mission progress for specific mission
+  /// Get mission progress for specific mission
   EcoCoinMissionProgress? getMissionProgressById(String missionId) {
     try {
       return _missionProgress.firstWhere(
@@ -152,13 +158,13 @@ class EcoCoinsProvider with ChangeNotifier {
     }
   }
 
-  // Check if mission is completed
+  /// Check if mission is completed
   bool isMissionCompleted(String missionId) {
     final progress = getMissionProgressById(missionId);
     return progress?.isCompleted ?? false;
   }
 
-  // Get available missions (not completed or repeatable)
+  /// Get available missions (not completed or repeatable)
   List<EcoCoinMission> get availableMissions {
     return _missions.where((mission) {
       if (mission.isRepeatable) return true;
@@ -166,19 +172,19 @@ class EcoCoinsProvider with ChangeNotifier {
     }).toList();
   }
 
-  // Get completed missions
+  /// Get completed missions
   List<EcoCoinMission> get completedMissions {
     return _missions.where((mission) {
       return isMissionCompleted(mission.id);
     }).toList();
   }
 
-  // Clear error
+  /// Clear error message
   void clearError() {
     _setError(null);
   }
 
-  // Refresh all data
+  /// Refresh all data (reload mock if not logged in)
   Future<void> refresh() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
