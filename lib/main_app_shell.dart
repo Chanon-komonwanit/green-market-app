@@ -1,21 +1,22 @@
 // lib/main_app_shell.dart
+
+// lib/main_app_shell.dart
 // ignore_for_file: unused_field
 
 import 'package:flutter/material.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
-import 'package:green_market/providers/theme_provider.dart';
+import 'package:green_market/theme/app_colors.dart' as colors;
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin_panel_screen.dart';
 import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
-import 'package:green_market/screens/my_home_screen.dart';
-import 'package:green_market/screens/green_world_hub_screen.dart';
+import 'package:green_market/screens/modern_my_home_screen.dart'; // ใช้หน้าใหม่
+import 'package:green_market/screens/green_world_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/green_community_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
-import 'package:green_market/screens/notifications_center_screen.dart';
 import 'package:green_market/services/notification_service.dart';
 import 'package:green_market/widgets/green_world_icon.dart';
 
@@ -27,6 +28,50 @@ class MainAppShell extends StatefulWidget {
 }
 
 class _MainAppShellState extends State<MainAppShell> {
+  Widget _buildGlobalSettings(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          Consumer<AppConfigProvider>(
+            builder: (context, configProvider, _) {
+              return DropdownButtonFormField<String>(
+                value: configProvider.config.primaryFontFamily,
+                decoration: const InputDecoration(labelText: 'Font'),
+                items: const [
+                  DropdownMenuItem(value: 'Prompt', child: Text('Prompt')),
+                  DropdownMenuItem(value: 'Kanit', child: Text('Kanit')),
+                  DropdownMenuItem(value: 'Roboto', child: Text('Roboto')),
+                ],
+                onChanged: (font) {
+                  if (font != null) configProvider.updateFontFamily(font);
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Consumer<AppConfigProvider>(
+            builder: (context, configProvider, _) {
+              return DropdownButtonFormField<String>(
+                value: configProvider.config.locale,
+                decoration: const InputDecoration(labelText: 'Language'),
+                items: const [
+                  DropdownMenuItem(value: 'th', child: Text('ไทย')),
+                  DropdownMenuItem(value: 'en', child: Text('English')),
+                ],
+                onChanged: (locale) {
+                  if (locale != null) configProvider.updateLocale(locale);
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
@@ -45,9 +90,9 @@ class _MainAppShellState extends State<MainAppShell> {
 
     List<Widget> pages = [
       const HomeScreen(), // 0. ตลาด (ทุกคน) - จาก home_screen_beautiful.dart
-      const MyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications)
+      const ModernMyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications) - ใหม่
       const GreenCommunityScreen(), // 2. ชุมชนสีเขียว
-      const GreenWorldHubScreen(), // 3. โลกสีเขียว
+      const GreenWorldScreen(), // 3. โลกสีเขียว
     ];
 
     // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
@@ -71,7 +116,7 @@ class _MainAppShellState extends State<MainAppShell> {
       'ตลาด',
       'My Home',
       'ชุมชนสีเขียว',
-      'โลกสีเขียว',
+      'เปิดโลกสีเขียว',
     ];
 
     // เพิ่มชื่อแท็บสำหรับผู้ขายที่อนุมัติแล้ว
@@ -106,7 +151,7 @@ class _MainAppShellState extends State<MainAppShell> {
       const BottomNavigationBarItem(
           icon: Icon(Icons.public, color: Colors.green, size: 28),
           activeIcon: Icon(Icons.public, color: Colors.green, size: 32),
-          label: 'โลกสีเขียว'),
+          label: 'เปิดโลกสีเขียว'),
     ];
     if (userProvider.isSeller) {
       items.add(const BottomNavigationBarItem(
@@ -142,91 +187,30 @@ class _MainAppShellState extends State<MainAppShell> {
           titles[_selectedIndex],
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 20, // ใช้ค่าคงที่แทน baseFontSize
+                fontSize: 20,
               ),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
-          // Theme toggle button
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return IconButton(
-                icon: Icon(
-                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                ),
-                onPressed: () {
-                  themeProvider.toggleDarkMode();
-                },
-                tooltip: themeProvider.isDarkMode
-                    ? 'เปลี่ยนเป็นโหมดกลางวัน'
-                    : 'เปลี่ยนเป็นโหมดกลางคืน',
-              );
-            },
-          ),
-          // Notification icon with badge
-          Consumer<UserProvider>(
-            builder: (context, userProvider, child) {
-              final userId = userProvider.currentUser?.id;
-              if (userId == null) return const SizedBox.shrink();
-
-              return StreamBuilder<int>(
-                stream: NotificationService().getUnreadCountStream(userId),
-                builder: (context, snapshot) {
-                  final unreadCount = snapshot.data ?? 0;
-                  return Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const NotificationsCenterScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              unreadCount > 99 ? '99+' : unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: pages[_selectedIndex], // ใช้ pages array แทน _getSelectedScreene(
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(child: Text('Settings')),
+            _buildGlobalSettings(context),
+          ],
+        ),
+      ),
+      body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: navItems,
         currentIndex: _selectedIndex,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        selectedItemColor: colors.AppColors.navBarSelectedColor,
+        unselectedItemColor: colors.AppColors.navBarUnselectedColor,
+        backgroundColor: colors.AppColors.navBarBackgroundColor,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,

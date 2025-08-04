@@ -1207,6 +1207,7 @@ class _DynamicAppConfigScreenState extends State<DynamicAppConfigScreen>
         icons: {},
         createdAt: appConfigProvider.config.createdAt,
         updatedAt: Timestamp.now(),
+        locale: 'th',
       );
 
       await appConfigProvider.updateConfig(config);

@@ -5,6 +5,16 @@ import 'package:green_market/services/firebase_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
+  ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
+  void setThemeMode(ThemeMode mode) {
+    if (mode == ThemeMode.dark) {
+      _isDarkMode = true;
+    } else if (mode == ThemeMode.light) {
+      _isDarkMode = false;
+    }
+    notifyListeners();
+  }
+
   final FirebaseService _firebaseService;
   ThemeData _themeData = ThemeData.light(); // Default theme
   ThemeData _darkThemeData = ThemeData.dark(); // Dark theme

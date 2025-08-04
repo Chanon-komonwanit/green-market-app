@@ -67,7 +67,7 @@ class EcoLevelOverviewCard extends StatelessWidget {
                     ),
                     child: Icon(
                       ecoLevel.icon,
-                      color: Colors.white,
+                      color: AppColors.white,
                       size: 24,
                     ),
                   ),
@@ -108,7 +108,7 @@ class EcoLevelOverviewCard extends StatelessWidget {
                 ecoLevel.description,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: AppColors.graySecondary,
                   height: 1.3,
                 ),
                 maxLines: 3,

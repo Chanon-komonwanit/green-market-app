@@ -29,30 +29,50 @@ class NotificationService {
   static const String _systemChannelId = 'system_notifications';
 
   Future<void> initialize() async {
-    await _initializeLocalNotifications();
-    await _initializeFirebaseMessaging();
+    try {
+      await _initializeLocalNotifications();
+      await _initializeFirebaseMessaging();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Notification service initialization failed: $e');
+      }
+      // Continue without crashing the app
+    }
   }
 
   Future<void> _initializeLocalNotifications() async {
-    const androidInitialization =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInitialization = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    try {
+      const androidInitialization =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosInitialization = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const windowsInitialization = WindowsInitializationSettings(
+        appName: 'Green Market',
+        appUserModelId: 'com.greenmarket.app',
+        guid: 'e4abfecc-f05b-424c-bc5c-abc5637a0a2e',
+      );
 
-    const initializationSettings = InitializationSettings(
-      android: androidInitialization,
-      iOS: iosInitialization,
-    );
+      const initializationSettings = InitializationSettings(
+        android: androidInitialization,
+        iOS: iosInitialization,
+        windows: windowsInitialization,
+      );
 
-    await _localNotifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
+      await _localNotifications.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
 
-    await _createNotificationChannels();
+      await _createNotificationChannels();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Local notifications initialization failed: $e');
+      }
+      // Continue without local notifications
+    }
   }
 
   Future<void> _createNotificationChannels() async {

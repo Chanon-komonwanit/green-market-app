@@ -51,6 +51,13 @@ dependencies: # Corrected: Already correct
   qr_flutter: ^4.1.0 # For QR code generation
   shared_preferences: ^2.2.2 # For storing theme preferences
   shimmer: ^3.0.0 # For shimmer loading effect
+  
+  # App Strengthening Dependencies
+  connectivity_plus: ^6.0.5 # Network connectivity monitoring
+  device_info_plus: ^10.1.2 # Device information
+  package_info_plus: ^8.0.2 # App package information
+  crypto: ^3.0.3 # For encryption and hashing
+  path_provider: ^2.1.4 # For file system access
 dev_dependencies:
   flutter_test:
     sdk: flutter

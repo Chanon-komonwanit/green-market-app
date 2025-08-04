@@ -132,16 +132,29 @@ class _ShopSettingsScreenState extends State<ShopSettingsScreen> {
         finalShopImageUrl = null;
       }
 
-      // Create updated seller object
+      // Get current seller data to preserve existing fields
+      final existingSeller =
+          await firebaseService.getSellerFullDetails(currentUserId);
+      if (existingSeller == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ไม่พบข้อมูลร้านค้า')),
+          );
+        }
+        return;
+      }
+
+      // Create updated seller object - preserve existing data
       final updatedSeller = Seller(
         id: currentUserId,
         shopName: _shopNameController.text.trim(),
         contactEmail: _contactEmailController.text.trim(),
         phoneNumber: _contactPhoneController.text.trim(),
-        status: 'active', // Assuming active status
-        rating: 0.0, // Will be maintained from existing data
-        totalRatings: 0, // Will be maintained from existing data
-        createdAt: Timestamp.now(), // Will be maintained from existing data
+        status: existingSeller.status, // Preserve existing status
+        rating: existingSeller.rating, // Preserve existing rating
+        totalRatings:
+            existingSeller.totalRatings, // Preserve existing total ratings
+        createdAt: existingSeller.createdAt, // Preserve creation date
         shopImageUrl: finalShopImageUrl,
         shopDescription: _shopDescriptionController.text.trim(),
         website: _websiteController.text.trim(),

@@ -17,7 +17,7 @@ import 'package:green_market/main_app_shell.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/providers/cart_provider.dart';
-import 'package:green_market/providers/theme_provider.dart';
+import 'package:green_market/theme/app_theme.dart';
 import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/edit_product_screen.dart';
 import 'package:green_market/screens/shipping_address_screen.dart';
@@ -31,17 +31,34 @@ import 'package:green_market/screens/eco_coins_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/services/firebase_data_seeder.dart';
-import 'package:flutter/foundation.dart';
 import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
+import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/wishlist_screen.dart';
+import 'package:green_market/screens/orders_screen.dart';
+import 'package:green_market/utils/app_comprehensive_strengthening.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // เริ่มต้น Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // เริ่มต้นการจัดรูปแบบวันที่
   await initializeDateFormatting('th', null);
-  await NotificationService().initialize();
+
+  // เริ่มต้นระบบเสริมสร้างความแข็งแรงครอบคลุม
+  try {
+    await AppComprehensiveStrengthening().initialize();
+    print('✅ Comprehensive strengthening system initialized successfully');
+  } catch (e) {
+    print('❌ Failed to initialize strengthening system: $e');
+  }
+
+  // Remove NotificationService initialization from main to avoid Windows issues
+  // await NotificationService().initialize();
   runApp(MyApp());
 }
 
@@ -55,13 +72,12 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<FirebaseService>(create: (_) => _firebaseService),
+        Provider<NotificationService>(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(
-            create: (context) => ThemeProvider(_firebaseService)),
+            create: (context) => AppConfigProvider(_firebaseService)),
         ChangeNotifierProvider(
             create: (context) => AuthProvider(_firebaseService)),
-        ChangeNotifierProvider(
-            create: (context) => AppConfigProvider(_firebaseService)),
         ChangeNotifierProxyProvider<AuthProvider, UserProvider>(
           // Corrected: Already correct
           create: (context) => UserProvider(firebaseService: _firebaseService),
@@ -79,14 +95,18 @@ class MyApp extends StatelessWidget {
           create: (context) => EcoCoinsProvider(),
         ),
       ],
-      child: Consumer2<ThemeProvider, AppConfigProvider>(
-        builder: (context, themeProvider, appConfigProvider, child) {
+      child: Consumer<AppConfigProvider>(
+        builder: (context, appConfigProvider, child) {
           return MaterialApp(
             title: appConfigProvider.appName,
-            theme: themeProvider.lightTheme,
-            darkTheme: themeProvider.darkTheme,
-            themeMode:
-                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF20C997), // Instagram-inspired green
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+            ),
+            themeMode: ThemeMode.light,
             debugShowCheckedModeBanner: false,
             home: Consumer2<AuthProvider, UserProvider>(
               // Use Consumer2 to listen to both
@@ -219,6 +239,24 @@ class MyApp extends StatelessWidget {
                     builder: (_) => PaymentScreen(order: order),
                   );
                 }
+              }
+              // เพิ่ม route สำหรับ seller dashboard
+              if (settings.name == '/seller-dashboard') {
+                return MaterialPageRoute(
+                  builder: (_) => const SellerDashboardScreen(),
+                );
+              }
+              // เพิ่ม route สำหรับ wishlist
+              if (settings.name == '/wishlist') {
+                return MaterialPageRoute(
+                  builder: (_) => const WishlistScreen(),
+                );
+              }
+              // เพิ่ม route สำหรับ reorder
+              if (settings.name == '/reorder') {
+                return MaterialPageRoute(
+                  builder: (_) => const OrdersScreen(),
+                );
               }
               // หากไม่ตรงกับ route ที่กำหนดไว้ ให้ return null
               return null;

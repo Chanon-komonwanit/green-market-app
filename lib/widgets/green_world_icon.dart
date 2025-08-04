@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// Custom green world icon with a small sprouting tree for eco branding.
 class GreenWorldIcon extends StatelessWidget {
@@ -32,12 +33,12 @@ class GreenWorldIcon extends StatelessWidget {
                 stops: [0.0, 0.4, 1.0],
               ),
               border: Border.all(
-                color: Colors.white,
+                color: AppColors.white,
                 width: 2 * scale,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.green.withOpacity(0.3),
+                  color: AppColors.primaryTeal.withOpacity(0.3),
                   blurRadius: 8 * scale,
                   offset: Offset(0, 2 * scale),
                 ),
@@ -58,7 +59,7 @@ class GreenWorldIcon extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8 * scale),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.brown.withOpacity(0.3),
+                    color: AppColors.earthyBrown.withOpacity(0.3),
                     blurRadius: 2 * scale,
                     offset: Offset(0, 1 * scale),
                   ),
@@ -99,7 +100,7 @@ class GreenWorldIcon extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8 * scale),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.2),
+                      color: AppColors.primaryTeal.withOpacity(0.2),
                       blurRadius: 2 * scale,
                       offset: Offset(0, 1 * scale),
                     ),
@@ -124,7 +125,7 @@ class GreenWorldIcon extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8 * scale),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.2),
+                      color: AppColors.primaryTeal.withOpacity(0.2),
                       blurRadius: 2 * scale,
                       offset: Offset(0, 1 * scale),
                     ),
@@ -146,7 +147,7 @@ class GreenWorldIcon extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6 * scale),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.green.withOpacity(0.2),
+                    color: AppColors.primaryTeal.withOpacity(0.2),
                     blurRadius: 2 * scale,
                     offset: Offset(0, 1 * scale),
                   ),

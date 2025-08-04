@@ -370,33 +370,17 @@ class _HomeScreenState extends State<HomeScreen>
             },
             child: CustomScrollView(
               slivers: [
-                // Welcome Message
+                // Enhanced Eco Coins - ย้ายขึ้นมาเป็นอันดับแรก
                 SliverToBoxAdapter(
-                  child: _buildWelcomeMessage(),
+                  child: _buildEnhancedEcoCoinsSection(),
                 ),
-                // Enhanced Eco Coins
+                // Smart Eco Hero Section - สินค้าระดับสูงสุด
                 SliverToBoxAdapter(
-                  child: _buildEcoCoinsSection(),
-                ),
-                // Search Bar
-                SliverToBoxAdapter(
-                  child: _buildSearchBar(),
+                  child: _buildSmartEcoHeroSection(products),
                 ),
                 // Categories Section
                 SliverToBoxAdapter(
                   child: _buildCategoriesSection(categories),
-                ),
-                // Green World Hub Section
-                SliverToBoxAdapter(
-                  child: _buildGreenWorldHubSection(),
-                ),
-                // Sustainable Investment Zone
-                SliverToBoxAdapter(
-                  child: _buildSustainableInvestmentZoneSection(),
-                ),
-                // Community Activities
-                SliverToBoxAdapter(
-                  child: _buildCommunityActivitiesSection(),
                 ),
                 // Special Promotions
                 if (promotions.isNotEmpty)
@@ -431,7 +415,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildWelcomeMessage() {
+  // Widget _buildWelcomeMessage() - REMOVED
+  // Replaced with _buildEnhancedEcoCoinsSection()
+
+  Widget _buildEnhancedEcoCoinsSection() {
     return AnimatedBuilder(
       animation: _cardAnimationController,
       builder: (context, child) {
@@ -441,23 +428,30 @@ class _HomeScreenState extends State<HomeScreen>
             opacity: _cardAnimationController.value,
             child: Container(
               margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryTeal.withOpacity(0.8),
-                    AppColors.peacockBlue.withOpacity(0.7),
-                    AppColors.lightTeal.withOpacity(0.6)
+                    const Color(0xFF1B5E20), // Deep forest green
+                    const Color(0xFF2E7D32), // Forest green
+                    const Color(0xFF388E3C), // Green
+                    const Color(0xFF4CAF50), // Light green
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
+                  stops: const [0.0, 0.3, 0.7, 1.0],
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryGreen.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+                    color: const Color(0xFF1B5E20).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF4CAF50).withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -467,41 +461,71 @@ class _HomeScreenState extends State<HomeScreen>
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: const Icon(
-                          Icons.eco,
+                          Icons.eco_rounded,
                           color: Colors.white,
-                          size: 24,
+                          size: 28,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       const Expanded(
-                        child: Text(
-                          'ยินดีต้อนรับสู่ Green Market!',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Green Market',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            Text(
+                              'World-Class Sustainable Shopping',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                                letterSpacing: 0.8,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'ร้านค้าที่ใส่ใจสิ่งแวดล้อมและชุมชน',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.5,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Text(
+                      '🌱 ตลาดออนไลน์ที่ใส่ใจสิ่งแวดล้อม รองรับการซื้อขายที่ยั่งยืน พร้อมระบบ AI แนะนำสินค้าอัจฉริยะ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        height: 1.6,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   StreamBuilder<User?>(
                     stream: FirebaseAuth.instance.authStateChanges(),
                     builder: (context, snapshot) {
@@ -578,116 +602,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildEcoCoinsSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: const EnhancedEcoCoinsWidget(),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return AnimatedBuilder(
-      animation: _cardAnimationController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _cardAnimationController.value) * 20),
-          child: Opacity(
-            opacity: _cardAnimationController.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryTeal.withOpacity(0.1),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(
-                  color: AppColors.primaryTeal.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primaryTeal,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'ค้นหาสินค้าเพื่อสิ่งแวดล้อม...',
-                        hintStyle: TextStyle(
-                          color: AppColors.modernGrey,
-                          fontSize: 16,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.black,
-                      ),
-                      onChanged: (value) {
-                        // Handle search query change
-                      },
-                      onSubmitted: (value) {
-                        if (value.isNotEmpty) {
-                          try {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SearchScreen(),
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('ไม่สามารถเปิดหน้าค้นหาได้'),
-                                backgroundColor: AppColors.errorRed,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      color: AppColors.primaryTeal,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildCategoriesSection(List<Category> categories) {
     if (categories.isEmpty) {
       return Container(
@@ -721,45 +635,92 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primaryTeal,
+                                AppColors.emeraldGreen,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryTeal.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.category_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         const Text(
                           'หมวดหมู่สินค้า',
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color:
-                                AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
-                            letterSpacing: 0.5,
+                            color: AppColors.darkText,
+                            letterSpacing: 0.8,
                           ),
                         ),
+                        const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'ทั้งหมด',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.primaryTeal,
-                              fontWeight: FontWeight.w500,
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primaryTeal.withOpacity(0.1),
+                                AppColors.emeraldGreen.withOpacity(0.1),
+                              ],
                             ),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(
+                              color: AppColors.primaryTeal.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.grid_view_rounded,
+                                color: AppColors.primaryTeal,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'ดูทั้งหมด',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.primaryTeal,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   SizedBox(
-                    height: 120,
+                    height: 140,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: categories.length,
                       cacheExtent: 200,
                       itemBuilder: (context, index) {
-                        return _buildCategoryCard(
+                        return _buildModernCategoryCard(
                             category: categories[index], index: index);
                       },
                     ),
@@ -773,22 +734,23 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildCategoryCard({required Category category, required int index}) {
+  Widget _buildModernCategoryCard(
+      {required Category category, required int index}) {
     final colors = [
-      AppColors.primaryTeal,
-      AppColors.peacockBlue,
-      AppColors.emeraldGreen,
-      AppColors.modernBlue,
-      AppColors.lightTeal,
+      [AppColors.primaryTeal, AppColors.peacockBlue],
+      [AppColors.emeraldGreen, AppColors.primaryTeal],
+      [AppColors.modernBlue, AppColors.deepBlue],
+      [AppColors.lightTeal, AppColors.primaryTeal],
+      [AppColors.peacockBlue, AppColors.modernBlue],
     ];
 
-    final cardColor = colors[index % colors.length];
+    final gradientColors = colors[index % colors.length];
 
     return AnimatedBuilder(
       animation: _buttonAnimationController,
       builder: (context, child) {
         return Transform.scale(
-          scale: 1.0 + (_buttonAnimationController.value * 0.05),
+          scale: 1.0 + (_buttonAnimationController.value * 0.03),
           child: GestureDetector(
             onTap: () {
               try {
@@ -810,531 +772,67 @@ class _HomeScreenState extends State<HomeScreen>
               }
             },
             child: Container(
-              width: 90,
+              width: 110,
               margin: const EdgeInsets.only(right: 16),
               child: Column(
                 children: [
                   Container(
-                    height: 70,
-                    width: 70,
+                    height: 80,
+                    width: 80,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          cardColor,
-                          cardColor.withOpacity(0.8),
-                        ],
+                        colors: gradientColors,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: cardColor.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          color: gradientColors[0].withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                        BoxShadow(
+                          color: gradientColors[1].withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: Icon(
                       _getCategoryIcon(category.name),
                       color: Colors.white,
-                      size: 28,
+                      size: 32,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    category.name.isNotEmpty ? category.name : 'ไม่มีชื่อ',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.darkText, // เปลี่ยนเป็นสีที่อ่านง่าย
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildGreenWorldHubSection() {
-    return AnimatedBuilder(
-      animation: _cardAnimationController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _cardAnimationController.value) * 30),
-          child: Opacity(
-            opacity: _cardAnimationController.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 6), // ลดขนาด margin
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryTeal.withOpacity(0.8),
-                    AppColors.peacockBlue.withOpacity(0.8)
-                  ], // ลดความเข้มสี
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16), // ลดขนาด border radius
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryTeal
-                        .withOpacity(0.2), // ลดความเข้มของเงา
-                    blurRadius: 15, // ลดขนาดเงา
-                    offset: const Offset(0, 4), // ลดขนาดเงา
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16), // ลดขนาด padding
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8), // ลดขนาด padding
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(
-                                12), // ลดขนาด border radius
-                          ),
-                          child: const Icon(
-                            Icons.door_front_door,
-                            color: Colors.white,
-                            size: 18, // ลดขนาด icon
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Green World Hub',
-                                style: TextStyle(
-                                  fontSize: 16, // ลดขนาดฟอนต์
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'ศูนย์รวมนวัตกรรมเพื่อโลกสีเขียว',
-                                style: TextStyle(
-                                  fontSize: 12, // ลดขนาดฟอนต์
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12), // ลดขนาด spacing
-                    const Text(
-                      'ร่วมสร้างโลกที่ยั่งยืนด้วยเทคโนโลยีและนวัตกรรมสีเขียว',
-                      style: TextStyle(
-                        fontSize: 14, // ลดขนาดฟอนต์
-                        color: Colors.white,
-                        height: 1.5,
+                    child: Text(
+                      category.name.isNotEmpty ? category.name : 'ไม่มีชื่อ',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 16), // ลดขนาด spacing
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.3)),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                // Navigate to Green World Hub
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'กำลังพัฒนาฟีเจอร์ Green World Hub'),
-                                    backgroundColor: AppColors.primaryTeal,
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.explore,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'สำรวจ Hub',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSustainableInvestmentZoneSection() {
-    return AnimatedBuilder(
-      animation: _cardAnimationController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _cardAnimationController.value) * 30),
-          child: Opacity(
-            opacity: _cardAnimationController.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 4), // ลดขนาด margin
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.modernBlue.withOpacity(0.7),
-                    AppColors.deepBlue.withOpacity(0.7)
-                  ], // ลดความเข้มสี
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16), // ลดขนาด border radius
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.modernBlue
-                        .withOpacity(0.2), // ลดความเข้มของเงา
-                    blurRadius: 15, // ลดขนาดเงา
-                    offset: const Offset(0, 4), // ลดขนาดเงา
                   ),
                 ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16), // ลดขนาด padding
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8), // ลดขนาด padding
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(
-                                12), // ลดขนาด border radius
-                          ),
-                          child: const Icon(
-                            Icons.trending_up,
-                            color: Colors.white,
-                            size: 18, // ลดขนาด icon
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sustainable Investment Zone',
-                                style: TextStyle(
-                                  fontSize: 16, // ลดขนาดฟอนต์
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'ลงทุนเพื่อความยั่งยืน',
-                                style: TextStyle(
-                                  fontSize: 12, // ลดขนาดฟอนต์
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12), // ลดขนาด spacing
-                    const Text(
-                      'ลงทุนในโครงการที่ช่วยสร้างโลกที่ดีขึ้น และได้รับผลตอบแทนที่ยั่งยืน',
-                      style: TextStyle(
-                        fontSize: 14, // ลดขนาดฟอนต์
-                        color: Colors.white,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16), // ลดขนาด spacing
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.3)),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                // Navigate to investment screen
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'กำลังพัฒนาฟีเจอร์การลงทุนยั่งยืน'),
-                                    backgroundColor: AppColors.modernBlue,
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.account_balance_wallet,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'เริ่มลงทุน',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCommunityActivitiesSection() {
-    return AnimatedBuilder(
-      animation: _cardAnimationController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _cardAnimationController.value) * 30),
-          child: Opacity(
-            opacity: _cardAnimationController.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 4), // ลดขนาด margin
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.emeraldGreen.withOpacity(0.6),
-                    AppColors.primaryTeal.withOpacity(0.6)
-                  ], // ลดความเข้มสี
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16), // ลดขนาด border radius
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.emeraldGreen
-                        .withOpacity(0.15), // ลดความเข้มของเงา
-                    blurRadius: 12, // ลดขนาดเงา
-                    offset: const Offset(0, 4), // ลดขนาดเงา
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12), // ลดขนาด padding
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.group,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'กิจกรรมชุมชน',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'ร่วมกิจกรรมเพื่อสังคม',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'เข้าร่วมกิจกรรมชุมชนเพื่อสร้างสรรค์สิ่งดีๆ ให้กับสังคม',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AnimatedBuilder(
-                            animation: _buttonAnimationController,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: 1.0 +
-                                    (_buttonAnimationController.value * 0.05),
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    try {
-                                      Navigator.pushNamed(
-                                          context, '/community-activities');
-                                    } catch (e) {
-                                      print(
-                                          '[ERROR] Community activities navigation: $e');
-                                    }
-                                  },
-                                  icon: const Icon(Icons.visibility, size: 18),
-                                  label: const Text('ดูกิจกรรม'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: AppColors.emeraldGreen,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AnimatedBuilder(
-                            animation: _buttonAnimationController,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: 1.0 +
-                                    (_buttonAnimationController.value * 0.05),
-                                child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    try {
-                                      Navigator.pushNamed(
-                                          context, '/create-activity');
-                                    } catch (e) {
-                                      print(
-                                          '[ERROR] Create activity navigation: $e');
-                                    }
-                                  },
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('สร้างกิจกรรม'),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(
-                                        color: Colors.white, width: 2),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
               ),
             ),
           ),
@@ -2309,6 +1807,537 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  /// สร้าง Smart Eco Hero Section - สินค้าระดับสูงสุดแห่งความยั่งยืน
+  Widget _buildSmartEcoHeroSection(List<Product> products) {
+    // AI Algorithm - เลือกสินค้าระดับสูงสุด
+    final ecoHeroProducts = _selectEcoHeroProducts(products);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Premium AI Header
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF0F172A), // Slate 900
+                  Color(0xFF1E293B), // Slate 800
+                  Color(0xFF334155), // Slate 700
+                  Color(0xFF475569), // Slate 600
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                stops: [0.0, 0.3, 0.7, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF10B981), // Emerald 500
+                            Color(0xFF059669), // Emerald 600
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.psychology_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Smart Eco Hero AI',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'AI-Powered Recommendations',
+                              style: TextStyle(
+                                color: Color(0xFF10B981),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        color: const Color(0xFF10B981),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'AI แนะนำสินค้าระดับ Hero & Premium เท่านั้น',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${ecoHeroProducts.length} รายการ',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Products Grid
+          if (ecoHeroProducts.isNotEmpty)
+            SizedBox(
+              height: 280,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: ecoHeroProducts.length,
+                itemBuilder: (context, index) {
+                  final product = ecoHeroProducts[index];
+                  return Container(
+                    width: 180,
+                    margin: const EdgeInsets.only(right: 12),
+                    child: _buildEcoHeroProductCard(product, index),
+                  );
+                },
+              ),
+            )
+          else
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.eco_outlined,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'ยังไม่มีสินค้าระดับ Eco Hero',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'รอสินค้าเยี่ยมจากผู้ขายของเรา',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// อัลกอริทึมฉลาด AI เลือกสินค้าระดับ Eco Hero
+  List<Product> _selectEcoHeroProducts(List<Product> products) {
+    if (products.isEmpty) return [];
+
+    // 🎯 AI Algorithm: ให้ความสำคัญกับ Eco Level เป็นหลัก
+    final scoredProducts = products.map((product) {
+      double score = 0.0;
+
+      // 1. คะแนน Eco Level (50%) - หลักเกณฑ์สำคัญที่สุด
+      switch (product.ecoLevel) {
+        case EcoLevel.hero: // 90-100%
+          score += 50;
+          break;
+        case EcoLevel.premium: // 60-89%
+          score += 40;
+          break;
+        case EcoLevel.standard: // 40-59%
+          score += 25;
+          break;
+        case EcoLevel.basic: // 20-39%
+          score += 10;
+          break;
+      }
+
+      // 2. คะแนน Eco Score จริง (20%) - คะแนนยิ่งสูงยิ่งดี
+      if (product.ecoScore >= 95) {
+        score += 20;
+      } else if (product.ecoScore >= 85) {
+        score += 18;
+      } else if (product.ecoScore >= 75) {
+        score += 15;
+      } else if (product.ecoScore >= 65) {
+        score += 12;
+      } else if (product.ecoScore >= 50) {
+        score += 8;
+      } else {
+        score += 5;
+      }
+
+      // 3. ชื่อสินค้ามีคำที่เกี่ยวกับความยั่งยืน (15%)
+      final sustainableKeywords = [
+        'organic',
+        'eco',
+        'green',
+        'sustainable',
+        'natural',
+        'bio',
+        'ออร์แกนิค',
+        'เขียว',
+        'ธรรมชาติ',
+        'ยั่งยืน',
+        'เอโค',
+        'ไร้สาร',
+        'รักษ์โลก',
+        'สิ่งแวดล้อม',
+        'รีไซเคิล',
+        'คาร์บอน'
+      ];
+      final productName = product.name.toLowerCase();
+      final productDescription = product.description.toLowerCase();
+
+      for (final keyword in sustainableKeywords) {
+        if (productName.contains(keyword.toLowerCase()) ||
+            productDescription.contains(keyword.toLowerCase())) {
+          score += 15;
+          break;
+        }
+      }
+
+      // 4. คะแนนราคา (10%) - ราคาสูง = คุณภาพสูง
+      if (product.price > 1000) {
+        score += 10;
+      } else if (product.price > 500) {
+        score += 8;
+      } else if (product.price > 200) {
+        score += 5;
+      }
+
+      // 5. มีรูปภาพ = คุณภาพการนำเสนอดี (5%)
+      if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+        score += 5;
+      }
+
+      return MapEntry(product, score);
+    }).toList();
+
+    // เรียงตามคะแนนสูงสุด
+    scoredProducts.sort((a, b) => b.value.compareTo(a.value));
+
+    // กรองและเลือกสินค้า: เฉพาะที่มี Eco Level premium ขึ้นไป
+    final filteredProducts = scoredProducts.where((entry) {
+      final product = entry.key;
+      final hasHighEcoLevel = product.ecoLevel == EcoLevel.hero ||
+          product.ecoLevel == EcoLevel.premium;
+      final hasMinScore = entry.value >= 40; // คะแนนขั้นต่ำ
+      return hasHighEcoLevel && hasMinScore;
+    }).toList();
+
+    // ถ้าสินค้า premium/hero น้อยเกินไป ให้เพิ่มสินค้า standard ที่มีคะแนนสูง
+    if (filteredProducts.length < 4) {
+      final standardProducts = scoredProducts.where((entry) {
+        final product = entry.key;
+        final isStandard = product.ecoLevel == EcoLevel.standard;
+        final hasGoodScore = entry.value >= 35;
+        final notInFiltered =
+            !filteredProducts.map((e) => e.key.id).contains(product.id);
+        return isStandard && hasGoodScore && notInFiltered;
+      }).take(4 - filteredProducts.length);
+
+      filteredProducts.addAll(standardProducts);
+    }
+
+    // เลือกสินค้า 8 อันดับแรก
+    return filteredProducts.take(8).map((entry) => entry.key).toList();
+  }
+
+  /// ฟังก์ชันกำหนดสีตาม Eco Level
+  Color _getEcoLevelColor(EcoLevel ecoLevel) {
+    switch (ecoLevel) {
+      case EcoLevel.hero:
+        return const Color(0xFFD4AF37); // ทอง - สำหรับ Hero
+      case EcoLevel.premium:
+        return const Color(0xFF8E24AA); // ม่วง - สำหรับ Premium
+      case EcoLevel.standard:
+        return const Color(0xFF1976D2); // น้ำเงิน - สำหรับ Standard
+      case EcoLevel.basic:
+        return const Color(0xFF388E3C); // เขียว - สำหรับ Basic
+    }
+  }
+
+  /// สร้างการ์ดสินค้า Eco Hero แบบพิเศษ
+  Widget _buildEcoHeroProductCard(Product product, int index) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              const Color(0xFFFFFAF0), // ครีมทอง
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFFFD700).withOpacity(0.3),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFD700).withOpacity(0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero Badge
+            Stack(
+              children: [
+                // Product Image
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: Container(
+                    height: 140,
+                    width: double.infinity,
+                    color: Colors.grey.shade100,
+                    child: (product.imageUrl != null &&
+                            product.imageUrl!.isNotEmpty)
+                        ? Image.network(
+                            product.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.image_not_supported,
+                                  size: 40);
+                            },
+                          )
+                        : const Icon(Icons.shopping_bag, size: 40),
+                  ),
+                ),
+                // Hero Badge
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                        SizedBox(width: 2),
+                        Text(
+                          'HERO',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Product Details
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          product.ecoLevel.shortCode,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _getEcoLevelColor(product.ecoLevel),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${product.ecoScore}%)',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '฿${product.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFF6600),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.add_shopping_cart,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

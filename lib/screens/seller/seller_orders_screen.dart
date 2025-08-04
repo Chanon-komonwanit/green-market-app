@@ -52,8 +52,54 @@ class SellerOrdersScreen extends StatelessWidget {
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
-                child: Text('ยังไม่มีคำสั่งซื้อสำหรับร้านค้าของคุณ',
-                    style: AppTextStyles.body));
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      size: 80,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'ยังไม่มีคำสั่งซื้อ',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'คำสั่งซื้อใหม่จะปรากฏที่นี่เมื่อมีลูกค้าสั่งซื้อสินค้าของคุณ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[500],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.store),
+                      label: const Text('จัดการสินค้า'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           final orders = snapshot.data!;

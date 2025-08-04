@@ -259,9 +259,9 @@ class _SellerOrderDetailScreenState extends State<SellerOrderDetailScreen> {
               }).toList(),
               onChanged: _isUpdatingStatus
                   ? null
-                  : (newValue) {
+                  : (newValue) async {
                       if (newValue != null) {
-                        _updateStatus(newValue);
+                        await _updateStatus(newValue);
                       }
                     },
             ),

@@ -55,33 +55,27 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+        title: Text('โปรไฟล์'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // --- Profile Header ---
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: AppColors.lightGrey,
-                  backgroundImage: currentUser.photoUrl != null
-                      ? NetworkImage(currentUser.photoUrl!)
-                      : null,
-                  child: currentUser.photoUrl == null
-                      ? const Icon(Icons.person,
-                          size: 60, color: AppColors.modernGrey)
-                      : null,
-                ),
-                Material(
-                  color: AppColors.primaryGreen,
-                  shape: const CircleBorder(),
-                  child: InkWell(
+            // รูปโปรไฟล์
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundImage: currentUser.photoUrl != null
+                        ? NetworkImage(currentUser.photoUrl!)
+                        : null,
+                    child: currentUser.photoUrl == null
+                        ? const Icon(Icons.person, size: 48)
+                        : null,
+                  ),
+                  InkWell(
                     onTap: () => _changeProfilePicture(context),
                     customBorder: const CircleBorder(),
                     child: const Padding(
@@ -90,20 +84,23 @@ class ProfileScreen extends StatelessWidget {
                           Icon(Icons.camera_alt, color: Colors.white, size: 20),
                     ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               currentUser.displayName ?? 'N/A',
-              style: AppTextStyles.headline,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
             ),
             Text(
               currentUser.email,
-              style: AppTextStyles.body.copyWith(color: AppColors.modernGrey),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
             ),
             const SizedBox(height: 32),
-
             // --- Menu Options ---
             _buildProfileMenu(context, userProvider, authProvider),
           ],
@@ -119,6 +116,7 @@ class ProfileScreen extends StatelessWidget {
     return Column(
       children: [
         _buildMenuTile(
+          context: context,
           icon: Icons.edit_outlined,
           title: 'Edit Profile',
           onTap: () {
@@ -129,6 +127,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         if (currentUser.isAdmin)
           _buildMenuTile(
+            context: context,
             icon: Icons.admin_panel_settings_outlined,
             title: 'แผงควบคุมแอดมิน',
             onTap: () {
@@ -139,6 +138,7 @@ class ProfileScreen extends StatelessWidget {
           )
         else if (currentUser.isSeller)
           _buildMenuTile(
+            context: context,
             icon: Icons.store_outlined,
             title: 'แดชบอร์ดร้านค้า',
             onTap: () {
@@ -149,6 +149,7 @@ class ProfileScreen extends StatelessWidget {
           ),
 
         _buildMenuTile(
+          context: context,
           icon: Icons.history_outlined,
           title: 'ประวัติการสั่งซื้อ',
           onTap: () {
@@ -159,6 +160,7 @@ class ProfileScreen extends StatelessWidget {
         // เมนูสำหรับสมัครเป็นผู้ขาย (ใช้ getter ใหม่จาก UserProvider)
         if (userProvider.canApplyToBecomeSeller)
           _buildMenuTile(
+            context: context,
             icon: Icons.storefront_outlined,
             title: 'สมัครเป็นผู้ขาย',
             onTap: () {
@@ -169,18 +171,21 @@ class ProfileScreen extends StatelessWidget {
           ),
         if (userProvider.isSellerApplicationPending)
           _buildMenuTile(
+            context: context,
             icon: Icons.hourglass_top_outlined,
             title: 'รอการอนุมัติเป็นผู้ขาย',
             subtitle: 'กำลังรอการพิจารณาจากแอดมิน',
             onTap: () {},
-            trailing: const Icon(Icons.schedule, color: Colors.orange),
+            trailing: Icon(Icons.schedule,
+                color: Theme.of(context).colorScheme.secondary),
           ),
         if (userProvider.isSellerApplicationRejected)
           _buildMenuTile(
+            context: context,
             icon: Icons.cancel_outlined,
             title: 'คำขอเป็นผู้ขายถูกปฏิเสธ',
             subtitle: currentUser.rejectionReason ?? 'ไม่ได้ระบุเหตุผล',
-            color: Colors.red,
+            color: Theme.of(context).colorScheme.error,
             onTap: () {
               // สามารถสมัครใหม่ได้
               Navigator.of(context).push(MaterialPageRoute(
@@ -190,9 +195,10 @@ class ProfileScreen extends StatelessWidget {
           ),
         const Divider(height: 32),
         _buildMenuTile(
+          context: context,
           icon: Icons.logout,
           title: 'ออกจากระบบ',
-          color: AppColors.errorRed,
+          color: Theme.of(context).colorScheme.error,
           onTap: () async {
             final bool? confirmLogout = await showDialog<bool>(
               context: context,
@@ -201,7 +207,7 @@ class ProfileScreen extends StatelessWidget {
                   title: Text(
                     'ยืนยันการออกจากระบบ',
                     style: AppTextStyles.subtitle.copyWith(
-                      color: AppColors.primaryTeal,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   content: Text(
@@ -213,7 +219,7 @@ class ProfileScreen extends StatelessWidget {
                       child: Text(
                         'ยกเลิก',
                         style: AppTextStyles.body.copyWith(
-                          color: AppColors.modernGrey,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                       onPressed: () {
@@ -222,13 +228,13 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.errorRed,
-                        foregroundColor: AppColors.white,
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
                       ),
                       child: Text(
                         'ออกจากระบบ',
                         style: AppTextStyles.bodyBold.copyWith(
-                          color: AppColors.white,
+                          color: Theme.of(context).colorScheme.onError,
                         ),
                       ),
                       onPressed: () {
@@ -246,33 +252,12 @@ class ProfileScreen extends StatelessWidget {
         ),
 
         // Theme Toggle
-        Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
-            return _buildMenuTile(
-              icon:
-                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-              title: 'โหมดการแสดงผล',
-              subtitle: themeProvider.isDarkMode
-                  ? 'กลางคืน - พื้นหลังสีดำ ข้อความสีขาว'
-                  : 'กลางวัน - พื้นหลังสีขาว ข้อความสีดำ',
-              onTap: () {
-                themeProvider.toggleDarkMode();
-              },
-              trailing: Switch(
-                value: themeProvider.isDarkMode,
-                onChanged: (bool value) {
-                  themeProvider.setDarkMode(value);
-                },
-                activeColor: AppColors.primaryGreen,
-              ),
-            );
-          },
-        ),
       ],
     );
   }
 
   Widget _buildMenuTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required VoidCallback onTap,
@@ -283,12 +268,15 @@ class ProfileScreen extends StatelessWidget {
     final Widget trailingWidget =
         trailing ?? const Icon(Icons.arrow_forward_ios, size: 16);
     return ListTile(
-      leading: Icon(icon, color: color ?? AppColors.primaryGreen),
-      title: Text(title, style: AppTextStyles.body.copyWith(color: color)),
+      leading:
+          Icon(icon, color: color ?? Theme.of(context).colorScheme.primary),
+      title: Text(title,
+          style: AppTextStyles.body.copyWith(
+              color: color ?? Theme.of(context).colorScheme.onBackground)),
       subtitle: subtitle != null
           ? Text(subtitle,
-              style:
-                  AppTextStyles.body.copyWith(color: Colors.grey, fontSize: 12))
+              style: AppTextStyles.body.copyWith(
+                  color: Theme.of(context).colorScheme.outline, fontSize: 12))
           : null,
       trailing: trailingWidget,
       onTap: onTap,

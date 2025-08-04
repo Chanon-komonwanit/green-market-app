@@ -4,6 +4,18 @@ import 'package:green_market/models/dynamic_app_config.dart';
 import 'package:green_market/services/firebase_service.dart';
 
 class AppConfigProvider extends ChangeNotifier {
+  // ฟังก์ชันสำหรับเปลี่ยนฟอนต์หลัก
+  Future<void> updateFontFamily(String fontFamily) async {
+    final newConfig = _config.copyWith(primaryFontFamily: fontFamily);
+    await updateConfig(newConfig);
+  }
+
+  // ฟังก์ชันสำหรับเปลี่ยนภาษา
+  Future<void> updateLocale(String locale) async {
+    final newConfig = _config.copyWith(locale: locale);
+    await updateConfig(newConfig);
+  }
+
   DynamicAppConfig _config = DynamicAppConfig.defaultConfig();
   bool _isLoading = false;
   final FirebaseService _firebaseService;

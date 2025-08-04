@@ -250,11 +250,11 @@ class _AnimatedEcoCoinsWidgetState extends State<AnimatedEcoCoinsWidget>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: AppColors.primaryTeal,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.3),
+                      color: AppColors.primaryTeal.withOpacity(0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),

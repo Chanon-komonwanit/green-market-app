@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'my_home_screen_notification_tab.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/screens/chat_screen.dart';
 import 'package:green_market/screens/cart_screen.dart';
@@ -40,13 +41,74 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   // quickActionsModern widget stub
   Widget quickActionsModernWidget() {
-    // ใช้งาน _QuickActionsModern จริง
-    return _QuickActionsModern();
+    // World-class quick actions: minimal, modern, accessible, responsive
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              label: 'ปุ่มออเดอร์ของฉัน',
+              child: ModernButton(
+                label: 'ออเดอร์ของฉัน',
+                iconLeft: const Icon(Icons.shopping_bag_outlined,
+                    color: Color(0xFF059669), size: 22),
+                color: Colors.white,
+                borderColor: const Color(0xFF059669),
+                borderWidth: 2,
+                textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF059669)),
+                borderRadius: 16,
+                elevation: 2,
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const OrdersScreen()));
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Semantics(
+              label: 'ปุ่ม Eco Rewards',
+              child: ModernButton(
+                label: 'Eco Rewards',
+                iconLeft: const Icon(Icons.emoji_events,
+                    color: Color(0xFFF59E0B), size: 22),
+                color: Colors.white,
+                borderColor: const Color(0xFFF59E0B),
+                borderWidth: 2,
+                textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFFF59E0B)),
+                borderRadius: 16,
+                elevation: 2,
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const EcoRewardsScreen()));
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // notificationsTab widget stub
@@ -61,48 +123,22 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   Widget smartEcoHeroTabWidget() {
     return Container(
       color: Colors.green[100],
-      child: Center(child: Text('Smart Eco Hero Placeholder')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: SafeArea(
+      child: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ModernHomeHeader(
-              title: 'Green Market',
-              subtitle: 'ตลาดสีเขียวเพื่อชุมชน',
-              backgroundGradient: const LinearGradient(
-                colors: [
-                  Color(0xFF059669),
-                  Color(0xFF10B981),
-                  Color(0xFF34D399)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+            Icon(
+              Icons.eco,
+              size: 80,
+              color: Colors.green[700],
             ),
-            const SizedBox(height: 8),
-            ModernCard(
-              color: const Color(0xFFFFF8DC),
-              borderRadius: 18,
-              child: _EcoCoinsSection(),
-            ),
-            modernTabBar(),
-            const SizedBox(height: 8),
-            quickActionsModern(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  smartEcoHeroTab(),
-                  chatTab(),
-                  cartTab(),
-                  notificationsTabReal(),
-                ],
+            SizedBox(height: 16),
+            Text(
+              'เลือกสินค้าสูงสุด',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.green[800],
               ),
             ),
           ],
@@ -111,255 +147,183 @@ class _MyHomeScreenState extends State<MyHomeScreen>
     );
   }
 
-  Widget smartEcoHeroTab() {
-    return smartEcoHeroTabWidget();
-  }
-
-  Widget chatTab() {
-    // ตัวอย่างการใช้งาน _ChatListItem แบบ mock data
-    final mockChatData = {
-      'participants': ['user1', 'user2'],
-      'lastMessage': 'สวัสดีครับ',
-      'lastMessageTime': Timestamp.now(),
-      'isRead': false,
-    };
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _ChatListItem(
-          chatId: 'chat1',
-          chatData: mockChatData,
-          currentUserId: 'user1',
-        ),
-      ],
-    );
-  }
-
-  Widget notificationsTab() {
-    return notificationsTabWidget();
-  }
-
-  Widget modernTabBar() {
-    return TabBar(
-      controller: _tabController,
-      tabs: const [
-        Tab(icon: Icon(Icons.eco), text: 'Eco Hero'),
-        Tab(icon: Icon(Icons.chat), text: 'Chat'),
-        Tab(icon: Icon(Icons.shopping_cart), text: 'Cart'),
-        Tab(icon: Icon(Icons.notifications), text: 'Notifications'),
-      ],
-    );
-  }
-
-  Widget quickActionsModern() {
-    return quickActionsModernWidget();
-  }
-
-  Widget cartTab() {
-    // ...existing code...
-    return Consumer<CartProvider>(
-      builder: (context, cartProvider, child) {
-        final cartItems = cartProvider.items.values.toList();
-        if (cartItems.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.shopping_cart_outlined,
-                    size: 60, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('ตะกร้าของคุณว่างเปล่า',
-                    style: TextStyle(fontSize: 16, color: Colors.grey)),
-                SizedBox(height: 8),
-                Text('เพิ่มสินค้าเพื่อเริ่มต้นการช้อปปิ้ง',
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
-          );
-        }
-        return Column(
-          children: [
-            ModernCard(
-              color: const Color(0xFF2E7D32),
-              borderRadius: 16,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('รวม ${cartItems.length} รายการ',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
-                  Text('฿${cartProvider.totalAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: cartItems.length,
-                itemBuilder: (context, index) {
-                  final cartItem = cartItems[index];
-                  final product = cartItem.product;
-                  return ModernCard(
-                    color: Colors.white,
-                    borderRadius: 12,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: product.imageUrls.isNotEmpty
-                              ? Image.network(
-                                  product.imageUrls.first,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.image,
-                                    size: 30,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(product.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 4),
-                              Text('฿${product.price.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      color: Color(0xFF2E7D32),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          cartProvider.updateItemQuantity(
-                                              product.id,
-                                              cartItem.quantity - 1);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius:
-                                                  BorderRadius.circular(6)),
-                                          child: const Icon(Icons.remove,
-                                              size: 16),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
-                                        child: Text('${cartItem.quantity}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16)),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          cartProvider.updateItemQuantity(
-                                              product.id,
-                                              cartItem.quantity + 1);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                              color: const Color(0xFF2E7D32),
-                                              borderRadius:
-                                                  BorderRadius.circular(6)),
-                                          child: const Icon(Icons.add,
-                                              size: 16, color: Colors.white),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      cartProvider.removeItem(product.id);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              'ลบ ${product.name} ออกจากตะกร้าแล้ว'),
-                                          duration: const Duration(seconds: 2),
-                                          backgroundColor:
-                                              const Color(0xFF43A047),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                          color: Colors.red[50],
-                                          borderRadius:
-                                              BorderRadius.circular(6)),
-                                      child: const Icon(Icons.delete_outline,
-                                          size: 18, color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // ส่วนหัวโปรไฟล์ (World-class)
+              Consumer<UserProvider>(
+                builder: (context, userProvider, child) {
+                  final currentUser = userProvider.currentUser;
+                  return Semantics(
+                    label: 'ส่วนหัวโปรไฟล์',
+                    child: ModernHomeHeader(
+                      title: currentUser?.displayName ?? 'Green Market',
+                      subtitle: 'ตลาดสีเขียวเพื่อชุมชน',
+                      avatarUrl: currentUser?.photoUrl,
+                      ecoCoins: currentUser?.ecoCoins.floor(),
+                      isVerified: currentUser?.isAdmin == true ||
+                          currentUser?.isSeller == true,
+                      onProfileTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const EnhancedEditProfileScreen()));
+                      },
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined,
+                              color: Color(0xFF059669)),
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const EditProfileScreen()));
+                          },
                         ),
                       ],
                     ),
                   );
                 },
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ModernButton(
-                  label: 'ดำเนินการชำระเงิน',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CartScreen(),
+              const SizedBox(height: 10),
+              // Eco Coins Section (World-class)
+              Semantics(
+                label: 'Eco Coins Section',
+                child: _EcoCoinsSection(),
+              ),
+              const SizedBox(height: 10),
+              // Quick Actions (World-class)
+              _QuickActionsModern(),
+              const SizedBox(height: 10),
+              // TabBar (World-class)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.10),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Semantics(
+                  label: 'แถบเมนูหลัก',
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: const Color(0xFF059669),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: const Color(0xFF059669),
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.shopping_cart_outlined, size: 26),
+                        child: Text('ตะกร้า',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
-                    );
-                  },
-                  color: const Color(0xFF2E7D32),
-                  textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+                      Tab(
+                        icon: Icon(Icons.emoji_events_outlined, size: 26),
+                        child: Text('Eco Hero',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      Tab(
+                        icon: Icon(Icons.chat_bubble_outline, size: 26),
+                        child: Text('แชท',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        );
-      },
+              // TabBarView (World-class)
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Cart Tab (World-class)
+                    cartTab(),
+                    // Eco Hero Tab (World-class)
+                    smartEcoHeroTabWidget(),
+                    // Chat Tab (World-class)
+                    Consumer<UserProvider>(
+                      builder: (context, userProvider, child) {
+                        final currentUserId =
+                            userProvider.currentUser?.id ?? 'user1';
+                        final mockChatList = [
+                          {
+                            'id': 'chat1',
+                            'participants': ['user1', 'user2'],
+                            'lastMessage': 'สวัสดีครับ สนใจสินค้า',
+                            'lastMessageTime': Timestamp.fromDate(
+                                DateTime.now().subtract(Duration(minutes: 5))),
+                            'isRead': false,
+                          },
+                          {
+                            'id': 'chat2',
+                            'participants': ['user1', 'user3'],
+                            'lastMessage': 'ขอบคุณสำหรับการสั่งซื้อ',
+                            'lastMessageTime': Timestamp.fromDate(
+                                DateTime.now().subtract(Duration(hours: 2))),
+                            'isRead': true,
+                          },
+                        ];
+                        if (mockChatList.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.chat_bubble_outline,
+                                    size: 60, color: Colors.grey),
+                                SizedBox(height: 16),
+                                Text('ยังไม่มีแชท',
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.grey)),
+                                SizedBox(height: 8),
+                                Text('เริ่มต้นสนทนาใหม่กับผู้ขายหรือผู้ซื้อ',
+                                    style: TextStyle(
+                                        fontSize: 13, color: Colors.grey)),
+                              ],
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          itemCount: mockChatList.length,
+                          itemBuilder: (context, index) {
+                            final chat = mockChatList[index];
+                            return _ChatListItem(
+                              chatId: chat['id'].toString(),
+                              chatData: chat,
+                              currentUserId: currentUserId,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 } // ปิดคลาส _MyHomeScreenState
@@ -613,144 +577,198 @@ Widget notificationsTabReal() {
         );
       }
 
-      return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('notifications')
-            .where('userId', isEqualTo: currentUser.id)
-            .orderBy('createdAt', descending: true)
-            .limit(50)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+      final List<NotificationTab> tabs = [
+        NotificationTab('ทั้งหมด', null, Icons.notifications),
+        NotificationTab('ระบบ', 'system', Icons.info_outline),
+        NotificationTab('ออเดอร์', 'order', Icons.shopping_bag_outlined),
+        NotificationTab('โปรโมชั่น', 'promotion', Icons.local_offer_outlined),
+        NotificationTab('การชำระเงิน', 'payment', Icons.payment),
+        NotificationTab('การจัดส่ง', 'delivery', Icons.local_shipping_outlined),
+      ];
+
+      final tabController =
+          TabController(length: tabs.length, vsync: ScrollableState());
+
+      return Column(
+        children: [
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              indicator: BoxDecoration(
+                color: const Color(0xFF059669),
+                borderRadius: BorderRadius.circular(12),
               ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 60,
-                    color: Colors.red,
+              labelColor: Colors.white,
+              unselectedLabelColor: const Color(0xFF059669),
+              labelStyle:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              tabs: [
+                for (final tab in tabs)
+                  Tab(
+                    icon: Icon(tab.icon, size: 22),
+                    child: Text(tab.label),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'เกิดข้อผิดพลาด: ${snapshot.error}',
-                    style: const TextStyle(fontSize: 14, color: Colors.red),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: tabController,
+              children: [
+                for (final tab in tabs)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: tab.type == null
+                        ? FirebaseFirestore.instance
+                            .collection('notifications')
+                            .where('recipientId', isEqualTo: currentUser.id)
+                            .orderBy('createdAt', descending: true)
+                            .limit(50)
+                            .snapshots()
+                        : FirebaseFirestore.instance
+                            .collection('notifications')
+                            .where('recipientId', isEqualTo: currentUser.id)
+                            .where('type', isEqualTo: tab.type)
+                            .orderBy('createdAt', descending: true)
+                            .limit(50)
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF2E7D32)),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 60,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'เกิดข้อผิดพลาด: ${snapshot.error}',
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      final notifications = snapshot.data?.docs ?? [];
+                      if (notifications.isEmpty) {
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 60),
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2E7D32)
+                                            .withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.notifications_outlined,
+                                        size: 60,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    const Text(
+                                      'ไม่มีการแจ้งเตือน',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'เมื่อมีข่าวสารใหม่ เช่น การอัปเดตออเดอร์\nหรือข้อมูลสำคัญอื่นๆ จะแสดงที่นี่',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey[600],
+                                        height: 1.5,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2E7D32)
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFF2E7D32)
+                                              .withOpacity(0.2),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'ทันสมัยอยู่เสมอ',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF2E7D32),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 60),
+                            ],
+                          ),
+                        );
+                      }
+                      // แสดงรายการแจ้งเตือน
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: notifications.length,
+                        itemBuilder: (context, index) {
+                          final notificationData = notifications[index].data()
+                              as Map<String, dynamic>;
+                          final notificationId = notifications[index].id;
+                          return _NotificationListItem(
+                            notificationId: notificationId,
+                            notificationData: notificationData,
+                          );
+                        },
+                      );
+                    },
                   ),
-                ],
-              ),
-            );
-          }
-
-          final notifications = snapshot.data?.docs ?? [];
-
-          if (notifications.isEmpty) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 60),
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.notifications_outlined,
-                            size: 60,
-                            color: Color(0xFF2E7D32),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'ไม่มีการแจ้งเตือน',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2E7D32),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'เมื่อมีข่าวสารใหม่ เช่น การอัปเดตออเดอร์\nหรือข้อมูลสำคัญอื่นๆ จะแสดงที่นี่',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFF2E7D32).withOpacity(0.2),
-                            ),
-                          ),
-                          child: const Text(
-                            'ทันสมัยอยู่เสมอ',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2E7D32),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 60),
-                ],
-              ),
-            );
-          }
-
-          // แสดงรายการแจ้งเตือน
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notificationData =
-                  notifications[index].data() as Map<String, dynamic>;
-              final notificationId = notifications[index].id;
-
-              return _NotificationListItem(
-                notificationId: notificationId,
-                notificationData: notificationData,
-              );
-            },
-          );
-        },
+              ],
+            ),
+          ),
+        ],
       );
     },
   );

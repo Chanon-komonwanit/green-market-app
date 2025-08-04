@@ -5,12 +5,16 @@ import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/my_products_screen.dart';
 import 'package:green_market/screens/seller/seller_orders_screen.dart';
 import 'package:green_market/screens/seller/shop_settings_screen.dart';
+import 'package:green_market/screens/seller/shop_customization_screen.dart';
 import 'package:green_market/screens/seller/seller_notifications_screen.dart';
 import 'package:green_market/screens/seller/shipping_management_screen.dart';
 import 'package:green_market/screens/seller/enhanced_shipping_management_screen.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:green_market/screens/seller/shop_preview_screen.dart';
+import 'package:green_market/screens/shopee_style_shop_screen.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -128,22 +132,64 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   Widget _buildOverviewTab() {
-    return RefreshIndicator(
-      onRefresh: _loadDashboardData,
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Center(
+        child: Text('กรุณาเข้าสู่ระบบ'),
+      );
+    }
+
+    return Container(
+      color: const Color(0xFFF8FAFB),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Welcome Card
             _buildWelcomeCard(),
             const SizedBox(height: 16),
+
+            // Quick Stats
             _buildQuickStats(),
             const SizedBox(height: 16),
+
+            // Today Summary
+            _buildTodaySummary(),
+            const SizedBox(height: 16),
+
+            // Quick Actions
             _buildQuickActions(),
             const SizedBox(height: 16),
+
+            // Recent Orders
             _buildRecentOrders(),
             const SizedBox(height: 16),
-            _buildTodaySummary(),
+
+            // ปุ่มเปิดหน้าร้านในโหมดเต็ม
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ShopPreviewScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('เปิดหน้าร้านแบบเต็ม'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -725,6 +771,250 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   Widget _buildSettingsTab() {
-    return const ShopSettingsScreen();
+    return Container(
+      color: const Color(0xFFF8FAFB),
+      child: Column(
+        children: [
+          // Header สำหรับตั้งค่า
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF2E7D32),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ตั้งค่าร้านค้า',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'จัดการข้อมูลร้านค้าและธีมของคุณ',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ปุ่มตั้งค่าต่างๆ
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // ตั้งค่าข้อมูลร้าน
+                  _buildSettingCard(
+                    icon: Icons.store,
+                    title: 'ข้อมูลร้านค้า',
+                    subtitle: 'ชื่อร้าน, รายละเอียด, ข้อมูลติดต่อ',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ShopSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ตั้งค่าธีมร้าน
+                  _buildSettingCard(
+                    icon: Icons.palette,
+                    title: 'ธีมร้านค้า',
+                    subtitle: 'เลือกสีและรูปแบบหน้าร้าน',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ShopCustomizationScreen(
+                            sellerId:
+                                FirebaseAuth.instance.currentUser?.uid ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ตั้งค่าการจัดส่ง
+                  _buildSettingCard(
+                    icon: Icons.local_shipping,
+                    title: 'การจัดส่ง',
+                    subtitle: 'จัดการวิธีการและค่าจัดส่ง',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const EnhancedShippingManagementScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // การแจ้งเตือน
+                  _buildSettingCard(
+                    icon: Icons.notifications,
+                    title: 'การแจ้งเตือน',
+                    subtitle: 'ตั้งค่าการแจ้งเตือนคำสั่งซื้อและข้อความ',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const SellerNotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ปุ่มดูหน้าร้าน
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        // ตรวจสอบข้อมูลร้านก่อนเปิด
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          // แสดง loading
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          try {
+                            // ตรวจสอบว่ามีข้อมูลร้านหรือไม่
+                            final sellerDoc = await FirebaseFirestore.instance
+                                .collection('sellers')
+                                .doc(user.uid)
+                                .get();
+
+                            Navigator.pop(context); // ปิด loading
+
+                            if (sellerDoc.exists && sellerDoc.data() != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ShopPreviewScreen(),
+                                ),
+                              );
+                            } else {
+                              // ถ้าไม่มีข้อมูลร้าน แนะนำให้ตั้งค่าก่อน
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'กรุณาตั้งค่าข้อมูลร้านค้าก่อนดูหน้าร้าน'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+
+                              // เปิดหน้าตั้งค่าร้าน
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ShopSettingsScreen(),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            Navigator.pop(context); // ปิด loading
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('เกิดข้อผิดพลาด: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text('ดูหน้าร้านของฉัน'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E7D32).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF2E7D32),
+            size: 24,
+          ),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
+        onTap: onTap,
+      ),
+    );
   }
 }

@@ -8,6 +8,7 @@ import 'package:green_market/providers/cart_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
+// ↑ ใช้ไฟล์นี้เพราะมันเป็น wrapper ที่จะไปเรียก ShopeeStyleShopScreen
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 // import 'package:green_market/utils/app_text_styles.dart';
@@ -362,7 +363,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               SellerShopScreen(
-                                                  sellerId: seller.id),
+                                                  sellerID: seller.id),
                                         ),
                                       );
                                     },

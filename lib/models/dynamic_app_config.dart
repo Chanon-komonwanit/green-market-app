@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class DynamicAppConfig {
+  final String locale;
   final String id;
   final String appName;
   final String appTagline;
@@ -81,6 +82,7 @@ class DynamicAppConfig {
   final Timestamp updatedAt;
 
   DynamicAppConfig({
+    required this.locale,
     required this.id,
     required this.appName,
     required this.appTagline,
@@ -218,6 +220,7 @@ class DynamicAppConfig {
       enableReviews: map['enableReviews'] as bool? ?? true,
       enablePromotions: map['enablePromotions'] as bool? ?? true,
       enableMultiLanguage: map['enableMultiLanguage'] as bool? ?? false,
+      locale: map['locale'] as String? ?? 'th',
       defaultShippingFee:
           (map['defaultShippingFee'] as num?)?.toDouble() ?? 50.0,
       minimumOrderAmount:
@@ -313,6 +316,7 @@ class DynamicAppConfig {
   }
 
   DynamicAppConfig copyWith({
+    String? locale,
     String? id,
     String? appName,
     String? appTagline,
@@ -412,6 +416,7 @@ class DynamicAppConfig {
       enableReviews: enableReviews ?? this.enableReviews,
       enablePromotions: enablePromotions ?? this.enablePromotions,
       enableMultiLanguage: enableMultiLanguage ?? this.enableMultiLanguage,
+      locale: locale ?? this.locale,
       defaultShippingFee: defaultShippingFee ?? this.defaultShippingFee,
       minimumOrderAmount: minimumOrderAmount ?? this.minimumOrderAmount,
       maxCartItems: maxCartItems ?? this.maxCartItems,
@@ -477,6 +482,7 @@ class DynamicAppConfig {
       enableReviews: true,
       enablePromotions: true,
       enableMultiLanguage: false,
+      locale: 'th',
       defaultShippingFee: 50.0,
       minimumOrderAmount: 100.0,
       maxCartItems: 50,

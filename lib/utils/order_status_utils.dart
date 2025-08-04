@@ -1,3 +1,14 @@
+import 'package:flutter/material.dart';
+import 'package:green_market/utils/constants.dart';
+
+/// Utilities for order status display, color, and mapping.
+///
+/// ตัวอย่างการใช้งาน:
+///   Text(OrderStatusUtils.getDisplayString(status))
+///   Color c = OrderStatusUtils.getStatusColor(status)
+///   Widget badge = OrderStatusBadge(status: status)
+///
+/// รองรับสถานะ: pendingPayment, processing, shipped, delivered, cancelled, unknown
 // lib/utils/order_status_utils.dart
 
 class OrderStatusUtils {
@@ -52,7 +63,22 @@ class OrderStatusUtils {
     }
   }
 
-  static getStatusColor(String currentStatus) {}
+  static Color getStatusColor(String currentStatus) {
+    switch (currentStatus) {
+      case pendingPayment:
+        return AppColors.warningAmber;
+      case processing:
+        return AppColors.infoBlue;
+      case shipped:
+        return AppColors.primaryTeal;
+      case delivered:
+        return AppColors.successGreen;
+      case cancelled:
+        return AppColors.errorRed;
+      default:
+        return AppColors.graySecondary;
+    }
+  }
 
   // You can add more utility methods here, e.g., to check if a status is final, etc.
 }

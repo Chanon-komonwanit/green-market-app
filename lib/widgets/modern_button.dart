@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// ModernButton
 /// ปุ่ม UI ที่ทันสมัย รองรับ animation, accessibility, ripple, loading, icon ซ้าย/ขวา
@@ -24,6 +25,8 @@ class ModernButton extends StatelessWidget {
   final String? semanticLabel;
   final double elevation;
   final EdgeInsetsGeometry? padding;
+  final Color? borderColor;
+  final double borderWidth;
 
   const ModernButton({
     super.key,
@@ -40,14 +43,16 @@ class ModernButton extends StatelessWidget {
     this.semanticLabel,
     this.elevation = 4,
     this.padding,
+    this.borderColor,
+    this.borderWidth = 2,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
     final effectiveTextStyle = textStyle ??
-        const TextStyle(
-          color: Colors.white,
+        TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
           fontWeight: FontWeight.bold,
           fontSize: 16,
           letterSpacing: 0.2,
@@ -68,6 +73,9 @@ class ModernButton extends StatelessWidget {
             ),
           ],
           borderRadius: BorderRadius.circular(borderRadius),
+          border: borderColor != null
+              ? Border.all(color: borderColor!, width: borderWidth)
+              : null,
         ),
         child: Material(
           color: effectiveColor,
@@ -76,8 +84,8 @@ class ModernButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(borderRadius),
             onTap: (isDisabled || isLoading) ? null : onPressed,
             focusColor: effectiveColor.withOpacity(0.22),
-            highlightColor: Colors.white.withOpacity(0.08),
-            splashColor: Colors.white.withOpacity(0.16),
+            highlightColor: AppColors.white.withOpacity(0.08),
+            splashColor: AppColors.white.withOpacity(0.16),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -114,7 +122,7 @@ class ModernButton extends StatelessWidget {
                         height: 26,
                         child: CircularProgressIndicator(
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                              AlwaysStoppedAnimation<Color>(AppColors.white),
                           strokeWidth: 2.5,
                         ),
                       ),

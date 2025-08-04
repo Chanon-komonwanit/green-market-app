@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/eco_rewards_screen.dart';
 
+import '../utils/constants.dart';
+
 class EnhancedEcoCoinsWidget extends StatelessWidget {
   final bool showLabel;
   final bool showValue;
@@ -327,7 +329,7 @@ class _EcoCoinsFloatingRewardState extends State<EcoCoinsFloatingReward>
                       widget.reason,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[700],
+                        color: AppColors.grayPrimary,
                       ),
                     ),
                   ],

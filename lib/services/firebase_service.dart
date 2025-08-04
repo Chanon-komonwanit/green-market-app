@@ -29,6 +29,7 @@ import 'package:green_market/models/project_update.dart';
 import 'package:green_market/models/promotion.dart';
 import 'package:green_market/models/review.dart';
 import 'package:green_market/models/seller.dart';
+import 'package:green_market/models/shop_customization.dart';
 import 'package:green_market/models/static_page.dart';
 import 'package:green_market/models/sustainable_activity.dart';
 import 'package:green_market/models/theme_settings.dart';
@@ -37,6 +38,52 @@ import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
 class FirebaseService {
+  /// Get promotions by seller id
+  Future<List<Promotion>> getPromotionsBySeller(String sellerId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('promotions')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('startDate', descending: true)
+        .get();
+    return snapshot.docs.map((doc) => Promotion.fromMap(doc.data())).toList();
+  }
+
+  /// Get product categories by seller id (return category names)
+  Future<List<String>> getProductCategoriesBySeller(String sellerId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .get();
+    final cats = <String>{};
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['category'] != null && data['category'].toString().isNotEmpty) {
+        cats.add(data['category']);
+      }
+    }
+    return cats.toList();
+  }
+
+  /// Get seller by id (for shop page)
+  Future<Seller?> getSellerById(String sellerId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .get();
+    if (!doc.exists) return null;
+    return Seller.fromMap(doc.data()!);
+  }
+
+  /// Update shop template (theme) for a seller
+  Future<void> updateShopTemplate(String sellerId, String templateName) async {
+    await FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .update({
+      'shopTemplate': templateName,
+    });
+  }
+
   // TODO: [ภาษาไทย] เพิ่มระบบแจ้งเตือนข้อผิดพลาด (Crashlytics) และ Audit Log
   /// Get new products for a specific seller (สินค้าใหม่)
   Future<List<Product>> getNewProductsBySeller(String sellerId) async {
@@ -3378,5 +3425,116 @@ class FirebaseService {
       'rating': count > 0 ? totalRating / count : 0.0,
       'count': count,
     };
+  }
+
+  // === Shop Customization Methods ===
+  Future<ShopCustomization?> getShopCustomization(String sellerId) async {
+    try {
+      final doc = await _firestore
+          .collection('shop_customizations')
+          .doc(sellerId)
+          .get();
+
+      if (doc.exists) {
+        return ShopCustomization.fromMap(doc.data()!);
+      }
+
+      // Return default customization if none exists
+      return ShopCustomization(
+        sellerId: sellerId,
+        theme: ScreenShopTheme.greenEco,
+        sections: [],
+        colors: ShopColors(),
+        layout: ShopLayout(),
+        featuredProductIds: [],
+        promotions: [],
+      );
+    } catch (e) {
+      logger.e("Error getting shop customization: $e");
+      return null;
+    }
+  }
+
+  Future<void> saveShopCustomization(ShopCustomization customization) async {
+    try {
+      await _firestore
+          .collection('shop_customizations')
+          .doc(customization.sellerId)
+          .set(customization.toMap());
+      logger
+          .i("Shop customization saved for seller: ${customization.sellerId}");
+    } catch (e) {
+      logger.e("Error saving shop customization: $e");
+      rethrow;
+    }
+  }
+
+  Future<List<Product>> getProductsBySellerId(String sellerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('products')
+          .where('sellerId', isEqualTo: sellerId)
+          .where('status', isEqualTo: 'approved')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+    } catch (e) {
+      logger.e("Error getting products by seller ID: $e");
+      return [];
+    }
+  }
+
+  Future<void> updateShopTheme(String sellerId, ScreenShopTheme theme) async {
+    try {
+      await _firestore.collection('shop_customizations').doc(sellerId).update({
+        'theme': theme.toString().split('.').last,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i("Shop theme updated for seller: $sellerId");
+    } catch (e) {
+      logger.e("Error updating shop theme: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateFeaturedProducts(
+      String sellerId, List<String> productIds) async {
+    try {
+      await _firestore.collection('shop_customizations').doc(sellerId).update({
+        'featuredProductIds': productIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i("Featured products updated for seller: $sellerId");
+    } catch (e) {
+      logger.e("Error updating featured products: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateShopColors(String sellerId, ShopColors colors) async {
+    try {
+      await _firestore.collection('shop_customizations').doc(sellerId).update({
+        'colors': colors.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i("Shop colors updated for seller: $sellerId");
+    } catch (e) {
+      logger.e("Error updating shop colors: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> updateShopLayout(String sellerId, ShopLayout layout) async {
+    try {
+      await _firestore.collection('shop_customizations').doc(sellerId).update({
+        'layout': layout.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i("Shop layout updated for seller: $sellerId");
+    } catch (e) {
+      logger.e("Error updating shop layout: $e");
+      rethrow;
+    }
   }
 }

@@ -1,16 +1,84 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // เฉพาะ collection banners ให้เฉพาะ admin เขียน/อ่าน
-    // banners: ให้ทุกคนอ่านได้ แต่เขียนได้เฉพาะ admin
+    // === Shop Customizations Rules ===
+    match /shop_customizations/{sellerId} {
+      // อนุญาตให้ sellers บันทึกและอ่านข้อมูลของตัวเอง
+      allow read, write: if request.auth != null && request.auth.uid == sellerId;
+      // อนุญาตให้ admins อ่านและเขียนทั้งหมด
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      // อนุญาตให้ users ธรรมดาอ่านได้ (เพื่อดูหน้าร้าน)
+      allow read: if request.auth != null;
+    }
+
+    // === Users Rules ===
+    match /users/{userId} {
+      // ให้ users บันทึกและอ่านข้อมูลของตัวเอง
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // === Sellers Rules ===
+    match /sellers/{sellerId} {
+      // ให้ sellers บันทึกและอ่านข้อมูลของตัวเอง
+      allow read, write: if request.auth != null && request.auth.uid == sellerId;
+      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      // อนุญาตให้ users ธรรมดาอ่านข้อมูล sellers ได้ (เพื่อดูหน้าร้าน)
+      allow read: if request.auth != null;
+    }
+
+    // === Products Rules ===
+    match /products/{productId} {
+      // ให้ sellers บันทึกและอ่านสินค้าของตัวเอง
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.sellerId || 
+         request.auth.uid == request.resource.data.sellerId);
+      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      // อนุญาตให้ users ธรรมดาอ่านสินค้าได้
+      allow read: if request.auth != null;
+    }
+
+    // === Orders Rules ===
+    match /orders/{orderId} {
+      // ให้ users อ่านและเขียนคำสั่งซื้อของตัวเอง
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || 
+         request.auth.uid == request.resource.data.userId ||
+         request.auth.uid == resource.data.sellerId || 
+         request.auth.uid == request.resource.data.sellerId);
+      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // === Banners Rules ===
     match /banners/{bannerId} {
+      // ให้ทุกคนอ่านได้ แต่เขียนได้เฉพาะ admin
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
-    // ตัวอย่าง: อนุญาตเฉพาะ admin ใน collection อื่น ๆ
-    match /products/{productId} {
+
+    // === Categories Rules ===
+    match /categories/{categoryId} {
+      // ให้ทุกคนอ่านได้ แต่เขียนได้เฉพาะ admin
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // === Notifications Rules ===
+    match /notifications/{notificationId} {
+      // ให้ users อ่านการแจ้งเตือนของตัวเอง
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
       allow read, write: if request.auth != null && request.auth.token.admin == true;
     }
-    // อื่น ๆ สามารถปรับแต่งตามความเหมาะสม
+
+    // === Default Rule ===
+    // กฎสำรอง: อนุญาตให้ admins เข้าถึงทุกอย่างได้
+    match /{document=**} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
   }
 }
