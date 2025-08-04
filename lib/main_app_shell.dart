@@ -9,12 +9,13 @@ import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/theme/app_colors.dart' as colors;
 import 'package:green_market/providers/app_config_provider.dart';
-import 'package:green_market/screens/admin_panel_screen.dart';
+import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
 import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
 import 'package:green_market/screens/modern_my_home_screen.dart'; // ใช้หน้าใหม่
 import 'package:green_market/screens/green_world_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/green_community_screen.dart';
+import 'package:green_market/screens/debug_products_screen.dart'; // Debug screen
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/services/notification_service.dart';
@@ -101,8 +102,16 @@ class _MainAppShellState extends State<MainAppShell> {
     }
 
     // เพิ่มแท็บสำหรับแอดมิน
+    print(
+        "Checking admin status for user: ${userProvider.currentUser?.email}, isAdmin: ${userProvider.isAdmin}");
     if (userProvider.isAdmin) {
-      pages.add(const AdminPanelScreen()); // 4. จัดการระบบ
+      print("Adding CompleteAdminPanelScreen for admin user");
+      pages.add(const CompleteAdminPanelScreen()); // 4. จัดการระบบ
+
+      // เพิ่ม Debug Screen สำหรับแอดมิน
+      pages.add(const DebugProductsScreen()); // 5. Debug Products
+    } else {
+      print("User is not admin, not adding admin panel");
     }
 
     return pages;
@@ -127,6 +136,7 @@ class _MainAppShellState extends State<MainAppShell> {
     // เพิ่มชื่อแท็บสำหรับแอดมิน
     if (userProvider.isAdmin) {
       titles.add('จัดการระบบ');
+      titles.add('Debug Products'); // เพิ่ม title สำหรับ Debug Screen
     }
 
     return titles;
@@ -165,6 +175,11 @@ class _MainAppShellState extends State<MainAppShell> {
         icon: Icon(Icons.admin_panel_settings_outlined),
         activeIcon: Icon(Icons.admin_panel_settings),
         label: 'จัดการระบบ',
+      ));
+      items.add(const BottomNavigationBarItem(
+        icon: Icon(Icons.bug_report_outlined),
+        activeIcon: Icon(Icons.bug_report),
+        label: 'Debug',
       ));
     }
     return items;

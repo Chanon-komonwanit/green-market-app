@@ -1,5 +1,6 @@
 // lib/utils/security_hardening.dart
 // ระบบรักษาความปลอดภัยขั้นสูงสำหรับ Green Market App
+// ignore_for_file: constant_identifier_names
 
 import 'dart:async';
 import 'dart:convert';

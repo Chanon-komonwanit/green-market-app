@@ -10,7 +10,7 @@ import 'package:green_market/widgets/modern_home_header.dart';
 import 'package:green_market/widgets/modern_card.dart';
 import 'package:green_market/widgets/modern_button.dart';
 import 'package:green_market/screens/notifications_center_screen.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/models/order.dart' as app_order;
@@ -330,7 +330,7 @@ class _MyHomeScreenState extends State<MyHomeScreen>
 
 // --- Cart Tab ---
 Widget cartTab() {
-  return Consumer<CartProvider>(
+  return Consumer<CartProviderEnhanced>(
     builder: (context, cartProvider, child) {
       final cartItems = cartProvider.items.values.toList();
       if (cartItems.isEmpty) {
@@ -1502,7 +1502,7 @@ class _QuickActionsModern extends StatelessWidget {
                   children: [
                     // ปุ่มด้านซ้าย: ตะกร้าของฉัน (ทุกคน)
                     Expanded(
-                      child: Consumer<CartProvider>(
+                      child: Consumer<CartProviderEnhanced>(
                         builder: (context, cartProvider, child) {
                           final totalItems = cartProvider.totalItemsInCart;
                           final totalAmount = cartProvider.totalAmount;

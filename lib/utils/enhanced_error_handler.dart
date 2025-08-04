@@ -1,13 +1,12 @@
 // lib/utils/enhanced_error_handler.dart
 // ระบบจัดการข้อผิดพลาดขั้นสูงสำหรับ Green Market App
+// ignore_for_file: constant_identifier_names
 
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 /// ประเภทของข้อผิดพลาด
 enum ErrorType {

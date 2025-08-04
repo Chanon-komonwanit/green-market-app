@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/utils/constants.dart';
-// import 'package:green_market/utils/app_text_styles.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;

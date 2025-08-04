@@ -25,19 +25,37 @@ class SmartProductAnalyticsService {
   /// ดึงสินค้า Eco Hero อัจฉริยะ (8 สินค้า)
   Future<List<Product>> getSmartEcoHeroProducts() async {
     try {
+      print(
+          '[DEBUG] SmartProductAnalyticsService: Starting getSmartEcoHeroProducts...');
+
       // 1. ดึงสินค้าทั้งหมดที่ approved
       final allProducts = await _getAllApprovedProducts();
+      print(
+          '[DEBUG] SmartProductAnalyticsService: Found ${allProducts.length} approved products');
 
       if (allProducts.isEmpty) {
+        print(
+            '[DEBUG] SmartProductAnalyticsService: No approved products found');
         return [];
       }
 
       // 2. คำนวณคะแนนฉลาดสำหรับแต่ละสินค้า
       final analyzedProducts = await _analyzeProducts(allProducts);
+      print(
+          '[DEBUG] SmartProductAnalyticsService: Analyzed ${analyzedProducts.length} products');
 
       // 3. เรียงลำดับตามคะแนนรวม
       analyzedProducts
           .sort((a, b) => b['totalScore'].compareTo(a['totalScore']));
+
+      // Debug: แสดงคะแนนของแต่ละสินค้า
+      print('[DEBUG] SmartProductAnalyticsService: Product scores:');
+      for (var data in analyzedProducts) {
+        final product = data['product'] as Product;
+        final score = data['totalScore'] as double;
+        print(
+            '  - ${product.name}: ${score.toStringAsFixed(2)} (EcoScore: ${product.ecoScore})');
+      }
 
       // 4. เลือก 8 สินค้าแรก (หรือน้อยกว่าถ้ามีไม่ถึง)
       final selectedProducts = analyzedProducts
@@ -45,6 +63,8 @@ class SmartProductAnalyticsService {
           .map((data) => data['product'] as Product)
           .toList();
 
+      print(
+          '[DEBUG] SmartProductAnalyticsService: Selected ${selectedProducts.length} products for Eco Hero');
       return selectedProducts;
     } catch (e) {
       print('Error in getSmartEcoHeroProducts: $e');

@@ -25,7 +25,7 @@ class EcoCoinsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Try to get provider, but fallback to mock data if not available
     try {
-      return Consumer<EcoCoinsProvider>(
+      return Consumer<EcoCoinProvider>(
         builder: (context, provider, child) {
           final displayBalance =
               balance ?? provider.balance ?? _getMockBalance();

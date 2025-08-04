@@ -1,6 +1,7 @@
 // d:/Development/green_market/lib/services/firebase_service.dart
 import 'dart:io';
 import 'dart:math';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -76,12 +77,9 @@ class FirebaseService {
 
   /// Update shop template (theme) for a seller
   Future<void> updateShopTemplate(String sellerId, String templateName) async {
-    await FirebaseFirestore.instance
-        .collection('sellers')
-        .doc(sellerId)
-        .update({
-      'shopTemplate': templateName,
-    });
+    await FirebaseFirestore.instance.collection('sellers').doc(sellerId).update(
+      {'shopTemplate': templateName},
+    );
   }
 
   // TODO: [ภาษาไทย] เพิ่มระบบแจ้งเตือนข้อผิดพลาด (Crashlytics) และ Audit Log
@@ -124,11 +122,13 @@ class FirebaseService {
         .where('participants', arrayContains: userId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// Get community notifications for a user (for notifications screen)
@@ -138,11 +138,13 @@ class FirebaseService {
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   // (Merged with the first definition, avoid duplicate)
@@ -573,9 +575,8 @@ class FirebaseService {
     final snapshot = await _firestore
         .collection('sellers')
         .where('status', isEqualTo: 'active')
-        .count()
         .get();
-    return snapshot.count ?? 0;
+    return snapshot.docs.length;
   }
 
   // --- Product Management ---
@@ -587,6 +588,172 @@ class FirebaseService {
         .doc(docId)
         .set(product.copyWith(id: docId, createdAt: Timestamp.now()).toMap());
     logger.i("Product ${product.name} added with ID: $docId");
+  }
+
+  /// Submit product request for admin approval
+  Future<void> submitProductRequest(Product product) async {
+    try {
+      logger.i("Attempting to submit product request for: ${product.name}");
+      logger.i("Current user: ${_auth.currentUser?.uid}");
+      logger.i("Product seller ID: ${product.sellerId}");
+
+      final requestData = {
+        'productData': product.toMap(),
+        'sellerId': product.sellerId,
+        'requestType': 'add_product',
+        'status': 'pending', // pending, approved, rejected
+        'submittedAt': FieldValue.serverTimestamp(),
+        'submittedBy': product.sellerId,
+        'adminNotes': null,
+        'processedAt': null,
+        'processedBy': null,
+      };
+
+      logger.i("Request data prepared, submitting to Firestore...");
+      await _firestore.collection('product_requests').add(requestData);
+      logger.i("Product request submitted successfully for: ${product.name}");
+    } catch (e) {
+      logger.e("Error submitting product request: $e");
+      logger.e("Stack trace: ${StackTrace.current}");
+      rethrow;
+    }
+  }
+
+  /// Approve product request and create the actual product
+  Future<void> approveProductRequest(
+    String requestId, {
+    int? ecoScore,
+    String? categoryId,
+    String? categoryName,
+  }) async {
+    try {
+      final requestDoc =
+          await _firestore.collection('product_requests').doc(requestId).get();
+      if (!requestDoc.exists) {
+        throw Exception('Product request not found');
+      }
+
+      final requestData = requestDoc.data()!;
+      final productData = requestData['productData'] as Map<String, dynamic>;
+
+      // Create product from request data
+      final product = Product.fromMap(productData);
+      final approvedProduct = product.copyWith(
+        status: 'approved',
+        approvedAt: Timestamp.now(),
+        createdAt: Timestamp.now(),
+        // Override with admin-specified values if provided
+        ecoScore: ecoScore ?? product.ecoScore,
+        categoryId: categoryId ?? product.categoryId,
+        categoryName: categoryName ?? product.categoryName,
+      );
+
+      // Use transaction to ensure atomicity
+      String createdProductId = '';
+      await _firestore.runTransaction((transaction) async {
+        // Add product to products collection
+        final productDocId = generateNewDocId('products');
+        createdProductId = productDocId;
+        final productData = approvedProduct.copyWith(id: productDocId).toMap();
+        // Add isApproved flag to the data that will be saved to Firestore
+        productData['isApproved'] = true;
+
+        print(
+            '[DEBUG] approveProductRequest: Creating product with ID: $productDocId');
+        print(
+            '[DEBUG] approveProductRequest: Product name: ${productData['name']}');
+        print(
+            '[DEBUG] approveProductRequest: isApproved: ${productData['isApproved']}');
+
+        transaction.set(
+          _firestore.collection('products').doc(productDocId),
+          productData,
+        );
+
+        // Update request status
+        transaction.update(
+          _firestore.collection('product_requests').doc(requestId),
+          {
+            'status': 'approved',
+            'processedAt': FieldValue.serverTimestamp(),
+            'processedBy': _auth.currentUser?.uid,
+            'productId': productDocId, // Reference to created product
+          },
+        );
+      });
+
+      logger.i("Product request approved and product created: ${product.name}");
+      logger.i("Product ID: $createdProductId");
+      logger.i("Product will be visible with isApproved: true");
+    } catch (e) {
+      logger.e("Error approving product request: $e");
+      rethrow;
+    }
+  }
+
+  /// Reject product request
+  Future<void> rejectProductRequest(String requestId, String reason) async {
+    try {
+      await _firestore.collection('product_requests').doc(requestId).update({
+        'status': 'rejected',
+        'processedAt': FieldValue.serverTimestamp(),
+        'processedBy': _auth.currentUser?.uid,
+        'adminNotes': reason,
+      });
+
+      logger.i("Product request rejected: $requestId");
+    } catch (e) {
+      logger.e("Error rejecting product request: $e");
+      rethrow;
+    }
+  }
+
+  /// Get product requests for admin review
+  Stream<List<Map<String, dynamic>>> getProductRequests({String? status}) {
+    logger.i("Getting product requests with status: ${status ?? 'all'}");
+
+    Query query = _firestore.collection('product_requests');
+
+    if (status != null) {
+      query = query.where('status', isEqualTo: status);
+      logger.i("Filtering by status: $status");
+    }
+
+    return query.orderBy('submittedAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
+      logger.i(
+        "Product requests snapshot received: ${snapshot.docs.length} documents",
+      );
+      final results = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        data['id'] = doc.id;
+        logger.i(
+          "Product request: ${data['id']} - Status: ${data['status']} - Product: ${data['productData']?['name'] ?? 'Unknown'}",
+        );
+        return data;
+      }).toList();
+      logger.i("Returning ${results.length} product requests");
+      return results;
+    });
+  }
+
+  /// Get product requests by seller
+  Stream<List<Map<String, dynamic>>> getProductRequestsBySeller(
+    String sellerId,
+  ) {
+    return _firestore
+        .collection('product_requests')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('submittedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>? ?? {};
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   Future<void> updateProduct(Product product) async {
@@ -614,28 +781,62 @@ class FirebaseService {
   }
 
   Stream<List<Product>> getApprovedProducts() {
-    return _firestore
-        .collection('products')
-        .where('isApproved', isEqualTo: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data();
+    print('[DEBUG] getApprovedProducts: Starting query...');
+    return _firestore.collection('products').snapshots().map(
+      (snapshot) {
+        print(
+            '[DEBUG] getApprovedProducts: Received ${snapshot.docs.length} total documents');
+
+        // Filter approved products in code to handle both conditions
+        final approvedProducts = <Product>[];
+
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final bool isApprovedField = data['isApproved'] as bool? ?? false;
+          final String status = data['status'] as String? ?? '';
+          final bool isApprovedByStatus = status == 'approved';
+
+          print('[DEBUG] Product ID: ${doc.id}');
+          print('  - Name: ${data['name']}');
+          print('  - Status: $status');
+          print('  - isApproved field: $isApprovedField');
+          print('  - Approved by status: $isApprovedByStatus');
+
+          // Include if either condition is true
+          if (isApprovedField || isApprovedByStatus) {
             data['id'] = doc.id; // Add document ID to data
-            return Product.fromMap(data);
-          }).toList(),
-        )
-        .handleError((error) {
+            final product = Product.fromMap(data);
+            approvedProducts.add(product);
+            print('  - INCLUDED in approved products');
+          } else {
+            print('  - EXCLUDED from approved products');
+          }
+          print('---');
+        }
+
+        print('[DEBUG] Total approved products: ${approvedProducts.length}');
+        return approvedProducts;
+      },
+    ).handleError((error) {
       logger.e("Error fetching approved products: $error");
       return <Product>[];
     });
   }
 
   Stream<List<Product>> getAllProductsForAdmin() {
+    print('[DEBUG] getAllProductsForAdmin: Starting query...');
     return _firestore.collection('products').snapshots().map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
-        );
+      (snapshot) {
+        print(
+            '[DEBUG] getAllProductsForAdmin: Found ${snapshot.docs.length} total products in collection');
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          print(
+              '[DEBUG] Product ID: ${doc.id}, isApproved: ${data['isApproved']}, status: ${data['status']}, name: ${data['name']}');
+        }
+        return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+      },
+    );
   }
 
   Future<void> approveProduct(String productId, bool isApproved) async {
@@ -1259,28 +1460,37 @@ class FirebaseService {
   }
 
   // --- Upload Methods ---
-  Future<String> uploadWebImage(Uint8List imageBytes, String fileName) async {
+  Future<String> uploadWebImage(
+    Uint8List imageBytes,
+    String storagePath,
+  ) async {
     try {
-      final ref = _storage.ref().child('images/$fileName');
+      logger.i("Attempting to upload web image to path: $storagePath");
+      logger.i("Current user: ${_auth.currentUser?.uid}");
+
+      final ref = _storage.ref().child(storagePath);
       final uploadTask = await ref.putData(imageBytes);
       final downloadURL = await uploadTask.ref.getDownloadURL();
-      logger.i("Web image uploaded: $downloadURL");
+      logger.i("Web image uploaded successfully: $downloadURL");
       return downloadURL;
     } catch (e) {
-      logger.e("Error uploading web image: $e");
+      logger.e("Error uploading web image to path $storagePath: $e");
       rethrow;
     }
   }
 
-  Future<String> uploadImageFile(File imageFile, String fileName) async {
+  Future<String> uploadImageFile(File imageFile, String storagePath) async {
     try {
-      final ref = _storage.ref().child('images/$fileName');
+      logger.i("Attempting to upload image file to path: $storagePath");
+      logger.i("Current user: ${_auth.currentUser?.uid}");
+
+      final ref = _storage.ref().child(storagePath);
       final uploadTask = await ref.putFile(imageFile);
       final downloadURL = await uploadTask.ref.getDownloadURL();
-      logger.i("Image file uploaded: $downloadURL");
+      logger.i("Image file uploaded successfully: $downloadURL");
       return downloadURL;
     } catch (e) {
-      logger.e("Error uploading image file: $e");
+      logger.e("Error uploading image file to path $storagePath: $e");
       rethrow;
     }
   }
@@ -2832,9 +3042,7 @@ class FirebaseService {
 
         // เพิ่ม commentCount ในโพสต์
         final postRef = _firestore.collection('community_posts').doc(postId);
-        transaction.update(postRef, {
-          'commentCount': FieldValue.increment(1),
-        });
+        transaction.update(postRef, {'commentCount': FieldValue.increment(1)});
 
         // ส่งการแจ้งเตือนให้เจ้าของโพสต์
         final postDoc = await transaction.get(postRef);
@@ -2934,12 +3142,9 @@ class FirebaseService {
       );
 
       // เพิ่ม shareCount ในโพสต์ต้นฉบับ
-      await _firestore
-          .collection('community_posts')
-          .doc(originalPostId)
-          .update({
-        'shareCount': FieldValue.increment(1),
-      });
+      await _firestore.collection('community_posts').doc(originalPostId).update(
+        {'shareCount': FieldValue.increment(1)},
+      );
 
       // ส่งการแจ้งเตือนให้เจ้าของโพสต์ต้นฉบับ
       final originalPostOwnerId = originalPostData['userId'];
@@ -3051,7 +3256,9 @@ class FirebaseService {
 
   /// Update order shipping information
   Future<void> updateOrderShippingInfo(
-      String orderId, Map<String, dynamic> shippingInfo) async {
+    String orderId,
+    Map<String, dynamic> shippingInfo,
+  ) async {
     try {
       await _firestore.collection('orders').doc(orderId).update(shippingInfo);
       logger.i("Order shipping info updated for $orderId");
@@ -3075,13 +3282,17 @@ class FirebaseService {
       }
 
       if (startDate != null) {
-        query = query.where('createdAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where(
+          'createdAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+        );
       }
 
       if (endDate != null) {
-        query = query.where('createdAt',
-            isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where(
+          'createdAt',
+          isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+        );
       }
 
       final ordersSnapshot =
@@ -3096,11 +3307,15 @@ class FirebaseService {
       return {
         'totalOrders': orders.length,
         'totalShippingFees': orders.fold(
-            0.0, (total, order) => total + (order['shippingFee'] ?? 0.0)),
+          0.0,
+          (total, order) => total + (order['shippingFee'] ?? 0.0),
+        ),
         'averageShippingFee': orders.isEmpty
             ? 0.0
-            : orders.fold(0.0,
-                    (total, order) => total + (order['shippingFee'] ?? 0.0)) /
+            : orders.fold(
+                  0.0,
+                  (total, order) => total + (order['shippingFee'] ?? 0.0),
+                ) /
                 orders.length,
         'ordersByCarrier': _groupOrdersByCarrier(orders),
       };
@@ -3150,7 +3365,9 @@ class FirebaseService {
   }
 
   Future<bool> updateEcoReward(
-      String rewardId, Map<String, dynamic> updates) async {
+    String rewardId,
+    Map<String, dynamic> updates,
+  ) async {
     try {
       await _firestore.collection('ecoRewards').doc(rewardId).update({
         ...updates,
@@ -3174,7 +3391,8 @@ class FirebaseService {
   }
 
   Stream<List<redemption_model.RewardRedemption>> getUserRedemptions(
-      String userId) {
+    String userId,
+  ) {
     return _firestore
         .collection('redemptions')
         .where('userId', isEqualTo: userId)
@@ -3182,7 +3400,10 @@ class FirebaseService {
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        return redemption_model.RewardRedemption.fromMap(doc.data(), doc.id);
+        return redemption_model.RewardRedemption.fromMap(
+          doc.data(),
+          doc.id,
+        );
       }).toList();
     }).handleError((error) {
       logger.e("Error getting user redemptions: $error");
@@ -3208,7 +3429,10 @@ class FirebaseService {
   }
 
   Future<bool> redeemEcoReward(
-      String userId, String rewardId, int pointsCost) async {
+    String userId,
+    String rewardId,
+    int pointsCost,
+  ) async {
     try {
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) return false;
@@ -3242,7 +3466,9 @@ class FirebaseService {
   }
 
   Future<bool> updateRedemptionStatus(
-      String redemptionId, String status) async {
+    String redemptionId,
+    String status,
+  ) async {
     try {
       await _firestore.collection('redemptions').doc(redemptionId).update({
         'status': status,
@@ -3257,7 +3483,9 @@ class FirebaseService {
 
   /// Shipping Methods
   Future<List<Map<String, dynamic>>> getOrdersBySellerAndStatus(
-      String sellerId, List<String> statuses) async {
+    String sellerId,
+    List<String> statuses,
+  ) async {
     try {
       Query query = _firestore
           .collection('orders')
@@ -3283,7 +3511,9 @@ class FirebaseService {
 
   /// Streams orders for a specific seller, filtered by status.
   Stream<List<Map<String, dynamic>>> streamOrdersForSellerByStatus(
-      String sellerId, List<String> statuses) {
+    String sellerId,
+    List<String> statuses,
+  ) {
     try {
       Query query = _firestore
           .collection('orders')
@@ -3293,14 +3523,13 @@ class FirebaseService {
         query = query.where('status', whereIn: statuses);
       }
 
-      return query
-          .orderBy('orderDate', descending: true)
-          .snapshots()
-          .map((snapshot) => snapshot.docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                data['id'] = doc.id;
-                return data;
-              }).toList());
+      return query.orderBy('orderDate', descending: true).snapshots().map(
+            (snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['id'] = doc.id;
+              return data;
+            }).toList(),
+          );
     } catch (e) {
       logger.e("Error getting orders by seller and status: $e");
       return Stream.value([]);
@@ -3308,7 +3537,8 @@ class FirebaseService {
   }
 
   Future<List<Map<String, dynamic>>> getOrdersNeedingLabels(
-      String sellerId) async {
+    String sellerId,
+  ) async {
     try {
       final querySnapshot = await _firestore
           .collection('orders')
@@ -3330,7 +3560,9 @@ class FirebaseService {
   }
 
   Future<bool> bulkUpdateOrderStatuses(
-      List<String> orderIds, String status) async {
+    List<String> orderIds,
+    String status,
+  ) async {
     try {
       final batch = _firestore.batch();
 
@@ -3365,16 +3597,15 @@ class FirebaseService {
   }
 
   Future<bool> addTrackingEvent(
-      String orderId, Map<String, dynamic> eventData) async {
+    String orderId,
+    Map<String, dynamic> eventData,
+  ) async {
     try {
       await _firestore
           .collection('orders')
           .doc(orderId)
           .collection('trackingEvents')
-          .add({
-        ...eventData,
-        'timestamp': Timestamp.now(),
-      });
+          .add({...eventData, 'timestamp': Timestamp.now()});
       return true;
     } catch (e) {
       logger.e("Error adding tracking event: $e");
@@ -3421,10 +3652,7 @@ class FirebaseService {
     for (var doc in snapshot.docs) {
       totalRating += (doc.data()['rating'] as num?)?.toDouble() ?? 0.0;
     }
-    return {
-      'rating': count > 0 ? totalRating / count : 0.0,
-      'count': count,
-    };
+    return {'rating': count > 0 ? totalRating / count : 0.0, 'count': count};
   }
 
   // === Shop Customization Methods ===
@@ -3461,8 +3689,9 @@ class FirebaseService {
           .collection('shop_customizations')
           .doc(customization.sellerId)
           .set(customization.toMap());
-      logger
-          .i("Shop customization saved for seller: ${customization.sellerId}");
+      logger.i(
+        "Shop customization saved for seller: ${customization.sellerId}",
+      );
     } catch (e) {
       logger.e("Error saving shop customization: $e");
       rethrow;
@@ -3499,7 +3728,9 @@ class FirebaseService {
   }
 
   Future<void> updateFeaturedProducts(
-      String sellerId, List<String> productIds) async {
+    String sellerId,
+    List<String> productIds,
+  ) async {
     try {
       await _firestore.collection('shop_customizations').doc(sellerId).update({
         'featuredProductIds': productIds,

@@ -7,15 +7,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/utils/enhanced_error_handler.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// UserProvider ทำหน้าที่จัดการข้อมูลและสถานะของผู้ใช้ที่ล็อกอินเข้ามา
 /// เป็นหัวใจสำคัญในการระบุว่าผู้ใช้เป็นใคร (ผู้ซื้อ, ผู้ขาย, หรือแอดมิน)
+/// พร้อมด้วยระบบการจัดการข้อผิดพลาดและการป้องกันความปลอดภัยขั้นสูง
 class UserProvider extends ChangeNotifier {
   final FirebaseService _firebaseService;
+  final EnhancedErrorHandler _errorHandler = EnhancedErrorHandler();
+
   AppUser? _currentUser;
   bool _isLoading = false;
+  String? _error;
   StreamSubscription<auth.User?>? _authSubscription;
+
+  // Enhanced Security & Performance Features
+  int _consecutiveFailures = 0;
+  static const int maxConsecutiveFailures = 3;
+  bool _isNetworkAvailable = true;
+  Timer? _retryTimer;
+
+  // Operation tracking for better reliability
+  final Set<String> _pendingOperations = {};
+  static const Duration _operationTimeout = Duration(seconds: 30);
 
   /// Constructor: เมื่อ Provider ถูกสร้างขึ้น จะเริ่มฟังการเปลี่ยนแปลงสถานะการล็อกอินทันที
   UserProvider({required FirebaseService firebaseService})
@@ -23,14 +38,19 @@ class UserProvider extends ChangeNotifier {
     _listenToAuthChanges();
   }
 
-  // --- Getters สำหรับให้ UI ส่วนต่างๆ นำไปใช้ ---
+  // --- Enhanced Getters สำหรับให้ UI ส่วนต่างๆ นำไปใช้ ---
   AppUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get hasError => _error != null;
   bool get isLoggedIn => _currentUser != null;
   bool get isAdmin => _currentUser?.isAdmin ?? false;
   bool get isSeller => _currentUser?.isSeller ?? false;
+  bool get isHealthy =>
+      !hasError && _consecutiveFailures < maxConsecutiveFailures;
+  bool get canPerformOperations => isHealthy && _isNetworkAvailable;
 
-  // เพิ่ม getters สำหรับตรวจสอบสถานะการสมัครเป็นผู้ขาย
+  // เพิ่ม enhanced getters สำหรับตรวจสอบสถานะการสมัครเป็นผู้ขาย
   bool get hasAppliedToBecomeSeller =>
       _currentUser?.sellerApplicationStatus != null;
   bool get isSellerApplicationPending =>
@@ -41,6 +61,83 @@ class UserProvider extends ChangeNotifier {
       _currentUser?.sellerApplicationStatus == 'rejected';
   bool get canApplyToBecomeSeller =>
       !isAdmin && !isSeller && !hasAppliedToBecomeSeller;
+
+  /// Enhanced error handling with retry logic and security measures
+  void _setError(String? error) {
+    if (error != null) {
+      _consecutiveFailures++;
+
+      // Use the appropriate error handler method
+      _errorHandler.handlePlatformError(
+        Exception(error),
+        StackTrace.current,
+      );
+
+      // Implement circuit breaker pattern
+      if (_consecutiveFailures >= maxConsecutiveFailures) {
+        _isNetworkAvailable = false;
+        _scheduleRecovery();
+      }
+    } else {
+      _consecutiveFailures = 0;
+      _isNetworkAvailable = true;
+    }
+
+    _error = error;
+    notifyListeners();
+  }
+
+  /// Enhanced loading state management
+  void _setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      notifyListeners();
+    }
+  }
+
+  /// Schedule recovery attempt for circuit breaker pattern
+  void _scheduleRecovery() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer(const Duration(minutes: 5), () {
+      _consecutiveFailures = 0;
+      _isNetworkAvailable = true;
+      _setError(null);
+    });
+  }
+
+  /// Enhanced operation wrapper with timeout and validation
+  Future<T?> _performOperation<T>(
+    String operationName,
+    Future<T> Function() operation, {
+    Duration? timeout,
+  }) async {
+    if (!canPerformOperations) {
+      throw Exception(
+          'Operations temporarily disabled due to consecutive failures');
+    }
+
+    if (_pendingOperations.contains(operationName)) {
+      throw Exception('Operation $operationName is already in progress');
+    }
+
+    _pendingOperations.add(operationName);
+    try {
+      return await operation().timeout(timeout ?? _operationTimeout);
+    } catch (e) {
+      _setError('$operationName failed: $e');
+      return null;
+    } finally {
+      _pendingOperations.remove(operationName);
+    }
+  }
+
+  /// Clear error message with enhanced logic
+  void clearError() {
+    _setError(null);
+    if (!_isNetworkAvailable && _consecutiveFailures < maxConsecutiveFailures) {
+      _isNetworkAvailable = true;
+    }
+  }
 
   /// [หัวใจหลัก] เมธอดนี้จะคอย "ฟัง" ว่ามีการล็อกอินหรือล็อกเอาท์เกิดขึ้นหรือไม่
   void _listenToAuthChanges() {
@@ -58,56 +155,65 @@ class UserProvider extends ChangeNotifier {
     });
   }
 
-  /// โหลดข้อมูลโปรไฟล์ของผู้ใช้ (AppUser) จาก Firestore โดยใช้ uid
+  /// Enhanced โหลดข้อมูลโปรไฟล์ของผู้ใช้ (AppUser) จาก Firestore โดยใช้ uid
   /// ซึ่งข้อมูลนี้จะมี field สำคัญเช่น isAdmin, isSeller อยู่ด้วย
+  /// พร้อมระบบความแข็งแกร่งและการจัดการข้อผิดพลาดขั้นสูง
   Future<void> loadUserData(String uid) async {
-    _isLoading = true;
-    notifyListeners(); // แจ้ง UI ว่ากำลังโหลด
-
-    int retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      try {
-        _firebaseService.logger.i(
-            "[LOADING] Loading user data for: $uid (attempt ${retryCount + 1})");
-
-        // เรียกใช้ service เพื่อดึงข้อมูลจาก collection 'users'
-        _currentUser = await _firebaseService.getAppUser(uid);
-
-        if (_currentUser != null) {
-          _firebaseService.logger.i(
-              "[SUCCESS] User data loaded successfully: ${_currentUser!.email}");
-
-          // ตรวจสอบและให้รางวัลการเข้าสู่ระบบประจำวัน
-          _firebaseService.checkDailyLoginReward(uid);
-
-          break; // สำเร็จ, ออกจาก retry loop
-        } else {
-          _firebaseService.logger
-              .w("[WARNING] User data is null for UID: $uid");
-
-          // ถ้าไม่มีข้อมูลใน Firestore, สร้างใหม่
-          await _createMissingUserData(uid);
-          retryCount++; // เพิ่ม retry count
-        }
-      } catch (e) {
-        retryCount++;
-        _firebaseService.logger
-            .e('Failed to load user data (attempt $retryCount)', error: e);
-
-        if (retryCount < maxRetries) {
-          // รอก่อน retry (exponential backoff)
-          await Future.delayed(Duration(seconds: retryCount * 2));
-        } else {
-          _firebaseService.logger.e('All retry attempts failed for user: $uid');
-          _currentUser = null; // หากพลาดหลังจากครบ retry
-        }
-      }
+    if (uid.trim().isEmpty) {
+      _setError('Invalid user ID');
+      return;
     }
 
-    _isLoading = false;
-    notifyListeners(); // แจ้ง UI ว่าโหลดเสร็จแล้ว (ไม่ว่าจะสำเร็จหรือไม่)
+    await _performOperation('loadUserData', () async {
+      _setLoading(true);
+      _setError(null);
+
+      int retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          _firebaseService.logger.i(
+              "[LOADING] Loading user data for: $uid (attempt ${retryCount + 1})");
+
+          // เรียกใช้ service เพื่อดึงข้อมูลจาก collection 'users'
+          _currentUser = await _firebaseService.getAppUser(uid);
+
+          if (_currentUser != null) {
+            _firebaseService.logger.i(
+                "[SUCCESS] User data loaded successfully: ${_currentUser!.email}");
+
+            // ตรวจสอบและให้รางวัลการเข้าสู่ระบบประจำวัน
+            _firebaseService.checkDailyLoginReward(uid);
+
+            break; // สำเร็จ, ออกจาก retry loop
+          } else {
+            _firebaseService.logger
+                .w("[WARNING] User data is null for UID: $uid");
+
+            // ถ้าไม่มีข้อมูลใน Firestore, สร้างใหม่
+            await _createMissingUserData(uid);
+            retryCount++; // เพิ่ม retry count
+          }
+        } catch (e) {
+          retryCount++;
+          _firebaseService.logger
+              .e('Failed to load user data (attempt $retryCount)', error: e);
+
+          if (retryCount < maxRetries) {
+            // รอก่อน retry (exponential backoff)
+            await Future.delayed(Duration(seconds: retryCount * 2));
+          } else {
+            _firebaseService.logger
+                .e('All retry attempts failed for user: $uid');
+            _currentUser = null; // หากพลาดหลังจากครบ retry
+            _setError('Failed to load user data after $maxRetries attempts');
+          }
+        }
+      }
+    });
+
+    _setLoading(false);
   }
 
   /// สร้างข้อมูลผู้ใช้ใหม่ใน Firestore หากไม่มี
@@ -141,13 +247,30 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// อัปเดตรูปโปรไฟล์
+  /// Enhanced อัปเดตรูปโปรไฟล์พร้อมการตรวจสอบและการจัดการข้อผิดพลาดขั้นสูง
   Future<void> updateUserProfilePicture(XFile imageFile) async {
-    if (_currentUser == null) return;
-    _isLoading = true;
-    notifyListeners();
+    if (_currentUser == null) {
+      _setError('User not logged in');
+      return;
+    }
 
-    try {
+    // Input validation
+    if (!await File(imageFile.path).exists()) {
+      _setError('Selected image file does not exist');
+      return;
+    }
+
+    // Check file size (max 5MB)
+    final fileSize = await File(imageFile.path).length();
+    if (fileSize > 5 * 1024 * 1024) {
+      _setError('Image file too large. Maximum size is 5MB');
+      return;
+    }
+
+    await _performOperation('updateUserProfilePicture', () async {
+      _setLoading(true);
+      _setError(null);
+
       final userId = _currentUser!.id;
       // ใช้ uploadImageFile แทน uploadImage
       final imageUrl = await _firebaseService.uploadImageFile(
@@ -157,16 +280,13 @@ class UserProvider extends ChangeNotifier {
 
       await _firebaseService.updateUserProfilePicture(userId, imageUrl);
       await loadUserData(userId); // โหลดข้อมูลใหม่เพื่อให้ UI อัปเดต
-    } catch (e) {
-      _firebaseService.logger.e('Failed to update profile picture', error: e);
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    });
+
+    _setLoading(false);
   }
 
-  /// อัปเดตข้อมูลโปรไฟล์ (ชื่อ, เบอร์โทร และข้อมูลเพิ่มเติม)
+  /// Enhanced อัปเดตข้อมูลโปรไฟล์ (ชื่อ, เบอร์โทร และข้อมูลเพิ่มเติม)
+  /// พร้อมการตรวจสอบข้อมูลและการจัดการข้อผิดพลาดขั้นสูง
   Future<void> updateUserProfile({
     required String displayName,
     required String phoneNumber,
@@ -182,11 +302,38 @@ class UserProvider extends ChangeNotifier {
     String? lineId, // เพิ่ม field ใหม่
     String? gender, // เพิ่ม field ใหม่
   }) async {
-    if (_currentUser == null) return;
-    _isLoading = true;
-    notifyListeners();
+    if (_currentUser == null) {
+      _setError('User not logged in');
+      return;
+    }
 
-    try {
+    // Enhanced input validation
+    if (displayName.trim().isEmpty) {
+      _setError('Display name cannot be empty');
+      return;
+    }
+
+    if (displayName.length > 50) {
+      _setError('Display name must be less than 50 characters');
+      return;
+    }
+
+    if (phoneNumber.trim().isEmpty) {
+      _setError('Phone number cannot be empty');
+      return;
+    }
+
+    // Basic phone number validation
+    final phoneRegex = RegExp(r'^\+?[1-9]\d{1,14}$');
+    if (!phoneRegex.hasMatch(phoneNumber.replaceAll(RegExp(r'[\s-()]'), ''))) {
+      _setError('Invalid phone number format');
+      return;
+    }
+
+    await _performOperation('updateUserProfile', () async {
+      _setLoading(true);
+      _setError(null);
+
       final userId = _currentUser!.id;
       await _firebaseService.updateUserProfile(
         userId,
@@ -205,87 +352,150 @@ class UserProvider extends ChangeNotifier {
         gender: gender, // เพิ่ม field ใหม่
       );
       await loadUserData(userId); // โหลดข้อมูลใหม่เพื่อให้ UI อัปเดต
-    } catch (e) {
-      _firebaseService.logger.e('Failed to update user profile', error: e);
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    });
+
+    _setLoading(false);
   }
 
-  // --- Investment Methods ---
+  // --- Enhanced Investment Methods with comprehensive error handling ---
   // เมธอดด้านล่างเป็นตัวอย่างการทำงานร่วมกับข้อมูลผู้ใช้ปัจจุบัน
 
   Future<void> investInProject(
       String projectId, String projectTitle, double amount) async {
     if (_currentUser == null) {
-      throw Exception('User not logged in.');
+      _setError('User not logged in');
+      return;
     }
-    _isLoading = true;
-    notifyListeners();
 
-    try {
+    // Enhanced input validation
+    if (projectId.trim().isEmpty) {
+      _setError('Project ID cannot be empty');
+      return;
+    }
+
+    if (amount <= 0) {
+      _setError('Investment amount must be greater than 0');
+      return;
+    }
+
+    await _performOperation('investInProject', () async {
+      _setLoading(true);
+      _setError(null);
+
       await _firebaseService.investInProject(
         projectId,
         _currentUser!.id,
         amount,
       );
-    } catch (e) {
-      _firebaseService.logger.e('Failed to invest in project', error: e);
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    });
+
+    _setLoading(false);
   }
 
   Future<void> buyMoreInvestment(String investmentId, double amount) async {
     if (_currentUser == null) {
-      throw Exception('User not logged in.');
+      _setError('User not logged in');
+      return;
     }
-    _isLoading = true;
-    notifyListeners();
 
-    try {
+    // Enhanced input validation
+    if (investmentId.trim().isEmpty) {
+      _setError('Investment ID cannot be empty');
+      return;
+    }
+
+    if (amount <= 0) {
+      _setError('Investment amount must be greater than 0');
+      return;
+    }
+
+    await _performOperation('buyMoreInvestment', () async {
+      _setLoading(true);
+      _setError(null);
+
       await _firebaseService.buyMoreInvestment(
         investmentId,
         amount,
       );
       await loadUserData(_currentUser!.id);
-    } catch (e) {
-      _firebaseService.logger.e('Failed to buy more investment', error: e);
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    });
+
+    _setLoading(false);
   }
 
   Future<void> sellInvestment(String investmentId, double amount) async {
     if (_currentUser == null) {
-      throw Exception('User not logged in.');
+      _setError('User not logged in');
+      return;
     }
-    _isLoading = true;
-    notifyListeners();
 
-    try {
+    // Enhanced input validation
+    if (investmentId.trim().isEmpty) {
+      _setError('Investment ID cannot be empty');
+      return;
+    }
+
+    await _performOperation('sellInvestment', () async {
+      _setLoading(true);
+      _setError(null);
+
       await _firebaseService.sellInvestment(investmentId);
       await loadUserData(_currentUser!.id);
-    } catch (e) {
-      _firebaseService.logger.e('Failed to sell investment', error: e);
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+    });
+
+    _setLoading(false);
+  }
+
+  /// Additional utility methods for enhanced user management
+
+  /// Check if user profile is complete
+  bool get isProfileComplete {
+    if (_currentUser == null) return false;
+
+    return _currentUser!.displayName != null &&
+        _currentUser!.displayName!.isNotEmpty &&
+        _currentUser!.phoneNumber != null &&
+        _currentUser!.phoneNumber!.isNotEmpty;
+  }
+
+  /// Get user's full name or fallback to email
+  String get userDisplayName {
+    if (_currentUser?.displayName != null &&
+        _currentUser!.displayName!.isNotEmpty) {
+      return _currentUser!.displayName!;
+    }
+    return _currentUser?.email ?? 'Unknown User';
+  }
+
+  /// Check if user has specific role
+  bool hasRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return isAdmin;
+      case 'seller':
+        return isSeller;
+      case 'user':
+        return isLoggedIn && !isAdmin && !isSeller;
+      default:
+        return false;
     }
   }
 
-  /// สำคัญมาก: ต้องยกเลิกการ `listen` (unsubscribe) เมื่อ Provider ถูกทำลาย
-  /// เพื่อป้องกัน Memory Leak
+  /// Refresh user data with cache management
+  Future<void> refreshUserData() async {
+    if (_currentUser != null) {
+      await loadUserData(_currentUser!.id);
+    }
+  }
+
+  /// สำคัญมาก: Enhanced dispose method
+  /// ต้องยกเลิกการ `listen` (unsubscribe) เมื่อ Provider ถูกทำลาย
+  /// เพื่อป้องกัน Memory Leak และทำความสะอาดทรัพยากร
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _retryTimer?.cancel();
+    _pendingOperations.clear();
     super.dispose();
   }
 }

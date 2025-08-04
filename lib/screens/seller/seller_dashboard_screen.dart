@@ -87,17 +87,6 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             },
             icon: const Icon(Icons.notifications_outlined),
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ShopSettingsScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.settings_outlined),
-          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -426,13 +415,14 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
               ),
             ),
             _buildActionCard(
-              'ตั้งค่าร้าน',
-              Icons.store_mall_directory,
-              Colors.purple,
+              'จัดการการจัดส่ง',
+              Icons.local_shipping,
+              Colors.teal,
               () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const ShopSettingsScreen()),
+                    builder: (context) =>
+                        const EnhancedShippingManagementScreen()),
               ),
             ),
           ],

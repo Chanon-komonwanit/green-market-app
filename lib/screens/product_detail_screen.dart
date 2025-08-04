@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/seller.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
@@ -58,7 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _addToCart(BuildContext context, Product product) {
     try {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final cartProvider = Provider.of<CartProviderEnhanced>(context, listen: false);
       cartProvider.addItem(product);
 
       if (mounted) {
@@ -95,7 +95,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _buyNow(BuildContext context, Product product) {
     try {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final cartProvider = Provider.of<CartProviderEnhanced>(context, listen: false);
       cartProvider.addItem(product);
       Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => const CartScreen(navigateToCheckout: true),

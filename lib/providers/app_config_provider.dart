@@ -1,31 +1,126 @@
 // lib/providers/app_config_provider.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:green_market/models/dynamic_app_config.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/utils/enhanced_error_handler.dart';
 
+/// AppConfigProvider จัดการการตั้งค่าแอปพลิเคชันแบบไดนามิก
+/// รวมถึงธีม สี ฟอนต์ ข้อความ และการตั้งค่าต่างๆ
+/// พร้อมระบบการจัดการข้อผิดพลาดและการป้องกันความปลอดภัยขั้นสูง
 class AppConfigProvider extends ChangeNotifier {
-  // ฟังก์ชันสำหรับเปลี่ยนฟอนต์หลัก
-  Future<void> updateFontFamily(String fontFamily) async {
-    final newConfig = _config.copyWith(primaryFontFamily: fontFamily);
-    await updateConfig(newConfig);
-  }
-
-  // ฟังก์ชันสำหรับเปลี่ยนภาษา
-  Future<void> updateLocale(String locale) async {
-    final newConfig = _config.copyWith(locale: locale);
-    await updateConfig(newConfig);
-  }
-
   DynamicAppConfig _config = DynamicAppConfig.defaultConfig();
   bool _isLoading = false;
+  String? _error;
   final FirebaseService _firebaseService;
+  final EnhancedErrorHandler _errorHandler = EnhancedErrorHandler();
+
+  // Enhanced Security & Performance Features
+  int _consecutiveFailures = 0;
+  static const int maxConsecutiveFailures = 3;
+  bool _isNetworkAvailable = true;
+  DateTime? _lastRefresh;
+  Timer? _autoRefreshTimer;
+
+  // Operation tracking for better reliability
+  final Set<String> _pendingOperations = {};
+  static const Duration _operationTimeout = Duration(seconds: 30);
+  static const Duration _cacheTimeout = Duration(minutes: 15);
+  static const Duration _autoRefreshInterval = Duration(hours: 1);
 
   AppConfigProvider(this._firebaseService) {
     _loadConfig();
+    _startAutoRefresh();
   }
 
   DynamicAppConfig get config => _config;
   bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get hasError => _error != null;
+  bool get isHealthy =>
+      !hasError && _consecutiveFailures < maxConsecutiveFailures;
+  bool get canPerformOperations => isHealthy && _isNetworkAvailable;
+  bool get isCacheExpired =>
+      _lastRefresh == null ||
+      DateTime.now().difference(_lastRefresh!).compareTo(_cacheTimeout) > 0;
+
+  /// Enhanced error handling with retry logic and security measures
+  void _setError(String? error) {
+    if (error != null) {
+      _consecutiveFailures++;
+
+      // Use the appropriate error handler method
+      _errorHandler.handlePlatformError(
+        Exception(error),
+        StackTrace.current,
+      );
+
+      // Implement circuit breaker pattern
+      if (_consecutiveFailures >= maxConsecutiveFailures) {
+        _isNetworkAvailable = false;
+        _scheduleRecovery();
+      }
+    } else {
+      _consecutiveFailures = 0;
+      _isNetworkAvailable = true;
+    }
+
+    _error = error;
+    notifyListeners();
+  }
+
+  /// Enhanced loading state management
+  void _setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      notifyListeners();
+    }
+  }
+
+  /// Schedule recovery attempt for circuit breaker pattern
+  void _scheduleRecovery() {
+    Timer(const Duration(minutes: 5), () {
+      _consecutiveFailures = 0;
+      _isNetworkAvailable = true;
+      _setError(null);
+    });
+  }
+
+  /// Start auto-refresh timer for enhanced data freshness
+  void _startAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(_autoRefreshInterval, (timer) {
+      if (!_isLoading && canPerformOperations && isCacheExpired) {
+        reloadConfig();
+      }
+    });
+  }
+
+  /// Enhanced operation wrapper with timeout and validation
+  Future<T?> _performOperation<T>(
+    String operationName,
+    Future<T> Function() operation, {
+    Duration? timeout,
+  }) async {
+    if (!canPerformOperations) {
+      throw Exception(
+          'Operations temporarily disabled due to consecutive failures');
+    }
+
+    if (_pendingOperations.contains(operationName)) {
+      throw Exception('Operation $operationName is already in progress');
+    }
+
+    _pendingOperations.add(operationName);
+    try {
+      return await operation().timeout(timeout ?? _operationTimeout);
+    } catch (e) {
+      _setError('$operationName failed: $e');
+      return null;
+    } finally {
+      _pendingOperations.remove(operationName);
+    }
+  }
 
   // Quick access getters
   String get appName => _config.appName;
@@ -82,83 +177,127 @@ class AppConfigProvider extends ChangeNotifier {
   String get instagramUrl => _config.instagramUrl;
   String get twitterUrl => _config.twitterUrl;
 
+  /// Enhanced config loading with comprehensive error handling and validation
   Future<void> _loadConfig() async {
-    _isLoading = true;
-    notifyListeners();
+    await _performOperation('loadConfig', () async {
+      _setLoading(true);
+      _setError(null);
 
-    try {
-      final configData = await _firebaseService.getDynamicAppConfig();
-      if (configData != null) {
-        try {
-          _config = DynamicAppConfig.fromMap(configData);
-          print('App config loaded successfully');
-        } catch (parseError) {
-          print('Error parsing app config, using default: $parseError');
+      try {
+        final configData = await _firebaseService.getDynamicAppConfig();
+        if (configData != null) {
+          try {
+            _config = DynamicAppConfig.fromMap(configData);
+            _lastRefresh = DateTime.now();
+            print('App config loaded successfully');
+          } catch (parseError) {
+            _setError('Error parsing app config: $parseError');
+            _config = DynamicAppConfig.defaultConfig();
+          }
+        } else {
+          print('No app config found, using default');
           _config = DynamicAppConfig.defaultConfig();
         }
-      } else {
-        print('No app config found, using default');
+      } catch (e) {
+        _setError('Error loading app config: $e');
+        // Use default config on any error
         _config = DynamicAppConfig.defaultConfig();
       }
-    } catch (e) {
-      print('Error loading app config, using default: $e');
-      // Use default config on any error
-      _config = DynamicAppConfig.defaultConfig();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    });
+
+    _setLoading(false);
   }
 
+  /// Enhanced config update with validation
   Future<void> updateConfig(DynamicAppConfig newConfig) async {
-    try {
+    if (newConfig == _config) {
+      return; // No changes to update
+    }
+
+    await _performOperation('updateConfig', () async {
+      _setLoading(true);
+      _setError(null);
+
       await _firebaseService.updateDynamicAppConfig(newConfig);
       _config = newConfig;
-      notifyListeners();
-    } catch (e) {
-      print('Error updating app config: $e');
-      rethrow;
-    }
+      _lastRefresh = DateTime.now();
+    });
+
+    _setLoading(false);
   }
 
+  /// Enhanced reload config with cache management
   Future<void> reloadConfig() async {
+    if (_isLoading) {
+      return; // Prevent multiple reload calls
+    }
+
     await _loadConfig();
   }
 
-  // Helper methods for text content
+  // Enhanced helper methods for text content with validation
   String getText(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.staticTexts[key] ?? defaultValue ?? key;
   }
 
   String getErrorMessage(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.errorMessages[key] ?? defaultValue ?? key;
   }
 
   String getSuccessMessage(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.successMessages[key] ?? defaultValue ?? key;
   }
 
   String getLabel(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.labels[key] ?? defaultValue ?? key;
   }
 
   String getPlaceholder(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.placeholders[key] ?? defaultValue ?? key;
   }
 
   String getButtonText(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.buttonTexts[key] ?? defaultValue ?? key;
   }
 
   String getImageUrl(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.images[key] ?? defaultValue ?? '';
   }
 
   String getIconUrl(String key, {String? defaultValue}) {
+    if (key.trim().isEmpty) return defaultValue ?? '';
     return _config.icons[key] ?? defaultValue ?? '';
   }
 
-  // Real-time color update methods
+  // Enhanced font and locale update methods
+  Future<void> updateFontFamily(String fontFamily) async {
+    if (fontFamily.trim().isEmpty) {
+      _setError('Font family cannot be empty');
+      return;
+    }
+
+    final newConfig = _config.copyWith(primaryFontFamily: fontFamily);
+    await updateConfig(newConfig);
+  }
+
+  Future<void> updateLocale(String locale) async {
+    if (locale.trim().isEmpty) {
+      _setError('Locale cannot be empty');
+      return;
+    }
+
+    final newConfig = _config.copyWith(locale: locale);
+    await updateConfig(newConfig);
+  }
+
+  // Enhanced real-time color update methods with validation
   Future<void> updatePrimaryColor(Color color) async {
     final newConfig = _config.copyWith(primaryColorValue: color.value);
     await updateConfig(newConfig);
@@ -336,5 +475,56 @@ class AppConfigProvider extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  /// Additional utility methods for enhanced functionality
+
+  /// Clear error message with enhanced logic
+  void clearError() {
+    _setError(null);
+    if (!_isNetworkAvailable && _consecutiveFailures < maxConsecutiveFailures) {
+      _isNetworkAvailable = true;
+    }
+  }
+
+  /// Check if a specific feature is enabled
+  bool isFeatureEnabled(String featureName) {
+    switch (featureName.toLowerCase()) {
+      case 'darkmode':
+        return enableDarkMode;
+      case 'notifications':
+        return enableNotifications;
+      case 'chat':
+        return enableChat;
+      case 'investments':
+        return enableInvestments;
+      case 'sustainableactivities':
+        return enableSustainableActivities;
+      case 'reviews':
+        return enableReviews;
+      case 'promotions':
+        return enablePromotions;
+      case 'multilanguage':
+        return enableMultiLanguage;
+      default:
+        return false;
+    }
+  }
+
+  /// Get config as JSON for debugging
+  Map<String, dynamic> get configAsJson => _config.toMap();
+
+  /// Reset config to default
+  Future<void> resetToDefault() async {
+    final defaultConfig = DynamicAppConfig.defaultConfig();
+    await updateConfig(defaultConfig);
+  }
+
+  /// Enhanced dispose method
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    _pendingOperations.clear();
+    super.dispose();
   }
 }

@@ -1,6 +1,6 @@
 // lib/widgets/cart_icon_badge.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/screens/cart_screen.dart';
 import 'package:green_market/utils/constants.dart'; // For AppColors
 import 'package:provider/provider.dart';
@@ -10,7 +10,7 @@ class CartIconWithBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CartProvider>(
+    return Consumer<CartProviderEnhanced>(
       builder: (_, cart, ch) => Stack(
         alignment: Alignment.center,
         children: [

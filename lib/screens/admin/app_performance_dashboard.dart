@@ -189,7 +189,7 @@ class _AppPerformanceDashboardState extends State<AppPerformanceDashboard>
                       spots: _healthHistory.asMap().entries.map((entry) {
                         return FlSpot(
                           entry.key.toDouble(),
-                          entry.value.score,
+                          entry.value.healthScore,
                         );
                       }).toList(),
                       isCurved: true,
@@ -312,7 +312,8 @@ class _AppPerformanceDashboardState extends State<AppPerformanceDashboard>
               Icons.health_and_safety,
               Colors.blue,
             ),
-            if (_strengthening.isSystemHealthy)
+            if (_healthHistory.isNotEmpty &&
+                _healthHistory.last.healthScore > 75)
               _buildActivityItem(
                 'ระบบทำงานปกติ',
                 'ตอนนี้',
@@ -382,9 +383,9 @@ class _AppPerformanceDashboardState extends State<AppPerformanceDashboard>
   }
 
   String _formatLastUpdate() {
-    final lastHealth = _strengthening.latestHealthStatus;
-    if (lastHealth == null) return 'ไม่ทราบ';
+    if (_healthHistory.isEmpty) return 'ไม่ทราบ';
 
+    final lastHealth = _healthHistory.last;
     final now = DateTime.now();
     final diff = now.difference(lastHealth.timestamp);
 

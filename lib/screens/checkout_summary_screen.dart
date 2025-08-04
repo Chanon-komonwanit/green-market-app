@@ -1,6 +1,6 @@
 // d:/Development/green_market/lib/screens/checkout_summary_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/models/order.dart' as app_order;
 import 'package:green_market/models/order_item.dart';
 import 'package:green_market/models/shipping_method.dart';
@@ -102,7 +102,8 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
     try {
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final cartProvider =
+          Provider.of<CartProviderEnhanced>(context, listen: false);
       final currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
@@ -248,7 +249,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cartProvider = Provider.of<CartProvider>(context);
+    final cartProvider = Provider.of<CartProviderEnhanced>(context);
     final double subTotal = cartProvider.totalAmount;
     final double totalAmount = subTotal + _shippingFee;
 
@@ -321,7 +322,7 @@ class _CheckoutSummaryScreenState extends State<CheckoutSummaryScreen> {
 }
 
 class _CartItemsList extends StatelessWidget {
-  final CartProvider cartProvider;
+  final CartProviderEnhanced cartProvider;
 
   const _CartItemsList({required this.cartProvider});
 

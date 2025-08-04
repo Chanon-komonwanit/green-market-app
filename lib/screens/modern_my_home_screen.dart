@@ -11,7 +11,7 @@ import 'package:green_market/widgets/modern_home_header.dart';
 import 'package:green_market/widgets/modern_card.dart';
 import 'package:green_market/widgets/modern_button.dart';
 import 'package:green_market/screens/notifications_center_screen.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/services/order_service.dart';
@@ -188,7 +188,7 @@ class _ModernMyHomeScreenState extends State<ModernMyHomeScreen>
                           ),
                           const SizedBox(width: 12),
                           const SizedBox(width: 8),
-                          Consumer<CartProvider>(
+                          Consumer<CartProviderEnhanced>(
                             builder: (context, cartProvider, child) {
                               return _buildHeaderIconButton(
                                 icon: Icons.shopping_cart_outlined,

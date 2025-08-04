@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-// import '../screens/eco_level_products_screen.dart';
 
 class EcoLevelOverviewCard extends StatelessWidget {
   final EcoLevel ecoLevel;
@@ -19,12 +18,7 @@ class EcoLevelOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => EcoLevelProductsScreen(ecoLevel: ecoLevel),
-        //   ),
-        // );
+        // เพิ่มการนำทางไปยังหน้าสินค้าตาม Eco Level ในอนาคต
       },
       child: Container(
         margin: const EdgeInsets.only(right: 16),

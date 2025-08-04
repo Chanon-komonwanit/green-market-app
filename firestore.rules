@@ -1,84 +1,261 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // === Shop Customizations Rules ===
-    match /shop_customizations/{sellerId} {
-      // อนุญาตให้ sellers บันทึกและอ่านข้อมูลของตัวเอง
-      allow read, write: if request.auth != null && request.auth.uid == sellerId;
-      // อนุญาตให้ admins อ่านและเขียนทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
-      // อนุญาตให้ users ธรรมดาอ่านได้ (เพื่อดูหน้าร้าน)
-      allow read: if request.auth != null;
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    function isSeller() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/sellers/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isSeller', false) == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('sellerStatus', '') == 'approved'
+      );
+    }
+    
+    function isSellerPending() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('sellerStatus', '') == 'pending';
+    }
+    
+    function isSellerOrAdmin() {
+      return isSeller() || isAdmin();
     }
 
-    // === Users Rules ===
+    // Users collection - personal data access
     match /users/{userId} {
-      // ให้ users บันทึกและอ่านข้อมูลของตัวเอง
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+      allow create: if isAuthenticated();
+      
+      // Cart subcollection
+      match /cart/{cartId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
-    // === Sellers Rules ===
+    // Admins collection - admin-only access
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+      allow create: if isAuthenticated(); // Allow initial admin creation
+    }
+
+    // Sellers collection
     match /sellers/{sellerId} {
-      // ให้ sellers บันทึกและอ่านข้อมูลของตัวเอง
-      allow read, write: if request.auth != null && request.auth.uid == sellerId;
-      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
-      // อนุญาตให้ users ธรรมดาอ่านข้อมูล sellers ได้ (เพื่อดูหน้าร้าน)
-      allow read: if request.auth != null;
+      allow read: if true; // Public read for shop pages
+      allow write: if isOwner(sellerId) || isAdmin();
+      allow create: if isAuthenticated();
     }
 
-    // === Products Rules ===
+    // Products collection
     match /products/{productId} {
-      // ให้ sellers บันทึกและอ่านสินค้าของตัวเอง
-      allow read, write: if request.auth != null && 
-        (request.auth.uid == resource.data.sellerId || 
-         request.auth.uid == request.resource.data.sellerId);
-      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
-      // อนุญาตให้ users ธรรมดาอ่านสินค้าได้
-      allow read: if request.auth != null;
+      allow read: if true; // Public read for marketplace
+      allow write: if resource.data.sellerId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated(); // Allow authenticated users to create (with admin approval)
     }
 
-    // === Orders Rules ===
+    // Shop customizations
+    match /shop_customizations/{sellerId} {
+      allow read: if true; // Public read for shop themes
+      allow write: if isOwner(sellerId) || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Orders collection
     match /orders/{orderId} {
-      // ให้ users อ่านและเขียนคำสั่งซื้อของตัวเอง
-      allow read, write: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || 
-         request.auth.uid == request.resource.data.userId ||
-         request.auth.uid == resource.data.sellerId || 
-         request.auth.uid == request.resource.data.sellerId);
-      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if resource.data.userId == request.auth.uid || 
+                     resource.data.sellerId == request.auth.uid || 
+                     isAdmin();
+      allow write: if resource.data.userId == request.auth.uid || 
+                      resource.data.sellerId == request.auth.uid || 
+                      isAdmin();
+      allow create: if isAuthenticated();
+      
+      // Tracking events subcollection
+      match /trackingEvents/{eventId} {
+        allow read: if resource.data.userId == request.auth.uid || 
+                       resource.data.sellerId == request.auth.uid || 
+                       isAdmin();
+        allow write: if resource.data.sellerId == request.auth.uid || isAdmin();
+      }
     }
 
-    // === Banners Rules ===
-    match /banners/{bannerId} {
-      // ให้ทุกคนอ่านได้ แต่เขียนได้เฉพาะ admin
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+    // Reviews collection
+    match /reviews/{reviewId} {
+      allow read: if true; // Public read
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
     }
 
-    // === Categories Rules ===
+    // Shop reviews collection
+    match /shop_reviews/{reviewId} {
+      allow read: if true; // Public read
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Categories collection
     match /categories/{categoryId} {
-      // ให้ทุกคนอ่านได้ แต่เขียนได้เฉพาะ admin
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if true; // Public read
+      allow write: if isAdmin();
     }
 
-    // === Notifications Rules ===
+    // Promotions collection
+    match /promotions/{promotionId} {
+      allow read: if true; // Public read
+      allow write: if resource.data.sellerId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Sustainable activities
+    match /sustainable_activities/{activityId} {
+      allow read: if true; // Public read
+      allow write: if resource.data.createdBy == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Community posts
+    match /community_posts/{postId} {
+      allow read: if true; // Public read
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+      
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if true; // Public read
+        allow write: if resource.data.userId == request.auth.uid || isAdmin();
+        allow create: if isAuthenticated();
+      }
+    }
+
+    // Green investments
+    match /green_investments/{investmentId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+      allow create: if isAdmin();
+    }
+
+    // User investments
+    match /user_investments/{investmentId} {
+      allow read: if resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Eco challenges
+    match /eco_challenges/{challengeId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Eco rewards
+    match /ecoRewards/{rewardId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Redemptions
+    match /redemptions/{redemptionId} {
+      allow read: if resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // News articles
+    match /news_articles/{articleId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Static pages
+    match /static_pages/{pageId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // App configuration - Global settings
+    match /app_config/{configId} {
+      allow read: if true; // Public read - app needs these settings without auth
+      allow write: if isAdmin(); // Only admins can modify app config
+    }
+
+    // Homepage settings
+    match /homepage_settings/{settingId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // App settings
+    match /app_settings/{settingId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Theme settings
+    match /theme_settings/{themeId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Notifications
     match /notifications/{notificationId} {
-      // ให้ users อ่านการแจ้งเตือนของตัวเอง
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      // อนุญาตให้ admins เข้าถึงได้ทั้งหมด
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
     }
 
-    // === Default Rule ===
-    // กฎสำรอง: อนุญาตให้ admins เข้าถึงทุกอย่างได้
+    // System notifications (global)
+    match /system_notifications/{notificationId} {
+      allow read: if true; // Public read
+      allow write: if isAdmin();
+    }
+
+    // Seller requests
+    match /seller_requests/{requestId} {
+      allow read: if resource.data.userId == request.auth.uid || isAdmin();
+      allow write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Product requests (for sellers to request adding products)
+    match /product_requests/{requestId} {
+      allow read: if resource.data.sellerId == request.auth.uid || isAdmin();
+      allow write: if resource.data.sellerId == request.auth.uid || isAdmin();
+      allow create: if isAuthenticated() && (
+        request.resource.data.sellerId == request.auth.uid
+      ); // Allow authenticated users to create their own product requests
+    }
+
+    // Test connection (for debugging)
+    match /test_connection/{testId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Community chats
+    match /community_chats/{chatId} {
+      allow read, write: if request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if request.auth.uid in get(/databases/$(database)/documents/community_chats/$(chatId)).data.participants;
+        allow create: if isAuthenticated();
+      }
+    }
+
+    // Default deny rule for any other paths
     match /{document=**} {
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow read, write: if false;
     }
   }
 }

@@ -256,7 +256,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 : null,
       );
 
-      await firebaseService.addProduct(product);
+      await firebaseService.submitProductRequest(product);
 
       _showSnackBar(
         'ส่งคำขอเพิ่มสินค้าเรียบร้อยแล้ว รอการอนุมัติจากแอดมิน',

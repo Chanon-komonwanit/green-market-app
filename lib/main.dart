@@ -16,7 +16,7 @@ import 'package:green_market/firebase_options.dart';
 import 'package:green_market/main_app_shell.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/theme/app_theme.dart';
 import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/edit_product_screen.dart';
@@ -27,16 +27,15 @@ import 'package:green_market/screens/auth/login_screen.dart'; // Explicitly impo
 import 'package:green_market/services/notification_service.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/providers/eco_coins_provider.dart';
+import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/screens/eco_coins_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:green_market/models/product.dart';
-import 'package:green_market/services/firebase_data_seeder.dart';
 import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/wishlist_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
-import 'package:green_market/utils/app_comprehensive_strengthening.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,16 +48,6 @@ void main() async {
   // เริ่มต้นการจัดรูปแบบวันที่
   await initializeDateFormatting('th', null);
 
-  // เริ่มต้นระบบเสริมสร้างความแข็งแรงครอบคลุม
-  try {
-    await AppComprehensiveStrengthening().initialize();
-    print('✅ Comprehensive strengthening system initialized successfully');
-  } catch (e) {
-    print('❌ Failed to initialize strengthening system: $e');
-  }
-
-  // Remove NotificationService initialization from main to avoid Windows issues
-  // await NotificationService().initialize();
   runApp(MyApp());
 }
 
@@ -73,7 +62,8 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<FirebaseService>(create: (_) => _firebaseService),
         Provider<NotificationService>(create: (_) => NotificationService()),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => CartProviderEnhanced()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(_firebaseService)),
         ChangeNotifierProvider(
             create: (context) => AppConfigProvider(_firebaseService)),
         ChangeNotifierProvider(
@@ -92,7 +82,7 @@ class MyApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProvider(
-          create: (context) => EcoCoinsProvider(),
+          create: (context) => EcoCoinProvider(),
         ),
       ],
       child: Consumer<AppConfigProvider>(

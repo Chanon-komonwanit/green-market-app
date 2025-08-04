@@ -1,6 +1,6 @@
 // lib/screens/cart_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/screens/shipping_address_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +24,7 @@ class _CartScreenState extends State<CartScreen> {
     // and context is fully available for navigation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.navigateToCheckout) {
-        final cart = Provider.of<CartProvider>(context, listen: false);
+        final cart = Provider.of<CartProviderEnhanced>(context, listen: false);
         if (cart.items.isNotEmpty) {
           // Navigate to ShippingAddressScreen or directly to a simplified CheckoutScreen
           // if address is already known or handled differently for "Buy Now".
@@ -36,7 +36,8 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
-  void _handleCheckoutPressed(BuildContext context, CartProvider cart) async {
+  void _handleCheckoutPressed(
+      BuildContext context, CartProviderEnhanced cart) async {
     if (cart.totalAmount <= 0) {
       // Prevent checkout if cart is empty or total is zero
       return;
@@ -72,7 +73,7 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: const Text('ตะกร้าสินค้า'),
       ),
-      body: Consumer<CartProvider>(
+      body: Consumer<CartProviderEnhanced>(
         builder: (context, cart, child) {
           if (cart.items.isEmpty) {
             return const _EmptyCartView();
@@ -218,7 +219,7 @@ class _EmptyCartView extends StatelessWidget {
 
 class _CartItemTile extends StatelessWidget {
   final CartItem cartItem;
-  final CartProvider cart;
+  final CartProviderEnhanced cart;
 
   const _CartItemTile({required this.cartItem, required this.cart});
 
@@ -315,7 +316,7 @@ class _CartItemTile extends StatelessWidget {
 }
 
 class _CartSummary extends StatelessWidget {
-  final CartProvider cart;
+  final CartProviderEnhanced cart;
   final bool isProcessing;
   final VoidCallback onCheckoutPressed;
 

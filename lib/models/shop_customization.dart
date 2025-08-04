@@ -98,6 +98,10 @@ enum ScreenShopTheme {
   techDigital,
   warmVintage,
   vibrantYouth,
+  shopeeOrange,
+  lazadaBlue,
+  elegantGold,
+  freshMint,
 }
 
 extension ScreenShopThemeExtension on ScreenShopTheme {
@@ -115,6 +119,14 @@ extension ScreenShopThemeExtension on ScreenShopTheme {
         return 'Warm Vintage';
       case ScreenShopTheme.vibrantYouth:
         return 'Vibrant Youth';
+      case ScreenShopTheme.shopeeOrange:
+        return 'Shopee Style';
+      case ScreenShopTheme.lazadaBlue:
+        return 'Lazada Style';
+      case ScreenShopTheme.elegantGold:
+        return 'Elegant Gold';
+      case ScreenShopTheme.freshMint:
+        return 'Fresh Mint';
     }
   }
 
@@ -132,6 +144,14 @@ extension ScreenShopThemeExtension on ScreenShopTheme {
         return 'ธีมอบอุ่นและคลาสสิก';
       case ScreenShopTheme.vibrantYouth:
         return 'ธีมสดใสและเยาวชน';
+      case ScreenShopTheme.shopeeOrange:
+        return 'ธีมส้มสดใส แบบ Shopee';
+      case ScreenShopTheme.lazadaBlue:
+        return 'ธีมน้ำเงินมั่นคง แบบ Lazada';
+      case ScreenShopTheme.elegantGold:
+        return 'ธีมทองสุดหรู เรียบหรู';
+      case ScreenShopTheme.freshMint:
+        return 'ธีมเขียวมิ้นต์ สดชื่น';
     }
   }
 
@@ -149,6 +169,14 @@ extension ScreenShopThemeExtension on ScreenShopTheme {
         return const Color(0xFF8D6E63);
       case ScreenShopTheme.vibrantYouth:
         return const Color(0xFFE91E63);
+      case ScreenShopTheme.shopeeOrange:
+        return const Color(0xFFEE4D2D); // Shopee's signature orange
+      case ScreenShopTheme.lazadaBlue:
+        return const Color(0xFF0F136D); // Lazada's deep blue
+      case ScreenShopTheme.elegantGold:
+        return const Color(0xFFB8860B); // Dark gold
+      case ScreenShopTheme.freshMint:
+        return const Color(0xFF00A896); // Fresh mint green
     }
   }
 
@@ -166,6 +194,14 @@ extension ScreenShopThemeExtension on ScreenShopTheme {
         return const Color(0xFFBCAAA4);
       case ScreenShopTheme.vibrantYouth:
         return const Color(0xFFFF4081);
+      case ScreenShopTheme.shopeeOrange:
+        return const Color(0xFFFFB74D); // Light orange complement
+      case ScreenShopTheme.lazadaBlue:
+        return const Color(0xFF3F51B5); // Medium blue
+      case ScreenShopTheme.elegantGold:
+        return const Color(0xFFFFD700); // Bright gold
+      case ScreenShopTheme.freshMint:
+        return const Color(0xFF4ECDC4); // Light mint
     }
   }
 
@@ -183,6 +219,14 @@ extension ScreenShopThemeExtension on ScreenShopTheme {
         return Icons.auto_awesome;
       case ScreenShopTheme.vibrantYouth:
         return Icons.palette;
+      case ScreenShopTheme.shopeeOrange:
+        return Icons.shopping_bag; // Shopping icon for Shopee style
+      case ScreenShopTheme.lazadaBlue:
+        return Icons.shopping_cart; // Cart icon for Lazada style
+      case ScreenShopTheme.elegantGold:
+        return Icons.star; // Star icon for elegant theme
+      case ScreenShopTheme.freshMint:
+        return Icons.spa; // Spa/nature icon for fresh theme
     }
   }
 }

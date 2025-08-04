@@ -9,6 +9,15 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"args": []
+		},
+		{
+			"type": "shell",
+			"label": "Run App Chrome",
+			"command": "flutter run -d chrome --web-renderer canvaskit",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [],
+			"args": []
 		}
 	]
 }

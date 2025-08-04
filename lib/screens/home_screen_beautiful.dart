@@ -7,9 +7,11 @@ import 'package:green_market/models/category.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/promotion.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/providers/eco_coins_provider.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/widgets/smart_eco_hero_tab.dart';
 import 'package:green_market/screens/category_products_screen.dart';
+import 'package:green_market/services/smart_product_analytics_service.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
@@ -81,13 +83,12 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
     );
 
-    _headerAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _headerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _headerAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     // Start animations with staggered delays
     _headerAnimationController.forward();
@@ -134,8 +135,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<Map<String, dynamic>> _fetchHomeData() async {
     try {
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
+      final firebaseService = Provider.of<FirebaseService>(
+        context,
+        listen: false,
+      );
 
       // เพิ่ม retry mechanism และ better error handling
       final futures = await Future.wait([
@@ -169,11 +172,20 @@ class _HomeScreenState extends State<HomeScreen>
       final promotions = futures[1] as List<Promotion>;
       final products = futures[2] as List<Product>;
 
-      // Log successful data fetch
+      // Log successful data fetch with detailed product info
       print('[SUCCESS] Data fetched successfully:');
       print('  - Categories: ${categories.length}');
       print('  - Promotions: ${promotions.length}');
       print('  - Products: ${products.length}');
+
+      // Debug: Print each product details
+      print('[DEBUG] Product details:');
+      for (var product in products) {
+        print('  Product: ${product.name} (ID: ${product.id})');
+        print('    - isApproved: ${product.status}');
+        print('    - categoryId: ${product.categoryId}');
+        print('    - sellerId: ${product.sellerId}');
+      }
 
       return {
         'categories': categories,
@@ -214,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen>
                       colors: [
                         AppColors.primaryTeal.withOpacity(0.9),
                         AppColors.peacockBlue.withOpacity(0.8),
-                        AppColors.lightTeal.withOpacity(0.7)
+                        AppColors.lightTeal.withOpacity(0.7),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -272,8 +284,11 @@ class _HomeScreenState extends State<HomeScreen>
                               color: Colors.white.withOpacity(0.25),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.search,
-                                color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.search,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                           onPressed: () {
                             Navigator.push(
@@ -294,8 +309,11 @@ class _HomeScreenState extends State<HomeScreen>
                               color: Colors.white.withOpacity(0.25),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.person,
-                                color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                           onPressed: () {
                             _showUserProfile();
@@ -326,11 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red,
-                  ),
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
                     'เกิดข้อผิดพลาด: ${snapshot.error}',
@@ -352,9 +366,7 @@ class _HomeScreenState extends State<HomeScreen>
           }
 
           if (!snapshot.hasData) {
-            return const Center(
-              child: Text('ไม่พบข้อมูล'),
-            );
+            return const Center(child: Text('ไม่พบข้อมูล'));
           }
 
           final data = snapshot.data!;
@@ -371,17 +383,19 @@ class _HomeScreenState extends State<HomeScreen>
             child: CustomScrollView(
               slivers: [
                 // Enhanced Eco Coins - ย้ายขึ้นมาเป็นอันดับแรก
-                SliverToBoxAdapter(
-                  child: _buildEnhancedEcoCoinsSection(),
-                ),
+                SliverToBoxAdapter(child: _buildEnhancedEcoCoinsSection()),
                 // Smart Eco Hero Section - สินค้าระดับสูงสุด
-                SliverToBoxAdapter(
-                  child: _buildSmartEcoHeroSection(products),
-                ),
+                SliverToBoxAdapter(child: Builder(
+                  builder: (context) {
+                    print(
+                        '[DEBUG] ✨ ABOUT TO BUILD ECO HERO SECTION with ${products.length} products');
+                    final widget = _buildSmartEcoHeroSection(products);
+                    print('[DEBUG] ✨ ECO HERO SECTION WIDGET CREATED');
+                    return widget;
+                  },
+                )),
                 // Categories Section
-                SliverToBoxAdapter(
-                  child: _buildCategoriesSection(categories),
-                ),
+                SliverToBoxAdapter(child: _buildCategoriesSection(categories)),
                 // Special Promotions
                 if (promotions.isNotEmpty)
                   SliverToBoxAdapter(
@@ -400,13 +414,9 @@ class _HomeScreenState extends State<HomeScreen>
                   child: _buildPopularProductsSection(products),
                 ),
                 // New Products
-                SliverToBoxAdapter(
-                  child: _buildNewProductsSection(products),
-                ),
+                SliverToBoxAdapter(child: _buildNewProductsSection(products)),
                 // Add padding at the bottom
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 100),
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           );
@@ -505,23 +515,75 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1,
+                  // Eco Coins Widget แบบเล็กสวยงาม
+                  GestureDetector(
+                    onTap: () {
+                      // นำทางไปหน้า Eco Coins
+                      Navigator.pushNamed(context, '/eco-coins');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                    ),
-                    child: const Text(
-                      '🌱 ตลาดออนไลน์ที่ใส่ใจสิ่งแวดล้อม รองรับการซื้อขายที่ยั่งยืน พร้อมระบบ AI แนะนำสินค้าอัจฉริยะ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        height: 1.6,
-                        fontWeight: FontWeight.w500,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.25),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Eco Coins Widget ที่มีอยู่แล้ว
+                          const EcoCoinsWidget(showAnimation: false),
+                          const SizedBox(width: 12),
+                          // ข้อความอธิบาย
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'สะสมเหลียญรางวัล',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  'ช้อปเพื่อสิ่งแวดล้อม รับเหลียญคืน',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white.withOpacity(0.85),
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // ลูกศรเข้าดู
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white.withOpacity(0.9),
+                              size: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -532,20 +594,19 @@ class _HomeScreenState extends State<HomeScreen>
                       if (snapshot.hasData && snapshot.data != null) {
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.20),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.4)),
+                              color: Colors.white.withOpacity(0.4),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                              Icon(Icons.person, color: Colors.white, size: 18),
                               const SizedBox(width: 8),
                               Text(
                                 'สวัสดี ${snapshot.data!.displayName ?? 'ผู้ใช้'}!',
@@ -565,20 +626,19 @@ class _HomeScreenState extends State<HomeScreen>
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.25),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.4)),
+                              color: Colors.white.withOpacity(0.4),
+                            ),
                           ),
                           child: Row(
                             children: const [
-                              Icon(
-                                Icons.login,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                              Icon(Icons.login, color: Colors.white, size: 18),
                               SizedBox(width: 8),
                               Text(
                                 'เข้าสู่ระบบเพื่อรับสิทธิประโยชน์เพิ่มเติม',
@@ -609,10 +669,7 @@ class _HomeScreenState extends State<HomeScreen>
         child: const Center(
           child: Text(
             'ไม่พบหมวดหมู่สินค้า',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.modernGrey,
-            ),
+            style: TextStyle(fontSize: 16, color: AppColors.modernGrey),
           ),
         ),
       );
@@ -674,7 +731,9 @@ class _HomeScreenState extends State<HomeScreen>
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -721,7 +780,9 @@ class _HomeScreenState extends State<HomeScreen>
                       cacheExtent: 200,
                       itemBuilder: (context, index) {
                         return _buildModernCategoryCard(
-                            category: categories[index], index: index);
+                          category: categories[index],
+                          index: index,
+                        );
                       },
                     ),
                   ),
@@ -734,8 +795,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildModernCategoryCard(
-      {required Category category, required int index}) {
+  Widget _buildModernCategoryCard({
+    required Category category,
+    required int index,
+  }) {
     final colors = [
       [AppColors.primaryTeal, AppColors.peacockBlue],
       [AppColors.emeraldGreen, AppColors.primaryTeal],
@@ -807,8 +870,10 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -887,7 +952,9 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primaryTeal.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -1018,7 +1085,9 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(15),
@@ -1039,7 +1108,8 @@ class _HomeScreenState extends State<HomeScreen>
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                    'ใช้โปรโมชั่น ${promotion.title} เรียบร้อย!'),
+                                  'ใช้โปรโมชั่น ${promotion.title} เรียบร้อย!',
+                                ),
                                 backgroundColor: colorSet[0],
                               ),
                             );
@@ -1051,7 +1121,9 @@ class _HomeScreenState extends State<HomeScreen>
                           backgroundColor: Colors.white,
                           foregroundColor: colorSet[0],
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1154,18 +1226,26 @@ class _HomeScreenState extends State<HomeScreen>
                       controller: _ecoLevelTabController,
                       children: [
                         _buildProductsList(products),
-                        _buildProductsList(products
-                            .where((p) => p.ecoLevel == EcoLevel.basic)
-                            .toList()),
-                        _buildProductsList(products
-                            .where((p) => p.ecoLevel == EcoLevel.standard)
-                            .toList()),
-                        _buildProductsList(products
-                            .where((p) => p.ecoLevel == EcoLevel.premium)
-                            .toList()),
-                        _buildProductsList(products
-                            .where((p) => p.ecoLevel == EcoLevel.hero)
-                            .toList()),
+                        _buildProductsList(
+                          products
+                              .where((p) => p.ecoLevel == EcoLevel.basic)
+                              .toList(),
+                        ),
+                        _buildProductsList(
+                          products
+                              .where((p) => p.ecoLevel == EcoLevel.standard)
+                              .toList(),
+                        ),
+                        _buildProductsList(
+                          products
+                              .where((p) => p.ecoLevel == EcoLevel.premium)
+                              .toList(),
+                        ),
+                        _buildProductsList(
+                          products
+                              .where((p) => p.ecoLevel == EcoLevel.hero)
+                              .toList(),
+                        ),
                       ],
                     ),
                   ),
@@ -1209,10 +1289,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 8),
             const Text(
               'ลองเลือกระดับอื่นดูครับ',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.modernGrey,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.modernGrey),
             ),
           ],
         ),
@@ -1304,7 +1381,9 @@ class _HomeScreenState extends State<HomeScreen>
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.emeraldGreen.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -1347,11 +1426,13 @@ class _HomeScreenState extends State<HomeScreen>
                                 );
                               } catch (e) {
                                 print(
-                                    '[ERROR] Featured product navigation: $e');
+                                  '[ERROR] Featured product navigation: $e',
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                        'ไม่สามารถเปิดรายละเอียดสินค้าได้'),
+                                      'ไม่สามารถเปิดรายละเอียดสินค้าได้',
+                                    ),
                                     backgroundColor: AppColors.errorRed,
                                   ),
                                 );
@@ -1375,8 +1456,9 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final popularProducts =
           products.where((p) => p.averageRating >= 4.0).toList();
-      popularProducts
-          .sort((a, b) => b.averageRating.compareTo(a.averageRating));
+      popularProducts.sort(
+        (a, b) => b.averageRating.compareTo(a.averageRating),
+      );
 
       if (popularProducts.isEmpty) {
         return const SizedBox.shrink();
@@ -1424,7 +1506,9 @@ class _HomeScreenState extends State<HomeScreen>
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.amber.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
@@ -1467,11 +1551,13 @@ class _HomeScreenState extends State<HomeScreen>
                                   );
                                 } catch (e) {
                                   print(
-                                      '[ERROR] Popular product navigation: $e');
+                                    '[ERROR] Popular product navigation: $e',
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                          'ไม่สามารถเปิดรายละเอียดสินค้าได้'),
+                                        'ไม่สามารถเปิดรายละเอียดสินค้าได้',
+                                      ),
                                       backgroundColor: AppColors.errorRed,
                                     ),
                                   );
@@ -1497,6 +1583,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildNewProductsSection(List<Product> products) {
     try {
+      print(
+          '[DEBUG] _buildNewProductsSection: Received ${products.length} products');
+      for (var product in products) {
+        print('  - Product: ${product.name} (Created: ${product.createdAt})');
+      }
+
       final newProducts = products.toList();
       newProducts.sort((a, b) {
         final aTime = a.createdAt ?? Timestamp.now();
@@ -1504,7 +1596,10 @@ class _HomeScreenState extends State<HomeScreen>
         return bTime.compareTo(aTime);
       });
 
+      print('[DEBUG] After sorting, newProducts count: ${newProducts.length}');
+
       if (newProducts.isEmpty) {
+        print('[DEBUG] No new products to display');
         return const SizedBox.shrink();
       }
 
@@ -1550,7 +1645,9 @@ class _HomeScreenState extends State<HomeScreen>
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primaryTeal.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
@@ -1596,7 +1693,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                          'ไม่สามารถเปิดรายละเอียดสินค้าได้'),
+                                        'ไม่สามารถเปิดรายละเอียดสินค้าได้',
+                                      ),
                                       backgroundColor: AppColors.errorRed,
                                     ),
                                   );
@@ -1659,18 +1757,13 @@ class _HomeScreenState extends State<HomeScreen>
         return AlertDialog(
           title: const Text(
             'โปรไฟล์ผู้ใช้',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           content: StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
+                return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
@@ -1690,8 +1783,10 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(height: 8),
                     _buildUserInfoRow('อีเมล', user.email ?? 'ไม่มีอีเมล'),
                     const SizedBox(height: 8),
-                    _buildUserInfoRow('สถานะ',
-                        user.emailVerified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน'),
+                    _buildUserInfoRow(
+                      'สถานะ',
+                      user.emailVerified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน',
+                    ),
                     const SizedBox(height: 16),
                     if (user.email == 'admin@greenmarket.com')
                       SizedBox(
@@ -1709,11 +1804,13 @@ class _HomeScreenState extends State<HomeScreen>
                               );
                             } catch (e) {
                               print(
-                                  '[ERROR] Failed to navigate to admin panel: $e');
+                                '[ERROR] Failed to navigate to admin panel: $e',
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content:
-                                      Text('ไม่สามารถเปิดแผงควบคุมแอดมินได้'),
+                                  content: Text(
+                                    'ไม่สามารถเปิดแผงควบคุมแอดมินได้',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1732,10 +1829,7 @@ class _HomeScreenState extends State<HomeScreen>
               }
               return const Text(
                 'ไม่ได้เข้าสู่ระบบ',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               );
             },
           ),
@@ -1798,23 +1892,59 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-            ),
-          ),
-        ),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
       ],
     );
   }
 
   /// สร้าง Smart Eco Hero Section - สินค้าระดับสูงสุดแห่งความยั่งยืน
   Widget _buildSmartEcoHeroSection(List<Product> products) {
-    // AI Algorithm - เลือกสินค้าระดับสูงสุด
-    final ecoHeroProducts = _selectEcoHeroProducts(products);
+    print('=============================');
+    print('[DEBUG] ECO HERO SECTION CALLED!');
+    print(
+        '[DEBUG] _buildSmartEcoHeroSection: Starting with ${products.length} total products');
+    print('=============================');
 
+    return FutureBuilder<List<Product>>(
+      future: SmartProductAnalyticsService().getSmartEcoHeroProducts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          print(
+              '[DEBUG] Eco Hero: Loading from SmartProductAnalyticsService...');
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 20),
+            height: 200,
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final ecoHeroProducts = snapshot.data ?? [];
+        print(
+            '[DEBUG] Eco Hero: SmartProductAnalyticsService returned ${ecoHeroProducts.length} products');
+
+        if (ecoHeroProducts.isEmpty) {
+          print(
+              '[DEBUG] Eco Hero: Using fallback selection from ${products.length} products');
+          // Fallback to traditional selection if AI service fails
+          final fallbackProducts = _selectEcoHeroProducts(products);
+          print(
+              '[DEBUG] Eco Hero: Fallback selected ${fallbackProducts.length} products');
+          return _buildEcoHeroUI(fallbackProducts);
+        }
+
+        print(
+            '[DEBUG] Eco Hero: Final products to display: ${ecoHeroProducts.length}');
+        for (var product in ecoHeroProducts) {
+          print(
+              '  - ${product.name} (EcoScore: ${product.ecoScore}, Level: ${product.ecoLevel})');
+        }
+
+        return _buildEcoHeroUI(ecoHeroProducts);
+      },
+    );
+  }
+
+  Widget _buildEcoHeroUI(List<Product> ecoHeroProducts) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
@@ -1895,7 +2025,9 @@ class _HomeScreenState extends State<HomeScreen>
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
@@ -1945,7 +2077,9 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10B981).withOpacity(0.3),
                           borderRadius: BorderRadius.circular(12),
@@ -1998,11 +2132,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: const Center(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.eco_outlined,
-                      size: 48,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.eco_outlined, size: 48, color: Colors.grey),
                     SizedBox(height: 12),
                     Text(
                       'ยังไม่มีสินค้าระดับ Eco Hero',
@@ -2015,10 +2145,7 @@ class _HomeScreenState extends State<HomeScreen>
                     SizedBox(height: 4),
                     Text(
                       'รอสินค้าเยี่ยมจากผู้ขายของเรา',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -2085,7 +2212,7 @@ class _HomeScreenState extends State<HomeScreen>
         'รักษ์โลก',
         'สิ่งแวดล้อม',
         'รีไซเคิล',
-        'คาร์บอน'
+        'คาร์บอน',
       ];
       final productName = product.name.toLowerCase();
       final productDescription = product.description.toLowerCase();
@@ -2201,8 +2328,9 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 // Product Image
                 ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(14)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(14),
+                  ),
                   child: Container(
                     height: 140,
                     width: double.infinity,
@@ -2213,8 +2341,10 @@ class _HomeScreenState extends State<HomeScreen>
                             product.imageUrl!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.image_not_supported,
-                                  size: 40);
+                              return const Icon(
+                                Icons.image_not_supported,
+                                size: 40,
+                              );
                             },
                           )
                         : const Icon(Icons.shopping_bag, size: 40),
@@ -2225,8 +2355,10 @@ class _HomeScreenState extends State<HomeScreen>
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -2243,11 +2375,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 12,
-                        ),
+                        Icon(Icons.star, color: Colors.white, size: 12),
                         SizedBox(width: 2),
                         Text(
                           'HERO',

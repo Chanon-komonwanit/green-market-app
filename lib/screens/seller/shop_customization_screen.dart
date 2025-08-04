@@ -2,10 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:green_market/theme/app_colors.dart';
 import 'package:green_market/models/shop_customization.dart';
 import 'package:green_market/models/product.dart';
+import 'package:green_market/models/theme_settings.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -107,25 +110,37 @@ class _ShopCustomizationScreenState extends State<ShopCustomizationScreen>
     setState(() => _isSaving = true);
     try {
       print('Starting shop customization save for seller: ${widget.sellerId}');
+
+      // ตรวจสอบว่า user ยัง login อยู่หรือไม่
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+      }
+
       final firebaseService =
           Provider.of<FirebaseService>(context, listen: false);
 
       String? bannerImageUrl;
       if (_bannerImageFile != null) {
         print('Uploading banner image...');
-        if (kIsWeb) {
-          final bytes = await _bannerImageFile!.readAsBytes();
-          bannerImageUrl = await firebaseService.uploadWebImage(
-            bytes,
-            'shop_banners/${widget.sellerId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          );
-        } else {
-          bannerImageUrl = await firebaseService.uploadImageFile(
-            File(_bannerImageFile!.path),
-            'shop_banners/${widget.sellerId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          );
+        try {
+          if (kIsWeb) {
+            final bytes = await _bannerImageFile!.readAsBytes();
+            bannerImageUrl = await firebaseService.uploadWebImage(
+              bytes,
+              'shop_banners/${widget.sellerId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            );
+          } else {
+            bannerImageUrl = await firebaseService.uploadImageFile(
+              File(_bannerImageFile!.path),
+              'shop_banners/${widget.sellerId}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            );
+          }
+          print('Banner image uploaded: $bannerImageUrl');
+        } catch (e) {
+          print('Error uploading banner image: $e');
+          throw Exception('ไม่สามารถอัปโหลดรูปภาพแบนเนอร์ได้: $e');
         }
-        print('Banner image uploaded: $bannerImageUrl');
       } else if (_customization?.banner?.imageUrl != null) {
         bannerImageUrl = _customization!.banner!.imageUrl;
         print('Using existing banner image: $bannerImageUrl');
@@ -161,20 +176,107 @@ class _ShopCustomizationScreenState extends State<ShopCustomizationScreen>
       );
 
       print('Saving shop customization...');
+      print('Customization data: ${customization.toMap()}');
+
       await firebaseService.saveShopCustomization(customization);
       print('Shop customization saved successfully');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกการปรับแต่งร้านค้าสำเร็จ!')),
+      // อัปเดตธีมแอปทันที
+      _updateAppTheme();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ บันทึกการปรับแต่งร้านค้าสำเร็จ!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        Navigator.pop(context, true); // ส่ง result กลับ
+      }
+    } catch (e, stackTrace) {
+      print('Error saving shop customization: $e');
+      print('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาดในการบันทึก: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'ลองใหม่',
+              textColor: Colors.white,
+              onPressed: () => _saveCustomization(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  /// อัปเดตธีมแอปให้ตรงกับธีมร้านที่เลือก
+  void _updateAppTheme() {
+    try {
+      print('[ShopCustomization] Starting theme update...');
+
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
+      // สร้าง ThemeSettings จากธีมที่เลือก
+      final newThemeSettings = ThemeSettings(
+        primaryColor: _selectedTheme.primaryColor.value,
+        secondaryColor: _selectedTheme.secondaryColor.value,
+        tertiaryColor: _selectedTheme.primaryColor.value,
+        useDarkTheme: false,
+        fontFamily: 'NotoSansThai',
       );
 
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการบันทึก: $e')),
-      );
-    } finally {
-      setState(() => _isSaving = false);
+      print('[ShopCustomization] Theme settings created: $newThemeSettings');
+
+      // อัปเดตธีม
+      themeProvider.updateTheme(newThemeSettings);
+
+      print('[ShopCustomization] Theme updated to: ${_selectedTheme.name}');
+
+      // แสดงการแจ้งเตือน (แสดงแค่เมื่อบันทึกสำเร็จ ไม่ต้องแสดงเมื่อเลือกธีม)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('เปลี่ยนธีมเป็น "${_selectedTheme.name}" แล้ว'),
+              ],
+            ),
+            backgroundColor: _selectedTheme.primaryColor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      print('[ShopCustomization] Error updating theme: $e');
+      print('[ShopCustomization] Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('เกิดข้อผิดพลาดในการเปลี่ยนธีม'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -232,8 +334,13 @@ class _ShopCustomizationScreenState extends State<ShopCustomizationScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'เลือกธีมร้านค้า',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            '🎨 เลือกธีมร้านค้าแบบ Shopee Style',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'เลือกธีมที่เหมาะกับสไตล์ร้านคุณ ปรับแต่งสี ฟอนต์ และการจัดวาง',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -265,6 +372,9 @@ class _ShopCustomizationScreenState extends State<ShopCustomizationScreen>
                         text: '#111827',
                       );
                     });
+
+                    // อัปเดต App Theme ทันที
+                    _updateAppTheme();
                   },
                   child: Container(
                     decoration: BoxDecoration(

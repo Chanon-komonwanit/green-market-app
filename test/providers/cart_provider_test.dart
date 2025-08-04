@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:green_market/providers/cart_provider.dart';
+import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/models/product.dart';
 
 void main() {
   group('CartProvider', () {
     test('initial cart is empty', () {
-      final cartProvider = CartProvider();
+      final cartProvider = CartProviderEnhanced();
       expect(cartProvider.items.isEmpty, true);
     });
 
     test('add item increases cart length', () {
-      final cartProvider = CartProvider();
+      final cartProvider = CartProviderEnhanced();
       final product = Product(
         id: 'p1',
         sellerId: 's1',
@@ -31,7 +31,7 @@ void main() {
     });
 
     test('remove item decreases cart length', () {
-      final cartProvider = CartProvider();
+      final cartProvider = CartProviderEnhanced();
       final product = Product(
         id: 'p1',
         sellerId: 's1',
@@ -53,7 +53,7 @@ void main() {
     });
 
     test('clear cart removes all items', () {
-      final cartProvider = CartProvider();
+      final cartProvider = CartProviderEnhanced();
       final product1 = Product(
         id: 'p1',
         sellerId: 's1',

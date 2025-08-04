@@ -49,16 +49,10 @@ class NotificationService {
         requestBadgePermission: true,
         requestSoundPermission: true,
       );
-      const windowsInitialization = WindowsInitializationSettings(
-        appName: 'Green Market',
-        appUserModelId: 'com.greenmarket.app',
-        guid: 'e4abfecc-f05b-424c-bc5c-abc5637a0a2e',
-      );
 
       const initializationSettings = InitializationSettings(
         android: androidInitialization,
         iOS: iosInitialization,
-        windows: windowsInitialization,
       );
 
       await _localNotifications.initialize(

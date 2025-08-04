@@ -7,7 +7,7 @@ import 'package:green_market/screens/admin/admin_user_management_screen.dart';
 import 'package:green_market/screens/admin/admin_seller_application_screen.dart';
 import 'package:green_market/screens/admin/admin_manage_investment_projects_screen.dart';
 import 'package:green_market/screens/admin/admin_manage_sustainable_activities_screen.dart';
-import 'package:green_market/screens/admin/dynamic_app_config_screen.dart';
+import 'package:green_market/screens/admin/admin_product_approval_screen.dart';
 import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -52,11 +52,13 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
   final Map<String, TextEditingController> _textControllers = {
     'appName': TextEditingController(text: 'Green Market'),
     'appTagline': TextEditingController(text: 'ตลาดสีเขียว เพื่อโลกที่ยั่งยืน'),
-    'welcomeMessage':
-        TextEditingController(text: 'ยินดีต้อนรับสู่ Green Market'),
+    'welcomeMessage': TextEditingController(
+      text: 'ยินดีต้อนรับสู่ Green Market',
+    ),
     'heroTitle': TextEditingController(text: 'ช้อปปิ้งเพื่อโลกที่ยั่งยืน'),
-    'heroSubtitle':
-        TextEditingController(text: 'เลือกซื้อสินค้าที่เป็นมิตรกับสิ่งแวดล้อม'),
+    'heroSubtitle': TextEditingController(
+      text: 'เลือกซื้อสินค้าที่เป็นมิตรกับสิ่งแวดล้อม',
+    ),
   };
 
   @override
@@ -121,8 +123,8 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
         _userRegistrationEnabled = data['userRegistrationEnabled'] ?? true;
         _sellerApplicationEnabled = data['sellerApplicationEnabled'] ?? true;
         _shippingFee = (data['shippingFee'] ?? 50.0).toDouble();
-        _freeShippingThreshold =
-            (data['freeShippingThreshold'] ?? 500.0).toDouble();
+        _freeShippingThreshold = (data['freeShippingThreshold'] ?? 500.0)
+            .toDouble();
       }
     } catch (e) {
       print('Error loading settings: $e');
@@ -133,6 +135,7 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
 
   @override
   Widget build(BuildContext context) {
+    print("CompleteAdminPanelScreen build() called");
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -160,21 +163,25 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
             Tab(text: 'จัดการหมวดหมู่', icon: Icon(Icons.category)),
             Tab(text: 'โปรโมชัน', icon: Icon(Icons.local_offer_outlined)),
             Tab(
-                text: 'จัดการผู้ใช้',
-                icon: Icon(Icons.manage_accounts_outlined)),
+              text: 'จัดการผู้ใช้',
+              icon: Icon(Icons.manage_accounts_outlined),
+            ),
             Tab(
-                text: 'คำขอเปิดร้าน',
-                icon: Icon(Icons.store_mall_directory_outlined)),
+              text: 'คำขอเปิดร้าน',
+              icon: Icon(Icons.store_mall_directory_outlined),
+            ),
             Tab(text: 'โครงการลงทุน', icon: Icon(Icons.savings_outlined)),
             Tab(
-                text: 'กิจกรรมยั่งยืน',
-                icon: Icon(Icons.nature_people_outlined)),
+              text: 'กิจกรรมยั่งยืน',
+              icon: Icon(Icons.nature_people_outlined),
+            ),
             Tab(text: 'ตั้งค่าสี', icon: Icon(Icons.palette_outlined)),
             Tab(text: 'แก้ไขข้อความ', icon: Icon(Icons.text_fields_outlined)),
             Tab(text: 'รูปภาพและโลโก้', icon: Icon(Icons.image_outlined)),
             Tab(
-                text: 'จัดการระบบ',
-                icon: Icon(Icons.admin_panel_settings_outlined)),
+              text: 'จัดการระบบ',
+              icon: Icon(Icons.admin_panel_settings_outlined),
+            ),
           ],
         ),
       ),
@@ -186,7 +193,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                 // Tab 0: Admin Dashboard
                 AdminDashboardScreen(),
                 // Tab 1: Product Approval
-                _buildProductApprovalTab(),
+                Builder(
+                  builder: (context) {
+                    print("Tab 1 (AdminProductApprovalScreen) is being built");
+                    return const AdminProductApprovalScreen();
+                  },
+                ),
                 // Tab 2: Order Management
                 _buildOrderManagementTab(),
                 // Tab 3: Category Management
@@ -473,18 +485,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             Row(
@@ -532,18 +538,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -597,7 +597,9 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
   }
 
   void _showColorPicker(
-      Color currentColor, ValueChanged<Color> onColorChanged) {
+    Color currentColor,
+    ValueChanged<Color> onColorChanged,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -638,11 +640,11 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           .collection('app_settings')
           .doc('app_config')
           .set({
-        'primaryColor': _primaryColor.value,
-        'accentColor': _accentColor.value,
-        'backgroundColor': _backgroundColor.value,
-        'lastUpdated': Timestamp.now(),
-      }, SetOptions(merge: true));
+            'primaryColor': _primaryColor.value,
+            'accentColor': _accentColor.value,
+            'backgroundColor': _backgroundColor.value,
+            'lastUpdated': Timestamp.now(),
+          }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -692,116 +694,6 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  // Include other methods from ImprovedAdminPanelScreen
-  Widget _buildProductApprovalTab() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'อนุมัติสินค้า',
-            style: AppTextStyles.title.copyWith(fontSize: 24),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('products')
-                  .where('status', isEqualTo: 'pending_approval')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'ไม่มีสินค้าที่รออนุมัติ',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = snapshot.data!.docs[index];
-                    final product = doc.data() as Map<String, dynamic>;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: product['imageUrls'] != null &&
-                                  (product['imageUrls'] as List).isNotEmpty
-                              ? Image.network(
-                                  (product['imageUrls'] as List)[0],
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    width: 50,
-                                    height: 50,
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.image),
-                                  ),
-                                )
-                              : Container(
-                                  width: 50,
-                                  height: 50,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image),
-                                ),
-                        ),
-                        title: Text(product['name'] ?? 'ไม่มีชื่อ'),
-                        subtitle: Text(
-                          'ราคา: ฿${product['price'] ?? 0} | Eco Score: ${product['ecoScore'] ?? 0}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () => _approveProduct(doc.id),
-                              icon:
-                                  const Icon(Icons.check, color: Colors.green),
-                            ),
-                            IconButton(
-                              onPressed: () => _rejectProduct(doc.id),
-                              icon: const Icon(Icons.close, color: Colors.red),
-                            ),
-                          ],
-                        ),
-                        onTap: () => _showProductDetails(product, doc.id),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildOrderManagementTab() {
@@ -887,10 +779,7 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'จัดการระบบ',
-            style: AppTextStyles.title.copyWith(fontSize: 24),
-          ),
+          Text('จัดการระบบ', style: AppTextStyles.title.copyWith(fontSize: 24)),
           const SizedBox(height: 24),
 
           // Database Management
@@ -1068,131 +957,6 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
     } catch (e) {
       return 'ไม่ระบุ';
     }
-  }
-
-  // Action Methods
-  Future<void> _approveProduct(String productId) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .update({
-        'status': 'approved',
-        'approvedAt': Timestamp.now(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('อนุมัติสินค้าเรียบร้อย'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _rejectProduct(String productId) async {
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('เหตุผลการปฏิเสธ'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: 'กรุณาระบุเหตุผล...',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 3,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('ปฏิเสธ'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (reason != null && reason.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('products')
-            .doc(productId)
-            .update({
-          'status': 'rejected',
-          'rejectionReason': reason,
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ปฏิเสธสินค้าเรียบร้อย'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showProductDetails(Map<String, dynamic> product, String productId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(product['name'] ?? 'ไม่มีชื่อ'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('คำอธิบาย: ${product['description'] ?? ''}'),
-              const SizedBox(height: 8),
-              Text('ราคา: ฿${product['price'] ?? 0}'),
-              const SizedBox(height: 8),
-              Text('คะแนนสิ่งแวดล้อม: ${product['ecoScore'] ?? 0}'),
-              const SizedBox(height: 8),
-              Text('หมวดหมู่: ${product['categoryName'] ?? ''}'),
-              const SizedBox(height: 8),
-              Text('วัสดุ: ${product['materialDescription'] ?? ''}'),
-              const SizedBox(height: 8),
-              Text(
-                  'เหตุผลคะแนนสิ่งแวดล้อม: ${product['ecoJustification'] ?? ''}'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ปิด'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _approveProduct(productId);
-            },
-            child: const Text('อนุมัติ'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showOrderDetails(Map<String, dynamic> order, String orderId) {
@@ -1482,18 +1246,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                 children: [
                   const Text(
                     'แบนเนอร์โฆษณา',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'รูปภาพแบนเนอร์สำหรับโปรโมชัน',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 16),
 
@@ -1509,8 +1267,11 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(Icons.image_outlined,
-                                size: 48, color: Colors.grey[400]),
+                            Icon(
+                              Icons.image_outlined,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'ยังไม่มีแบนเนอร์',
@@ -1538,11 +1299,11 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Container(
-                                  width: 60,
-                                  height: 40,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.error),
-                                ),
+                                      width: 60,
+                                      height: 40,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.error),
+                                    ),
                               ),
                             ),
                             title: Text('แบนเนอร์ ${index + 1}'),
@@ -1586,10 +1347,7 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                 children: [
                   const Text(
                     'การตั้งค่าขั้นสูง',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
 
@@ -1710,18 +1468,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
 
@@ -1742,17 +1494,23 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                             const Center(
-                          child:
-                              Icon(Icons.error, size: 48, color: Colors.grey),
-                        ),
+                              child: Icon(
+                                Icons.error,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
+                            ),
                       ),
                     )
                   : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.image_outlined,
-                              size: 48, color: Colors.grey[400]),
+                          Icon(
+                            Icons.image_outlined,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'ไม่มีรูปภาพ',
@@ -1804,8 +1562,10 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
 
       setState(() => _isLoading = true);
 
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
+      final firebaseService = Provider.of<FirebaseService>(
+        context,
+        listen: false,
+      );
       final fileName =
           '${type}_${DateTime.now().millisecondsSinceEpoch}.${image.name.split('.').last}';
 
@@ -1813,10 +1573,16 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
         imageUrl = await firebaseService.uploadImageBytes(
-            'app_images', fileName, bytes);
+          'app_images',
+          fileName,
+          bytes,
+        );
       } else {
-        imageUrl = await firebaseService.uploadImage('app_images', image.path,
-            fileName: fileName);
+        imageUrl = await firebaseService.uploadImage(
+          'app_images',
+          image.path,
+          fileName: fileName,
+        );
       }
 
       // Update Firestore and local state
@@ -1938,9 +1704,9 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
         .collection('app_settings')
         .doc('app_config')
         .set({
-      field: value,
-      'lastUpdated': Timestamp.now(),
-    }, SetOptions(merge: true));
+          field: value,
+          'lastUpdated': Timestamp.now(),
+        }, SetOptions(merge: true));
   }
 
   String _getImageTypeText(String type) {
@@ -1963,13 +1729,13 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           .collection('app_settings')
           .doc('app_config')
           .set({
-        'maintenanceMode': _maintenanceMode,
-        'userRegistrationEnabled': _userRegistrationEnabled,
-        'sellerApplicationEnabled': _sellerApplicationEnabled,
-        'shippingFee': _shippingFee,
-        'freeShippingThreshold': _freeShippingThreshold,
-        'lastUpdated': Timestamp.now(),
-      }, SetOptions(merge: true));
+            'maintenanceMode': _maintenanceMode,
+            'userRegistrationEnabled': _userRegistrationEnabled,
+            'sellerApplicationEnabled': _sellerApplicationEnabled,
+            'shippingFee': _shippingFee,
+            'freeShippingThreshold': _freeShippingThreshold,
+            'lastUpdated': Timestamp.now(),
+          }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

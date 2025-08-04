@@ -505,6 +505,14 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
         return const Color(0xFF0D47A1);
       case ScreenShopTheme.warmVintage:
         return const Color(0xFF8D6E63);
+      case ScreenShopTheme.shopeeOrange:
+        return const Color(0xFFEE4D2D);
+      case ScreenShopTheme.lazadaBlue:
+        return const Color(0xFF0F136D);
+      case ScreenShopTheme.elegantGold:
+        return const Color(0xFFB8860B);
+      case ScreenShopTheme.freshMint:
+        return const Color(0xFF00A896);
     }
   }
 
@@ -557,6 +565,34 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
           'titleColor': Colors.white,
           'subtitleColor': Colors.white70,
         };
+      case ScreenShopTheme.shopeeOrange:
+        return {
+          'fontFamily': 'Sarabun',
+          'borderColor': Colors.white,
+          'titleColor': Colors.white,
+          'subtitleColor': Colors.white70,
+        };
+      case ScreenShopTheme.lazadaBlue:
+        return {
+          'fontFamily': 'Sarabun',
+          'borderColor': const Color(0xFFFFD700),
+          'titleColor': const Color(0xFFFFD700),
+          'subtitleColor': const Color(0xFFFFD700).withOpacity(0.8),
+        };
+      case ScreenShopTheme.elegantGold:
+        return {
+          'fontFamily': 'Sarabun',
+          'borderColor': const Color(0xFFFFD700),
+          'titleColor': const Color(0xFFFFD700),
+          'subtitleColor': const Color(0xFFFFD700).withOpacity(0.8),
+        };
+      case ScreenShopTheme.freshMint:
+        return {
+          'fontFamily': 'Sarabun',
+          'borderColor': Colors.white,
+          'titleColor': Colors.white,
+          'subtitleColor': Colors.white70,
+        };
     }
   }
 
@@ -585,6 +621,14 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
         return 24.0; // Soft vintage
       case ScreenShopTheme.vibrantYouth:
         return 18.0; // Playful
+      case ScreenShopTheme.shopeeOrange:
+        return 16.0; // Shopee modern
+      case ScreenShopTheme.lazadaBlue:
+        return 14.0; // Lazada professional
+      case ScreenShopTheme.elegantGold:
+        return 22.0; // Elegant luxury
+      case ScreenShopTheme.freshMint:
+        return 20.0; // Fresh natural
     }
   }
 
