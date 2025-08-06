@@ -42,6 +42,7 @@ class _MainAppShellState extends State<MainAppShell> {
                 value: configProvider.config.primaryFontFamily,
                 decoration: const InputDecoration(labelText: 'Font'),
                 items: const [
+                  DropdownMenuItem(value: 'Sarabun', child: Text('Sarabun')),
                   DropdownMenuItem(value: 'Prompt', child: Text('Prompt')),
                   DropdownMenuItem(value: 'Kanit', child: Text('Kanit')),
                   DropdownMenuItem(value: 'Roboto', child: Text('Roboto')),
@@ -214,8 +215,119 @@ class _MainAppShellState extends State<MainAppShell> {
       drawer: Drawer(
         child: ListView(
           children: [
-            DrawerHeader(child: Text('Settings')),
-            _buildGlobalSettings(context),
+            // User Header
+            Consumer<UserProvider>(
+              builder: (context, userProvider, _) {
+                final user = userProvider.currentUser;
+                return UserAccountsDrawerHeader(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        colors.AppColors.primary,
+                        colors.AppColors.primaryDark
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  accountName: Text(user?.displayName ?? 'ผู้ใช้'),
+                  accountEmail: Text(user?.email ?? 'ไม่มีอีเมล'),
+                  currentAccountPicture: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      user?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: colors.AppColors.primary,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // App Settings Section
+            ExpansionTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('การตั้งค่าแอป'),
+              children: [_buildGlobalSettings(context)],
+            ),
+
+            // User Role Info
+            Consumer<UserProvider>(
+              builder: (context, userProvider, _) {
+                return ListTile(
+                  leading: const Icon(Icons.info),
+                  title: const Text('สถานะบัญชี'),
+                  subtitle: Text(
+                    userProvider.isAdmin
+                        ? 'Admin'
+                        : userProvider.isSeller
+                            ? 'Seller'
+                            : 'Customer',
+                    style: TextStyle(
+                      color: userProvider.isAdmin
+                          ? Colors.red
+                          : userProvider.isSeller
+                              ? Colors.blue
+                              : Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const Divider(),
+
+            // Debug Options (แสดงเฉพาะ Admin)
+            Consumer<UserProvider>(
+              builder: (context, userProvider, _) {
+                if (!userProvider.isAdmin) return const SizedBox.shrink();
+
+                return ExpansionTile(
+                  leading: const Icon(Icons.bug_report, color: Colors.orange),
+                  title: const Text('Debug Tools'),
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.analytics),
+                      title: const Text('Debug Products'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DebugProductsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+
+            const Divider(),
+
+            // App Info
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('เกี่ยวกับแอป'),
+              subtitle: const Text('Green Market v1.0.0'),
+              onTap: () {
+                Navigator.pop(context);
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'Green Market',
+                  applicationVersion: '1.0.0',
+                  applicationLegalese: '© 2025 Green Market Team',
+                  children: const [
+                    Text('แอปตลาดออนไลน์เพื่อสิ่งแวดล้อม'),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

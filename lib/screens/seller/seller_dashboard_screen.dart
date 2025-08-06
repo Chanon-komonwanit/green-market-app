@@ -5,10 +5,12 @@ import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/my_products_screen.dart';
 import 'package:green_market/screens/seller/seller_orders_screen.dart';
 import 'package:green_market/screens/seller/shop_settings_screen.dart';
+import 'package:green_market/screens/seller/shop_template_selector_screen.dart';
 import 'package:green_market/screens/seller/shop_customization_screen.dart';
 import 'package:green_market/screens/seller/seller_notifications_screen.dart';
 import 'package:green_market/screens/seller/shipping_management_screen.dart';
 import 'package:green_market/screens/seller/enhanced_shipping_management_screen.dart';
+import 'package:green_market/screens/seller/promotion_management_screen.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -382,7 +384,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 2.2,
+          childAspectRatio: 2.0,
           children: [
             _buildActionCard(
               'เพิ่มสินค้าใหม่',
@@ -423,6 +425,16 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 MaterialPageRoute(
                     builder: (context) =>
                         const EnhancedShippingManagementScreen()),
+              ),
+            ),
+            _buildActionCard(
+              'จัดการโปรโมชั่น',
+              Icons.local_offer,
+              Colors.purple,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const PromotionManagementScreen()),
               ),
             ),
           ],
@@ -825,15 +837,47 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   _buildSettingCard(
                     icon: Icons.palette,
                     title: 'ธีมร้านค้า',
-                    subtitle: 'เลือกสีและรูปแบบหน้าร้าน',
+                    subtitle: 'เลือกธีมสำเร็จรูปแบบ Shopee หรือปรับแต่งเอง',
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ShopCustomizationScreen(
-                            sellerId:
-                                FirebaseAuth.instance.currentUser?.uid ?? '',
-                          ),
+                      // แสดง Dialog ให้เลือกระหว่าง Template หรือ Custom
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('เลือกวิธีตั้งค่าธีม'),
+                          content: const Text(
+                              'คุณต้องการใช้ธีมสำเร็จรูปหรือปรับแต่งเองครับ?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ShopTemplateSelectorScreen(),
+                                  ),
+                                );
+                              },
+                              child: const Text('ธีมสำเร็จรูป 🎨'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ShopCustomizationScreen(
+                                      sellerId: FirebaseAuth
+                                              .instance.currentUser?.uid ??
+                                          '',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Text('ปรับแต่งเอง ⚙️'),
+                            ),
+                          ],
                         ),
                       );
                     },

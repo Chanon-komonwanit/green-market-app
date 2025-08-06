@@ -352,16 +352,36 @@ class _ShopeeStyleShopScreenState extends State<ShopeeStyleShopScreen>
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
+              final currentUser = FirebaseAuth.instance.currentUser;
+              if (currentUser == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('กรุณาเข้าสู่ระบบก่อนส่งข้อความ'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
+              if (_seller == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('ไม่พบข้อมูลร้านค้า'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
-                    chatId:
-                        '${FirebaseAuth.instance.currentUser?.uid}_${widget.sellerId}',
-                    productId: '',
+                    chatId: '${currentUser.uid}_${widget.sellerId}_shop',
+                    productId: 'shop_general',
                     productName: _seller!.shopName,
                     productImageUrl: _seller!.shopImageUrl ?? '',
-                    buyerId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                    buyerId: currentUser.uid,
                     sellerId: widget.sellerId,
                   ),
                 ),

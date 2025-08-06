@@ -158,22 +158,39 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
       return _buildNoDataWidget();
     }
 
+    // ใช้ธีมจาก customization หรือธีมเริ่มต้น
+    final theme = _shopCustomization?.theme ?? ScreenShopTheme.greenEco;
+    final template = ShopTemplate.getTemplate(theme);
+
     return RefreshIndicator(
       onRefresh: _loadShopData,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildShopHeader(),
-            const SizedBox(height: 24),
-            _buildShopInfo(),
-            const SizedBox(height: 24),
-            _buildProductsSection(),
-            const SizedBox(height: 80), // เผื่อ floating action button
-          ],
-        ),
+        slivers: [
+          // Shop Header แบบใหม่ตามธีม
+          _buildThemedShopHeader(template),
+
+          // Shop Banner (ถ้ามี)
+          if (_shopCustomization?.banner?.isVisible == true)
+            _buildShopBanner(template),
+
+          // Shop Info
+          _buildShopInfo(template),
+
+          // Eco Hero Products Section
+          _buildEcoHeroProductsSection(template),
+
+          // Shop Promotions Section
+          _buildPromotionsSection(template),
+
+          // Products Section
+          _buildProductsSection(template),
+
+          // Bottom spacing
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 80),
+          ),
+        ],
       ),
     );
   }
@@ -215,151 +232,339 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
     );
   }
 
-  Widget _buildShopHeader() {
-    final primaryColor = _getThemePrimaryColor();
-    final secondaryColor = _getThemeSecondaryColor();
-    final themeData = _getThemeData();
+  Widget _buildThemedShopHeader(ShopTemplate template) {
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+    final secondaryColor =
+        Color(int.parse('0xFF${template.colors.secondary.substring(1)}'));
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [primaryColor, secondaryColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(_getThemeBorderRadius()),
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withOpacity(0.3),
-            blurRadius: _getThemeElevation(),
-            offset: const Offset(0, 4),
+    return SliverAppBar(
+      expandedHeight: 200,
+      pinned: true,
+      backgroundColor: primaryColor,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [primaryColor, secondaryColor],
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(_getThemePadding()),
-        child: Column(
-          children: [
-            // รูปร้าน
-            Container(
-              width: _getThemeImageSize(),
-              height: _getThemeImageSize(),
-              decoration: BoxDecoration(
-                shape: _getThemeImageShape(),
-                border: Border.all(
-                  color: themeData['borderColor'] ?? Colors.white,
-                  width: _getThemeBorderWidth(),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          child: Stack(
+            children: [
+              // Background Pattern
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.1,
+                  child: CustomPaint(
+                    painter: PatternPainter(template.theme),
                   ),
-                ],
-              ),
-              child: ClipPath(
-                clipper: _getThemeImageShape() == BoxShape.circle ? null : null,
-                child: ClipOval(
-                  child: _seller!.shopImageUrl != null &&
-                          _seller!.shopImageUrl!.isNotEmpty
-                      ? Image.network(
-                          _seller!.shopImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildDefaultShopImage(),
-                        )
-                      : _buildDefaultShopImage(),
                 ),
               ),
-            ),
-            SizedBox(height: _getThemeSpacing()),
-            // ชื่อร้าน
-            Text(
-              _seller!.shopName,
-              style: TextStyle(
-                fontSize: _getThemeTitleSize(),
-                fontWeight: _getThemeFontWeight(),
-                color: themeData['titleColor'] ?? Colors.white,
-                fontFamily: themeData['fontFamily'] ?? 'Sarabun',
-                letterSpacing: _getThemeLetterSpacing(),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            // คำอธิบายร้าน
-            if (_seller!.shopDescription != null &&
-                _seller!.shopDescription!.isNotEmpty) ...[
-              SizedBox(height: _getThemeSpacing() / 2),
-              Text(
-                _seller!.shopDescription!,
-                style: TextStyle(
-                  fontSize: _getThemeDescriptionSize(),
-                  color: themeData['subtitleColor'] ?? Colors.white70,
-                  fontFamily: themeData['fontFamily'] ?? 'Sarabun',
+              // Shop Info
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Row(
+                  children: [
+                    // Shop Avatar
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: _seller!.shopImageUrl != null &&
+                                _seller!.shopImageUrl!.isNotEmpty
+                            ? NetworkImage(_seller!.shopImageUrl!)
+                            : null,
+                        backgroundColor: Colors.white,
+                        child: _seller!.shopImageUrl == null ||
+                                _seller!.shopImageUrl!.isEmpty
+                            ? Icon(template.theme.icon,
+                                size: 40, color: primaryColor)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Shop Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _seller!.shopName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            template.description,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_seller!.rating.toStringAsFixed(1)} (${_seller!.totalRatings})',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Icon(
+                                Icons.inventory_2,
+                                color: Colors.white70,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_products.length} สินค้า',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShopBanner(ShopTemplate template) {
+    final banner = _shopCustomization!.banner!;
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+    final secondaryColor =
+        Color(int.parse('0xFF${template.colors.secondary.substring(1)}'));
+
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [primaryColor, secondaryColor],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            if (banner.imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  banner.imageUrl!,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.4),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (banner.title != null)
+                    Text(
+                      banner.title!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (banner.subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      banner.subtitle!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  if (banner.buttonText != null)
+                    ElevatedButton(
+                      onPressed: () {
+                        // Handle banner button action
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: primaryColor,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                      ),
+                      child: Text(
+                        banner.buttonText!,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDefaultShopImage() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Colors.grey[300],
-      child: Icon(
-        Icons.store,
-        size: 50,
-        color: Colors.grey[600],
-      ),
-    );
-  }
-
-  Widget _buildShopInfo() {
-    return Card(
-      elevation: 2,
-      child: Padding(
+  Widget _buildShopInfo(ShopTemplate template) {
+    return SliverToBoxAdapter(
+      child: Container(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'ข้อมูลร้านค้า',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+            Row(
+              children: [
+                Icon(
+                  template.theme.icon,
+                  color: Color(
+                      int.parse('0xFF${template.colors.primary.substring(1)}')),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ข้อมูลร้านค้า',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(int.parse(
+                              '0xFF${template.colors.primary.substring(1)}')),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        template.description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            _buildInfoRow(Icons.email, 'อีเมล', _seller!.contactEmail),
-            const SizedBox(height: 12),
-            _buildInfoRow(Icons.phone, 'เบอร์โทร', _seller!.contactPhone),
-            if (_seller!.website != null && _seller!.website!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.language, 'เว็บไซต์', _seller!.website!),
-            ],
-            if (_seller!.socialMediaLink != null &&
-                _seller!.socialMediaLink!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                  Icons.share, 'โซเชียลมีเดีย', _seller!.socialMediaLink!),
-            ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(
+                        int.parse('0xFF${template.colors.accent.substring(1)}'))
+                    .withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Color(int.parse(
+                          '0xFF${template.colors.accent.substring(1)}'))
+                      .withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow2(
+                    Icons.location_on,
+                    'ที่อยู่',
+                    _seller!.address ?? "ไม่ระบุ",
+                    template,
+                  ),
+                  const Divider(height: 20),
+                  _buildInfoRow2(
+                    Icons.phone,
+                    'โทรศัพท์',
+                    _seller!.phoneNumber,
+                    template,
+                  ),
+                  const Divider(height: 20),
+                  _buildInfoRow2(
+                    Icons.access_time,
+                    'เวลาทำการ',
+                    'จันทร์-เสาร์ 9:00-18:00',
+                    template,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow2(
+      IconData icon, String label, String value, ShopTemplate template) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(
+          icon,
+          size: 20,
+          color:
+              Color(int.parse('0xFF${template.colors.primary.substring(1)}')),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -367,10 +572,10 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
                   fontWeight: FontWeight.w500,
+                  color: Colors.grey,
                 ),
               ),
               Text(
@@ -387,380 +592,680 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
     );
   }
 
-  Widget _buildProductsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildEcoHeroProductsSection(ShopTemplate template) {
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+    final accentColor =
+        Color(int.parse('0xFF${template.colors.accent.substring(1)}'));
+
+    // เลือกสินค้าคะแนน Eco สูงสุด 3 ชิ้น (ใช้ price หรือ criteria อื่น)
+    final ecoHeroProducts = _products
+        .where((product) => product.price >= 100) // สินค้าราคาสูง = คุณภาพดี
+        .take(3)
+        .toList();
+
+    if (ecoHeroProducts.isEmpty && _products.isNotEmpty) {
+      // ถ้าไม่มีสินค้าตามเงื่อนไข ให้เอา 3 ตัวแรก
+      ecoHeroProducts.addAll(_products.take(3));
+    }
+
+    if (ecoHeroProducts.isEmpty)
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'สินค้าของเรา',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+            // Header สำหรับ Eco Hero
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primaryColor, accentColor],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.eco,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              '🌟 ECO HERO',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'TOP 3',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'สินค้าเป็นมิตรกับสิ่งแวดล้อมระดับสูงสุด',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to all eco hero products
+                    },
+                    child: const Text(
+                      'ดูทั้งหมด',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Text(
-              '(${_products.length} รายการ)',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+            // Products Grid
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: ecoHeroProducts.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final product = entry.value;
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: index < ecoHeroProducts.length - 1 ? 8 : 0,
+                        ),
+                        child: _buildEcoHeroProductCard(product, template),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        _products.isEmpty ? _buildNoProductsWidget() : _buildProductsGrid(),
-      ],
+      ),
     );
   }
 
-  Widget _buildNoProductsWidget() {
+  Widget _buildEcoHeroProductCard(Product product, ShopTemplate template) {
+    final accentColor =
+        Color(int.parse('0xFF${template.colors.accent.substring(1)}'));
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
+        color: Colors.green.withOpacity(0.05),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: 48,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'ยังไม่มีสินค้า',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
+          // Eco Badge
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.eco, color: Colors.white, size: 12),
+                const SizedBox(width: 4),
+                Text(
+                  'ECO ${(product.price / 100).toStringAsFixed(1)}⭐',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'เพิ่มสินค้าเพื่อแสดงในร้านค้า',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
+          // Product Image
+          Container(
+            height: 80,
+            width: double.infinity,
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[100],
+            ),
+            child: product.imageUrls.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      product.imageUrls.first,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Icon(
+                    Icons.image,
+                    size: 32,
+                    color: Colors.grey[400],
+                  ),
+          ),
+          // Product Info
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  '฿${product.price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductsGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount:
-          _products.length > 6 ? 6 : _products.length, // แสดงสูงสุด 6 รายการ
-      itemBuilder: (context, index) {
-        return ProductCard(
-          product: _products[index],
-          onTap: () {
-            // ไปที่หน้ารายละเอียดสินค้า
-            // Navigator.push(context, MaterialPageRoute(
-            //   builder: (context) => ProductDetailScreen(product: _products[index]),
-            // ));
-          },
-        );
+  Widget _buildPromotionsSection(ShopTemplate template) {
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+
+    // สร้างโปรโมชั่นตัวอย่าง (ในอนาคตจะดึงจาก database)
+    final promotions = [
+      {
+        'title': 'ส่วนลด 20%',
+        'subtitle': 'สินค้าเป็นมิตรสิ่งแวดล้อม',
+        'code': 'ECO20',
+        'icon': Icons.percent,
+        'color': Colors.red,
       },
+      {
+        'title': 'ซื้อ 2 แถม 1',
+        'subtitle': 'สินค้าออร์แกนิกเฉพาะ',
+        'code': 'BUY2GET1',
+        'icon': Icons.add_circle,
+        'color': Colors.orange,
+      },
+      {
+        'title': 'ฟรี! ค่าจัดส่ง',
+        'subtitle': 'เมื่อซื้อครบ 500 บาท',
+        'code': 'FREESHIP',
+        'icon': Icons.local_shipping,
+        'color': Colors.blue,
+      },
+    ];
+
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.local_offer,
+                  color: primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'โปรโมชั่นพิเศษ',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // Navigate to all promotions
+                  },
+                  child: Text(
+                    'ดูทั้งหมด',
+                    style: TextStyle(color: primaryColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 120,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: promotions.length,
+                itemBuilder: (context, index) {
+                  final promo = promotions[index];
+                  return Container(
+                    width: 200,
+                    margin: EdgeInsets.only(
+                      right: index < promotions.length - 1 ? 12 : 0,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          promo['color'] as Color,
+                          (promo['color'] as Color).withOpacity(0.7),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (promo['color'] as Color).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        // Background Pattern
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.1,
+                            child: CustomPaint(
+                              painter: PatternPainter(template.theme),
+                            ),
+                          ),
+                        ),
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    promo['icon'] as IconData,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      promo['code'] as String,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                promo['title'] as String,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                promo['subtitle'] as String,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Spacer(),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Copy coupon code or apply
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'คัดลอกโค้ด ${promo['code']} แล้ว!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: promo['color'] as Color,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text(
+                                  'คัดลอกโค้ด',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Color _getThemePrimaryColor() {
-    if (_shopCustomization?.theme != null) {
-      // ใช้สีจากการตั้งค่าธีม
-      return _getThemeColor(_shopCustomization!.theme);
-    }
-    return Theme.of(context).primaryColor;
+  Widget _buildProductsSection(ShopTemplate template) {
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.inventory_2,
+                  color: primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'สินค้าของเรา',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // Navigate to full product list
+                  },
+                  child: Text(
+                    'ดูทั้งหมด',
+                    style: TextStyle(color: primaryColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_products.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 64,
+                      color: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ยังไม่มีสินค้า',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: _products.length > 6 ? 6 : _products.length,
+                itemBuilder: (context, index) {
+                  final product = _products[index];
+                  return _buildThemedProductCard(product, template);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Color _getThemeSecondaryColor() {
-    if (_shopCustomization?.theme != null) {
-      // ใช้สีจากการตั้งค่าธีม
-      return _getThemeColor(_shopCustomization!.theme).withOpacity(0.7);
-    }
-    return Theme.of(context).colorScheme.secondary;
-  }
+  Widget _buildThemedProductCard(Product product, ShopTemplate template) {
+    final primaryColor =
+        Color(int.parse('0xFF${template.colors.primary.substring(1)}'));
+    final accentColor =
+        Color(int.parse('0xFF${template.colors.accent.substring(1)}'));
 
-  Color _getThemeColor(ScreenShopTheme theme) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Image
+          Expanded(
+            flex: 3,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                color: Colors.grey[100],
+              ),
+              child: product.imageUrls.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: Image.network(
+                        product.imageUrls.first,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Icon(
+                      Icons.image,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+            ),
+          ),
+          // Product Info
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Text(
+                    '฿${product.price.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Pattern painter สำหรับ background
+class PatternPainter extends CustomPainter {
+  final ScreenShopTheme theme;
+
+  PatternPainter(this.theme);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..strokeWidth = 1.0;
+
+    // วาดลวดลายตามธีม
     switch (theme) {
-      case ScreenShopTheme.greenEco:
-        return const Color(0xFF2E7D32);
-      case ScreenShopTheme.modernLuxury:
-        return const Color(0xFF1A1A1A);
-      case ScreenShopTheme.vibrantYouth:
-        return const Color(0xFFE91E63);
-      case ScreenShopTheme.minimalist:
-        return const Color(0xFF424242);
-      case ScreenShopTheme.techDigital:
-        return const Color(0xFF0D47A1);
-      case ScreenShopTheme.warmVintage:
-        return const Color(0xFF8D6E63);
-      case ScreenShopTheme.shopeeOrange:
-        return const Color(0xFFEE4D2D);
-      case ScreenShopTheme.lazadaBlue:
-        return const Color(0xFF0F136D);
-      case ScreenShopTheme.elegantGold:
-        return const Color(0xFFB8860B);
-      case ScreenShopTheme.freshMint:
-        return const Color(0xFF00A896);
-    }
-  }
-
-  // Helper functions สำหรับ theme styling
-  Map<String, dynamic> _getThemeData() {
-    if (_shopCustomization?.theme == null) {
-      return _getDefaultThemeData();
-    }
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.greenEco:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': Colors.white,
-          'titleColor': Colors.white,
-          'subtitleColor': Colors.white70,
-        };
-      case ScreenShopTheme.modernLuxury:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': const Color(0xFFD4AF37),
-          'titleColor': const Color(0xFFD4AF37),
-          'subtitleColor': const Color(0xFFD4AF37).withOpacity(0.8),
-        };
-      case ScreenShopTheme.minimalist:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': Colors.white,
-          'titleColor': Colors.white,
-          'subtitleColor': Colors.white70,
-        };
-      case ScreenShopTheme.techDigital:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': const Color(0xFF1976D2),
-          'titleColor': Colors.white,
-          'subtitleColor': const Color(0xFF1976D2),
-        };
-      case ScreenShopTheme.warmVintage:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': const Color(0xFFBCAAA4),
-          'titleColor': const Color(0xFFBCAAA4),
-          'subtitleColor': const Color(0xFFBCAAA4).withOpacity(0.8),
-        };
-      case ScreenShopTheme.vibrantYouth:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': Colors.white,
-          'titleColor': Colors.white,
-          'subtitleColor': Colors.white70,
-        };
-      case ScreenShopTheme.shopeeOrange:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': Colors.white,
-          'titleColor': Colors.white,
-          'subtitleColor': Colors.white70,
-        };
-      case ScreenShopTheme.lazadaBlue:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': const Color(0xFFFFD700),
-          'titleColor': const Color(0xFFFFD700),
-          'subtitleColor': const Color(0xFFFFD700).withOpacity(0.8),
-        };
-      case ScreenShopTheme.elegantGold:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': const Color(0xFFFFD700),
-          'titleColor': const Color(0xFFFFD700),
-          'subtitleColor': const Color(0xFFFFD700).withOpacity(0.8),
-        };
-      case ScreenShopTheme.freshMint:
-        return {
-          'fontFamily': 'Sarabun',
-          'borderColor': Colors.white,
-          'titleColor': Colors.white,
-          'subtitleColor': Colors.white70,
-        };
-    }
-  }
-
-  Map<String, dynamic> _getDefaultThemeData() {
-    return {
-      'fontFamily': 'Sarabun',
-      'borderColor': Colors.white,
-      'titleColor': Colors.white,
-      'subtitleColor': Colors.white70,
-    };
-  }
-
-  double _getThemeBorderRadius() {
-    if (_shopCustomization?.theme == null) return 16.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.greenEco:
-        return 20.0; // Natural curves
-      case ScreenShopTheme.modernLuxury:
-        return 12.0; // Sharp edges
-      case ScreenShopTheme.minimalist:
-        return 8.0; // Clean lines
-      case ScreenShopTheme.techDigital:
-        return 4.0; // Sharp tech
-      case ScreenShopTheme.warmVintage:
-        return 24.0; // Soft vintage
-      case ScreenShopTheme.vibrantYouth:
-        return 18.0; // Playful
-      case ScreenShopTheme.shopeeOrange:
-        return 16.0; // Shopee modern
-      case ScreenShopTheme.lazadaBlue:
-        return 14.0; // Lazada professional
-      case ScreenShopTheme.elegantGold:
-        return 22.0; // Elegant luxury
-      case ScreenShopTheme.freshMint:
-        return 20.0; // Fresh natural
-    }
-  }
-
-  double _getThemeElevation() {
-    if (_shopCustomization?.theme == null) return 10.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 16.0; // High elevation
-      case ScreenShopTheme.minimalist:
-        return 4.0; // Low elevation
-      case ScreenShopTheme.techDigital:
-        return 12.0; // Medium elevation
+      case ScreenShopTheme.shopeeClassic:
+      case ScreenShopTheme.fashionBoutique:
+        _drawDiagonalLines(canvas, size, paint);
+        break;
+      case ScreenShopTheme.techStore:
+      case ScreenShopTheme.luxuryBrand:
+        _drawGridPattern(canvas, size, paint);
+        break;
+      case ScreenShopTheme.beautyCosmetic:
+      case ScreenShopTheme.naturalOrganic:
+        _drawCirclePattern(canvas, size, paint);
+        break;
       default:
-        return 10.0;
+        _drawDotPattern(canvas, size, paint);
     }
   }
 
-  double _getThemePadding() {
-    if (_shopCustomization?.theme == null) return 20.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 32.0; // Luxurious spacing
-      case ScreenShopTheme.minimalist:
-        return 16.0; // Minimal spacing
-      case ScreenShopTheme.warmVintage:
-        return 24.0; // Cozy spacing
-      default:
-        return 20.0;
+  void _drawDiagonalLines(Canvas canvas, Size size, Paint paint) {
+    for (double i = 0; i < size.width + size.height; i += 30) {
+      canvas.drawLine(
+        Offset(i, 0),
+        Offset(i - size.height, size.height),
+        paint,
+      );
     }
   }
 
-  double _getThemeImageSize() {
-    if (_shopCustomization?.theme == null) return 100.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 120.0; // Larger for luxury
-      case ScreenShopTheme.minimalist:
-        return 80.0; // Smaller for minimal
-      default:
-        return 100.0;
+  void _drawGridPattern(Canvas canvas, Size size, Paint paint) {
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
   }
 
-  BoxShape _getThemeImageShape() {
-    // ทุกธีมใช้รูปกลม
-    return BoxShape.circle;
-  }
-
-  double _getThemeBorderWidth() {
-    if (_shopCustomization?.theme == null) return 3.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 4.0; // Thick border
-      case ScreenShopTheme.minimalist:
-        return 1.0; // Thin border
-      case ScreenShopTheme.techDigital:
-        return 2.0; // Tech border
-      default:
-        return 3.0;
+  void _drawCirclePattern(Canvas canvas, Size size, Paint paint) {
+    paint.style = PaintingStyle.stroke;
+    for (double x = 0; x < size.width; x += 40) {
+      for (double y = 0; y < size.height; y += 40) {
+        canvas.drawCircle(Offset(x, y), 8, paint);
+      }
     }
   }
 
-  double _getThemeSpacing() {
-    if (_shopCustomization?.theme == null) return 16.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 24.0; // More spacing
-      case ScreenShopTheme.minimalist:
-        return 12.0; // Less spacing
-      default:
-        return 16.0;
+  void _drawDotPattern(Canvas canvas, Size size, Paint paint) {
+    paint.style = PaintingStyle.fill;
+    for (double x = 0; x < size.width; x += 25) {
+      for (double y = 0; y < size.height; y += 25) {
+        canvas.drawCircle(Offset(x, y), 2, paint);
+      }
     }
   }
 
-  double _getThemeTitleSize() {
-    if (_shopCustomization?.theme == null) return 24.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 28.0; // Larger title
-      case ScreenShopTheme.minimalist:
-        return 20.0; // Smaller title
-      case ScreenShopTheme.techDigital:
-        return 22.0; // Tech size
-      default:
-        return 24.0;
-    }
-  }
-
-  FontWeight _getThemeFontWeight() {
-    if (_shopCustomization?.theme == null) return FontWeight.bold;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return FontWeight.w900; // Extra bold
-      case ScreenShopTheme.minimalist:
-        return FontWeight.w500; // Medium
-      case ScreenShopTheme.warmVintage:
-        return FontWeight.w600; // Semi-bold
-      default:
-        return FontWeight.bold;
-    }
-  }
-
-  double _getThemeLetterSpacing() {
-    if (_shopCustomization?.theme == null) return 0.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 1.5; // Wide spacing
-      case ScreenShopTheme.techDigital:
-        return 0.5; // Tech spacing
-      default:
-        return 0.0;
-    }
-  }
-
-  double _getThemeDescriptionSize() {
-    if (_shopCustomization?.theme == null) return 16.0;
-
-    switch (_shopCustomization!.theme) {
-      case ScreenShopTheme.modernLuxury:
-        return 18.0; // Larger description
-      case ScreenShopTheme.minimalist:
-        return 14.0; // Smaller description
-      default:
-        return 16.0;
-    }
-  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

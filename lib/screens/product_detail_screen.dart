@@ -7,6 +7,7 @@ import 'package:green_market/models/seller.dart';
 import 'package:green_market/providers/cart_provider_enhanced.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/cart_screen.dart';
+import 'package:green_market/screens/chat_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
 // ↑ ใช้ไฟล์นี้เพราะมันเป็น wrapper ที่จะไปเรียก ShopeeStyleShopScreen
 import 'package:green_market/services/firebase_service.dart';
@@ -58,7 +59,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _addToCart(BuildContext context, Product product) {
     try {
-      final cartProvider = Provider.of<CartProviderEnhanced>(context, listen: false);
+      final cartProvider =
+          Provider.of<CartProviderEnhanced>(context, listen: false);
       cartProvider.addItem(product);
 
       if (mounted) {
@@ -95,7 +97,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _buyNow(BuildContext context, Product product) {
     try {
-      final cartProvider = Provider.of<CartProviderEnhanced>(context, listen: false);
+      final cartProvider =
+          Provider.of<CartProviderEnhanced>(context, listen: false);
       cartProvider.addItem(product);
       Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => const CartScreen(navigateToCheckout: true),
@@ -143,17 +146,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 icon: const Icon(Icons.chat_bubble_outline),
                 tooltip: 'แชทกับผู้ขาย',
                 onPressed: () {
-                  Navigator.of(context).pushNamed(
-                    '/chat',
-                    arguments: {
-                      'productId': widget.product.id,
-                      'productName': widget.product.name,
-                      'productImageUrl': widget.product.imageUrls.isNotEmpty
-                          ? widget.product.imageUrls.first
-                          : '',
-                      'buyerId': user.id,
-                      'sellerId': widget.product.sellerId,
-                    },
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        chatId:
+                            '${user.id}_${widget.product.sellerId}_${widget.product.id}',
+                        productId: widget.product.id,
+                        productName: widget.product.name,
+                        productImageUrl: widget.product.imageUrls.isNotEmpty
+                            ? widget.product.imageUrls.first
+                            : '',
+                        buyerId: user.id,
+                        sellerId: widget.product.sellerId,
+                      ),
+                    ),
                   );
                 },
               );

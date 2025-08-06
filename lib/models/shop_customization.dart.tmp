@@ -638,9 +638,9 @@ class ShopTemplate {
       name: theme.name,
       description: theme.description,
       colors: ShopColors(
-        primary: '#${theme.primaryColor.value.toRadixString(16).substring(2)}',
+        primary: '#lib/screens/seller/create_promotion_screen.dart',
         secondary:
-            '#${theme.secondaryColor.value.toRadixString(16).substring(2)}',
+            '#lib/screens/seller/create_promotion_screen.dart',
       ),
       layout: ShopLayout(),
     );
@@ -873,25 +873,6 @@ class ShopPromotion {
   final String? terms; // เงื่อนไขการใช้งาน
   final Priority priority; // ความสำคัญของโปรโมชั่น
 
-  // Flash Sale เพิ่มเติม
-  final int? flashSaleStock; // จำนวนสินค้าที่ลดราคา (Flash Sale)
-  final int flashSaleSold; // จำนวนที่ขายไปแล้ว (Flash Sale)
-  final double? originalPrice; // ราคาเดิม (Flash Sale)
-  final double? flashSalePrice; // ราคา Flash Sale
-
-  // ระบบติดตาม
-  final String? trackingCode; // โค้ดติดตามการใช้งาน
-  final String? campaignName; // ชื่อแคมเปญ
-  final String? targetAudience; // กลุ่มเป้าหมาย
-
-  // การตั้งค่าขั้นสูง
-  final bool requiresApproval; // ต้องการการอนุมัติ
-  final bool showInPublicList; // แสดงในรายการสาธารณะ
-  final bool allowStacking; // สามารถใช้ร่วมกับโปรโมชั่นอื่น
-  final int? maxUsagePerDay; // จำนวนการใช้สูงสุดต่อวัน
-  final List<String>? excludedProductIds; // สินค้าที่ไม่ใช้ได้
-  final Map<String, dynamic>? customFields; // ฟิลด์เพิ่มเติม
-
   ShopPromotion({
     required this.id,
     required this.title,
@@ -923,22 +904,6 @@ class ShopPromotion {
     this.updatedAt,
     this.terms,
     this.priority = Priority.normal,
-    // Flash Sale fields
-    this.flashSaleStock,
-    this.flashSaleSold = 0,
-    this.originalPrice,
-    this.flashSalePrice,
-    // ระบบติดตาม
-    this.trackingCode,
-    this.campaignName,
-    this.targetAudience,
-    // การตั้งค่าขั้นสูง
-    this.requiresApproval = false,
-    this.showInPublicList = true,
-    this.allowStacking = false,
-    this.maxUsagePerDay,
-    this.excludedProductIds,
-    this.customFields,
   });
 
   factory ShopPromotion.fromMap(Map<String, dynamic> map) {
@@ -971,14 +936,11 @@ class ShopPromotion {
       usedCount: map['usedCount']?.toInt() ?? 0,
       startDate: map['startDate']?.toDate(),
       endDate: map['endDate']?.toDate(),
-      startTime: map['startTime'] != null
-          ? TimeOfDay(
-              hour: map['startTime']['hour'],
-              minute: map['startTime']['minute'])
+      startTime: map['startTime'] != null 
+          ? TimeOfDay(hour: map['startTime']['hour'], minute: map['startTime']['minute'])
           : null,
-      endTime: map['endTime'] != null
-          ? TimeOfDay(
-              hour: map['endTime']['hour'], minute: map['endTime']['minute'])
+      endTime: map['endTime'] != null 
+          ? TimeOfDay(hour: map['endTime']['hour'], minute: map['endTime']['minute'])
           : null,
       isActive: map['isActive'] ?? true,
       isPublic: map['isPublic'] ?? true,
@@ -990,24 +952,6 @@ class ShopPromotion {
         (e) => e.toString().split('.').last == map['priority'],
         orElse: () => Priority.normal,
       ),
-      // Flash Sale fields
-      flashSaleStock: map['flashSaleStock']?.toInt(),
-      flashSaleSold: map['flashSaleSold']?.toInt() ?? 0,
-      originalPrice: map['originalPrice']?.toDouble(),
-      flashSalePrice: map['flashSalePrice']?.toDouble(),
-      // ระบบติดตาม
-      trackingCode: map['trackingCode'],
-      campaignName: map['campaignName'],
-      targetAudience: map['targetAudience'],
-      // การตั้งค่าขั้นสูง
-      requiresApproval: map['requiresApproval'] ?? false,
-      showInPublicList: map['showInPublicList'] ?? true,
-      allowStacking: map['allowStacking'] ?? false,
-      maxUsagePerDay: map['maxUsagePerDay']?.toInt(),
-      excludedProductIds: map['excludedProductIds'] != null
-          ? List<String>.from(map['excludedProductIds'])
-          : null,
-      customFields: map['customFields'],
     );
   }
 
@@ -1032,10 +976,10 @@ class ShopPromotion {
       'usedCount': usedCount,
       'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
       'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-      'startTime': startTime != null
+      'startTime': startTime != null 
           ? {'hour': startTime!.hour, 'minute': startTime!.minute}
           : null,
-      'endTime': endTime != null
+      'endTime': endTime != null 
           ? {'hour': endTime!.hour, 'minute': endTime!.minute}
           : null,
       'isActive': isActive,
@@ -1047,22 +991,6 @@ class ShopPromotion {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'terms': terms,
       'priority': priority.toString().split('.').last,
-      // Flash Sale fields
-      'flashSaleStock': flashSaleStock,
-      'flashSaleSold': flashSaleSold,
-      'originalPrice': originalPrice,
-      'flashSalePrice': flashSalePrice,
-      // ระบบติดตาม
-      'trackingCode': trackingCode,
-      'campaignName': campaignName,
-      'targetAudience': targetAudience,
-      // การตั้งค่าขั้นสูง
-      'requiresApproval': requiresApproval,
-      'showInPublicList': showInPublicList,
-      'allowStacking': allowStacking,
-      'maxUsagePerDay': maxUsagePerDay,
-      'excludedProductIds': excludedProductIds,
-      'customFields': customFields,
     };
   }
 
@@ -1082,35 +1010,35 @@ class ShopPromotion {
   // ตรวจสอบเวลา
   bool get isTimeValid {
     if (startTime == null && endTime == null) return true;
-
+    
     final now = TimeOfDay.now();
     final nowInMinutes = now.hour * 60 + now.minute;
-
+    
     if (startTime != null) {
       final startInMinutes = startTime!.hour * 60 + startTime!.minute;
       if (nowInMinutes < startInMinutes) return false;
     }
-
+    
     if (endTime != null) {
       final endInMinutes = endTime!.hour * 60 + endTime!.minute;
       if (nowInMinutes > endInMinutes) return false;
     }
-
+    
     return true;
   }
 
   // สถานะโปรโมชั่น
   String get status {
     if (!isActive) return 'ปิดใช้งาน';
-
+    
     final now = DateTime.now();
     if (startDate != null && now.isBefore(startDate!)) return 'กำลังจะเริ่ม';
     if (endDate != null && now.isAfter(endDate!)) return 'หมดเวลา';
-
+    
     if (usageLimit != null && usedCount >= usageLimit!) return 'ใช้หมดแล้ว';
-
+    
     if (!isTimeValid) return 'นอกเวลา';
-
+    
     return 'ใช้งานได้';
   }
 
@@ -1118,26 +1046,26 @@ class ShopPromotion {
   String get conditionText {
     switch (type) {
       case PromotionType.percentDiscount:
-        String text = 'ลด ${discountPercent!.toInt()}%';
+        String text = 'ลด lib/screens/seller/create_promotion_screen.dart%';
         if (maximumDiscount != null) {
-          text += ' (สูงสุด ฿${maximumDiscount!.toInt()})';
+          text += ' (สูงสุด ฿lib/screens/seller/create_promotion_screen.dart)';
         }
         if (minimumPurchase != null) {
-          text += ' ซื้อขั้นต่ำ ฿${minimumPurchase!.toInt()}';
+          text += ' ซื้อขั้นต่ำ ฿lib/screens/seller/create_promotion_screen.dart';
         }
         return text;
       case PromotionType.fixedDiscount:
-        String text = 'ลด ฿${discountAmount!.toInt()}';
+        String text = 'ลด ฿lib/screens/seller/create_promotion_screen.dart';
         if (minimumPurchase != null) {
-          text += ' ซื้อขั้นต่ำ ฿${minimumPurchase!.toInt()}';
+          text += ' ซื้อขั้นต่ำ ฿lib/screens/seller/create_promotion_screen.dart';
         }
         return text;
       case PromotionType.freeShipping:
         return minimumPurchase != null
-            ? 'ซื้อขั้นต่ำ ฿${minimumPurchase!.toInt()}'
+            ? 'ซื้อขั้นต่ำ ฿lib/screens/seller/create_promotion_screen.dart'
             : 'ทุกคำสั่งซื้อ';
       case PromotionType.buyXGetY:
-        return 'ซื้อ $buyQuantity แถม $getQuantity';
+        return 'ซื้อ lib/screens/seller/create_promotion_screen.dart แถม lib/screens/seller/create_promotion_screen.dart';
       case PromotionType.flashSale:
         return 'จำกัดเวลา!';
     }
@@ -1147,13 +1075,13 @@ class ShopPromotion {
   String get discountText {
     switch (type) {
       case PromotionType.percentDiscount:
-        return '${discountPercent!.toInt()}% OFF';
+        return 'lib/screens/seller/create_promotion_screen.dart% OFF';
       case PromotionType.fixedDiscount:
-        return '฿${discountAmount!.toInt()} OFF';
+        return '฿lib/screens/seller/create_promotion_screen.dart OFF';
       case PromotionType.freeShipping:
         return 'FREE SHIP';
       case PromotionType.buyXGetY:
-        return 'ซื้อ $buyQuantity แถม $getQuantity';
+        return 'ซื้อ lib/screens/seller/create_promotion_screen.dart แถม lib/screens/seller/create_promotion_screen.dart';
       case PromotionType.flashSale:
         return 'FLASH SALE';
     }
@@ -1228,63 +1156,25 @@ class ShopPromotion {
 
   // ตรวจสอบความถูกต้องของข้อมูล
   String? validate() {
-    // ตรวจสอบข้อมูลพื้นฐาน
     if (title.trim().isEmpty) {
       return 'กรุณาใส่ชื่อโปรโมชั่น';
     }
-
-    if (title.length > 100) {
-      return 'ชื่อโปรโมชั่นต้องไม่เกิน 100 ตัวอักษร';
-    }
-
+    
     if (description.trim().isEmpty) {
       return 'กรุณาใส่รายละเอียดโปรโมชั่น';
     }
 
-    if (description.length > 500) {
-      return 'รายละเอียดต้องไม่เกิน 500 ตัวอักษร';
-    }
-
-    // ตรวจสอบโค้ดส่วนลด
-    if (discountCode != null && discountCode!.isNotEmpty) {
-      if (discountCode!.length < 3) {
-        return 'โค้ดส่วนลดต้องมีอย่างน้อย 3 ตัวอักษร';
-      }
-      if (discountCode!.length > 20) {
-        return 'โค้ดส่วนลดต้องไม่เกิน 20 ตัวอักษร';
-      }
-      // ตรวจสอบว่าเป็นอักษรภาษาอังกฤษและตัวเลขเท่านั้น
-      if (!RegExp(r'^[A-Z0-9]+$').hasMatch(discountCode!)) {
-        return 'โค้ดส่วนลดต้องเป็นตัวอักษรภาษาอังกฤษตัวใหญ่และตัวเลขเท่านั้น';
-      }
-    }
-
-    // ตรวจสอบตามประเภทโปรโมชั่น
     switch (type) {
       case PromotionType.percentDiscount:
-        if (discountPercent == null ||
-            discountPercent! <= 0 ||
-            discountPercent! > 100) {
+        if (discountPercent == null || discountPercent! <= 0 || discountPercent! > 100) {
           return 'เปอร์เซ็นต์ส่วนลดต้องอยู่ระหว่าง 1-100';
         }
-        if (maximumDiscount != null && maximumDiscount! <= 0) {
-          return 'ส่วนลดสูงสุดต้องมากกว่า 0';
-        }
         break;
-
       case PromotionType.fixedDiscount:
         if (discountAmount == null || discountAmount! <= 0) {
           return 'จำนวนเงินส่วนลดต้องมากกว่า 0';
         }
-        if (discountAmount! > 100000) {
-          return 'จำนวนเงินส่วนลดต้องไม่เกิน 100,000 บาท';
-        }
         break;
-
-      case PromotionType.freeShipping:
-        // ไม่ต้องตรวจสอบเพิ่มเติม
-        break;
-
       case PromotionType.buyXGetY:
         if (buyQuantity == null || buyQuantity! <= 0) {
           return 'จำนวนสินค้าที่ซื้อต้องมากกว่า 0';
@@ -1292,30 +1182,11 @@ class ShopPromotion {
         if (getQuantity == null || getQuantity! <= 0) {
           return 'จำนวนสินค้าที่แถมต้องมากกว่า 0';
         }
-        if (buyQuantity! > 100 || getQuantity! > 100) {
-          return 'จำนวนสินค้าต้องไม่เกิน 100 ชิ้น';
-        }
         break;
-
-      case PromotionType.flashSale:
-        if (flashSaleStock != null && flashSaleStock! <= 0) {
-          return 'จำนวนสต็อก Flash Sale ต้องมากกว่า 0';
-        }
-        if (originalPrice != null && originalPrice! <= 0) {
-          return 'ราคาเดิมต้องมากกว่า 0';
-        }
-        if (flashSalePrice != null && flashSalePrice! <= 0) {
-          return 'ราคา Flash Sale ต้องมากกว่า 0';
-        }
-        if (originalPrice != null &&
-            flashSalePrice != null &&
-            flashSalePrice! >= originalPrice!) {
-          return 'ราคา Flash Sale ต้องน้อยกว่าราคาเดิม';
-        }
+      default:
         break;
     }
 
-    // ตรวจสอบวันเวลา
     if (startDate != null && endDate != null && startDate!.isAfter(endDate!)) {
       return 'วันเริ่มต้นต้องก่อนวันสิ้นสุด';
     }
@@ -1328,74 +1199,19 @@ class ShopPromotion {
       }
     }
 
-    // ตรวจสอบเงื่อนไขการใช้งาน
     if (minimumPurchase != null && minimumPurchase! < 0) {
       return 'ยอดซื้อขั้นต่ำต้องมากกว่าหรือเท่ากับ 0';
-    }
-
-    if (minimumPurchase != null && minimumPurchase! > 1000000) {
-      return 'ยอดซื้อขั้นต่ำต้องไม่เกิน 1,000,000 บาท';
     }
 
     if (usageLimit != null && usageLimit! <= 0) {
       return 'จำนวนการใช้งานต้องมากกว่า 0';
     }
 
-    if (usageLimit != null && usageLimit! > 1000000) {
-      return 'จำนวนการใช้งานต้องไม่เกิน 1,000,000 ครั้ง';
-    }
-
     if (usageLimitPerUser != null && usageLimitPerUser! <= 0) {
       return 'จำนวนการใช้งานต่อคนต้องมากกว่า 0';
     }
 
-    if (usageLimitPerUser != null && usageLimitPerUser! > 100) {
-      return 'จำนวนการใช้งานต่อคนต้องไม่เกิน 100 ครั้ง';
-    }
-
-    if (maxUsagePerDay != null && maxUsagePerDay! <= 0) {
-      return 'จำนวนการใช้งานต่อวันต้องมากกว่า 0';
-    }
-
-    // ตรวจสอบโค้ดติดตาม
-    if (trackingCode != null && trackingCode!.isNotEmpty) {
-      if (trackingCode!.length < 5 || trackingCode!.length > 50) {
-        return 'โค้ดติดตามต้องมี 5-50 ตัวอักษร';
-      }
-    }
-
-    // ตรวจสอบชื่อแคมเปญ
-    if (campaignName != null && campaignName!.isNotEmpty) {
-      if (campaignName!.length > 100) {
-        return 'ชื่อแคมเปญต้องไม่เกิน 100 ตัวอักษร';
-      }
-    }
-
-    // ตรวจสอบเงื่อนไขการใช้งาน
-    if (terms != null && terms!.length > 1000) {
-      return 'เงื่อนไขการใช้งานต้องไม่เกิน 1,000 ตัวอักษร';
-    }
-
     return null; // ไม่มีข้อผิดพลาด
-  }
-
-  // ตรวจสอบความพร้อมใช้งาน
-  bool get isReady {
-    return validate() == null && isActive;
-  }
-
-  // คำนวณจำนวนคงเหลือ Flash Sale
-  int? get flashSaleRemaining {
-    if (type == PromotionType.flashSale && flashSaleStock != null) {
-      return flashSaleStock! - flashSaleSold;
-    }
-    return null;
-  }
-
-  // เปอร์เซ็นต์การใช้งาน
-  double get usagePercentage {
-    if (usageLimit == null || usageLimit == 0) return 0.0;
-    return (usedCount / usageLimit!) * 100;
   }
 }
 

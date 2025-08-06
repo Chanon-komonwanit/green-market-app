@@ -1,7 +1,12 @@
 // lib/screens/cart_screen.dart
 import 'package:flutter/material.dart';
 import 'package:green_market/providers/cart_provider_enhanced.dart';
+import 'package:green_market/providers/coupon_provider.dart';
 import 'package:green_market/screens/shipping_address_screen.dart';
+import 'package:green_market/screens/checkout/coupon_selection_screen.dart';
+import 'package:green_market/models/user_coupon.dart';
+import 'package:green_market/models/cart_item.dart' as models;
+import 'package:green_market/theme/app_colors.dart' as theme;
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 
@@ -65,6 +70,126 @@ class _CartScreenState extends State<CartScreen> {
         _isProcessingCheckout = false;
       });
     }
+  }
+
+  Widget _buildCouponSection(BuildContext context,
+      CouponProvider couponProvider, CartProviderEnhanced cart) {
+    final appliedCoupon = couponProvider.appliedCoupon;
+    final cartItemsConverted = _convertCartItems(cart.items.values.toList());
+    final calculation = appliedCoupon != null
+        ? couponProvider.calculateDiscount(cartItemsConverted)
+        : null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: InkWell(
+        onTap: () => _selectCoupon(context, cart),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.local_offer,
+                color: appliedCoupon != null
+                    ? theme.AppColors.primary
+                    : Colors.grey[600],
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: appliedCoupon != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            appliedCoupon.promotion.title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (calculation != null && calculation.hasDiscount)
+                            Text(
+                              'ประหยัด ฿${calculation.discountAmount.toInt()}',
+                              style: TextStyle(
+                                color: Colors.green[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                        ],
+                      )
+                    : const Text(
+                        'เลือกโค้ดส่วนลด',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (appliedCoupon != null) ...[
+                    Text(
+                      appliedCoupon.promotion.discountCode ?? '',
+                      style: TextStyle(
+                        color: theme.AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey[400],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<models.CartItem> _convertCartItems(List<CartItem> providerCartItems) {
+    return providerCartItems
+        .map((item) => models.CartItem(
+              id: item.product.id,
+              productId: item.product.id,
+              name: item.product.name,
+              imageUrl: item.product.imageUrls.isNotEmpty
+                  ? item.product.imageUrls.first
+                  : '',
+              price: item.product.price,
+              quantity: item.quantity,
+              sellerId: item.product.sellerId,
+            ))
+        .toList();
+  }
+
+  Future<void> _selectCoupon(
+      BuildContext context, CartProviderEnhanced cart) async {
+    final cartItems = _convertCartItems(cart.items.values.toList());
+    final couponProvider = context.read<CouponProvider>();
+
+    await Navigator.push<UserCoupon?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CouponSelectionScreen(
+          cartItems: cartItems,
+          currentCoupon: couponProvider.appliedCoupon,
+        ),
+      ),
+    );
   }
 
   @override
@@ -143,30 +268,43 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               // const Divider(height: 1, thickness: 1, color: AppColors.lightModernGrey), // Divider is now part of the Container below
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  border: Border(
-                    // Added top border here
-                    top: BorderSide(color: AppColors.lightModernGrey, width: 1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      // ignore: deprecated_member_use
-                      color: AppColors.modernGrey.withOpacity(0.15),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, -2),
+              Consumer<CouponProvider>(
+                builder: (context, couponProvider, child) {
+                  return Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      border: Border(
+                        top: BorderSide(
+                            color: AppColors.lightModernGrey, width: 1),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.modernGrey.withOpacity(0.15),
+                          spreadRadius: 1,
+                          blurRadius: 5,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: _CartSummary(
-                    cart: cart,
-                    isProcessing: _isProcessingCheckout,
-                    onCheckoutPressed: () {
-                      _handleCheckoutPressed(context, cart);
-                    }),
+                    child: Column(
+                      children: [
+                        // Coupon section
+                        _buildCouponSection(context, couponProvider, cart),
+                        const SizedBox(height: 16),
+                        // Cart summary
+                        _CartSummary(
+                          cart: cart,
+                          couponProvider: couponProvider,
+                          isProcessing: _isProcessingCheckout,
+                          onCheckoutPressed: () {
+                            _handleCheckoutPressed(context, cart);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
               )
             ],
           );
@@ -317,53 +455,134 @@ class _CartItemTile extends StatelessWidget {
 
 class _CartSummary extends StatelessWidget {
   final CartProviderEnhanced cart;
+  final CouponProvider couponProvider;
   final bool isProcessing;
   final VoidCallback onCheckoutPressed;
 
-  const _CartSummary(
-      {required this.cart,
-      required this.isProcessing,
-      required this.onCheckoutPressed});
+  const _CartSummary({
+    required this.cart,
+    required this.couponProvider,
+    required this.isProcessing,
+    required this.onCheckoutPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // The Container with BoxDecoration is now in the parent CartScreen
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final appliedCoupon = couponProvider.appliedCoupon;
+    final cartItemsConverted = _convertCartItems(cart.items.values.toList());
+    final calculation = appliedCoupon != null
+        ? couponProvider.calculateDiscount(cartItemsConverted)
+        : null;
+
+    final subtotal = cart.totalAmount;
+    final discount = calculation?.discountAmount ?? 0.0;
+    final total = subtotal - discount;
+
+    return Column(
+      children: [
+        // Subtotal
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('รวม (${cart.totalItemsInCart} ชิ้น):',
-                style: AppTextStyles.body),
-            Text('฿${cart.totalAmount.toStringAsFixed(2)}',
-                style: AppTextStyles.price.copyWith(fontSize: 20)),
+            Text(
+              'ยอดรวม (${cart.totalItemsInCart} ชิ้น)',
+              style: AppTextStyles.body,
+            ),
+            Text(
+              '฿${subtotal.toStringAsFixed(2)}',
+              style: AppTextStyles.body,
+            ),
           ],
         ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.payment_rounded, size: 18),
-          label: isProcessing
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: AppColors.white,
-                    strokeWidth: 2.0,
-                  ),
-                )
-              : const Text('ดำเนินการชำระเงิน'),
-          onPressed:
-              isProcessing || cart.totalAmount <= 0 ? null : onCheckoutPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryGreen,
-            foregroundColor: AppColors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            textStyle: AppTextStyles.button,
-            disabledBackgroundColor: AppColors.lightGrey,
-            disabledForegroundColor: AppColors.modernGrey,
+
+        // Discount
+        if (discount > 0) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'ส่วนลด',
+                style: AppTextStyles.body.copyWith(color: Colors.green[600]),
+              ),
+              Text(
+                '-฿${discount.toStringAsFixed(2)}',
+                style: AppTextStyles.body.copyWith(
+                  color: Colors.green[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
+        ],
+
+        const Divider(height: 16, thickness: 1),
+
+        // Total and checkout button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ยอดที่ต้องชำระ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                Text(
+                  '฿${total.toStringAsFixed(2)}',
+                  style: AppTextStyles.price.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.payment_rounded, size: 18),
+              label: isProcessing
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: AppColors.white,
+                        strokeWidth: 2.0,
+                      ),
+                    )
+                  : const Text('ดำเนินการชำระเงิน'),
+              onPressed: isProcessing || total <= 0 ? null : onCheckoutPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: AppColors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                textStyle: AppTextStyles.button,
+                disabledBackgroundColor: AppColors.lightGrey,
+                disabledForegroundColor: AppColors.modernGrey,
+              ),
+            ),
+          ],
         ),
       ],
     );
+  }
+
+  List<models.CartItem> _convertCartItems(List<CartItem> providerCartItems) {
+    return providerCartItems
+        .map((item) => models.CartItem(
+              id: item.product.id,
+              productId: item.product.id,
+              name: item.product.name,
+              imageUrl: item.product.imageUrls.isNotEmpty
+                  ? item.product.imageUrls.first
+                  : '',
+              price: item.product.price,
+              quantity: item.quantity,
+              sellerId: item.product.sellerId,
+            ))
+        .toList();
   }
 }

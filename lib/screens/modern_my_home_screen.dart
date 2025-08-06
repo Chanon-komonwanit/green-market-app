@@ -21,6 +21,7 @@ import 'package:green_market/models/cart_item.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/orders_screen.dart';
+import 'package:green_market/screens/profile/my_coupons_screen.dart';
 import 'package:green_market/screens/customer_shipping_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_application_form_screen.dart';
@@ -225,6 +226,23 @@ class _ModernMyHomeScreenState extends State<ModernMyHomeScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildQuickActionCard(
+                          icon: Icons.local_offer,
+                          label: 'โค้ดของฉัน',
+                          color: const Color(0xFFFF9800),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const MyCouponsScreen()),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
                       Expanded(
                         child: _buildQuickActionCard(
                           icon: Icons.monetization_on,

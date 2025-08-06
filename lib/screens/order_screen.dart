@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/order_service.dart';
 import '../models/order.dart';
+import 'chat_screen.dart';
 
 class OrderScreen extends StatelessWidget {
   final String userId;
@@ -36,15 +37,19 @@ class OrderScreen extends StatelessWidget {
                         icon: const Icon(Icons.chat_bubble_outline),
                         tooltip: 'แชทกับผู้ขาย',
                         onPressed: () {
-                          Navigator.of(context).pushNamed(
-                            '/chat',
-                            arguments: {
-                              'productId': firstItem.productId,
-                              'productName': firstItem.productName,
-                              'productImageUrl': firstItem.imageUrl,
-                              'buyerId': order.userId,
-                              'sellerId': firstItem.sellerId,
-                            },
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatScreen(
+                                chatId:
+                                    '${order.userId}_${firstItem.sellerId}_${firstItem.productId}',
+                                productId: firstItem.productId,
+                                productName: firstItem.productName,
+                                productImageUrl: firstItem.imageUrl,
+                                buyerId: order.userId,
+                                sellerId: firstItem.sellerId,
+                              ),
+                            ),
                           );
                         },
                       )

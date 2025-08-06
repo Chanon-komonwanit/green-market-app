@@ -35,6 +35,7 @@ import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/wishlist_screen.dart';
+import 'package:green_market/providers/coupon_provider.dart';
 import 'package:green_market/screens/orders_screen.dart';
 
 void main() async {
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
         Provider<FirebaseService>(create: (_) => _firebaseService),
         Provider<NotificationService>(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => CartProviderEnhanced()),
+        ChangeNotifierProvider(create: (_) => CouponProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider(_firebaseService)),
         ChangeNotifierProvider(
             create: (context) => AppConfigProvider(_firebaseService)),
