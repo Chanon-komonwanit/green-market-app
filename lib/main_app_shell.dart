@@ -11,11 +11,10 @@ import 'package:green_market/theme/app_colors.dart' as colors;
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
 import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
-import 'package:green_market/screens/modern_my_home_screen.dart'; // ใช้หน้าใหม่
+import 'screens/my_home_screen.dart'; // My Home Screen - ใช้ relative path
 import 'package:green_market/screens/green_world_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/green_community_screen.dart';
-import 'package:green_market/screens/debug_products_screen.dart'; // Debug screen
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/services/notification_service.dart';
@@ -92,7 +91,7 @@ class _MainAppShellState extends State<MainAppShell> {
 
     List<Widget> pages = [
       const HomeScreen(), // 0. ตลาด (ทุกคน) - จาก home_screen_beautiful.dart
-      const ModernMyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications) - ใหม่
+      const MyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications) - ใช้ MyHomeScreen เดิม
       const GreenCommunityScreen(), // 2. ชุมชนสีเขียว
       const GreenWorldScreen(), // 3. โลกสีเขียว
     ];
@@ -110,7 +109,7 @@ class _MainAppShellState extends State<MainAppShell> {
       pages.add(const CompleteAdminPanelScreen()); // 4. จัดการระบบ
 
       // เพิ่ม Debug Screen สำหรับแอดมิน
-      pages.add(const DebugProductsScreen()); // 5. Debug Products
+      // pages.add(const DebugProductsScreen()); // 5. Debug Products (removed)
     } else {
       print("User is not admin, not adding admin panel");
     }
@@ -290,19 +289,7 @@ class _MainAppShellState extends State<MainAppShell> {
                   leading: const Icon(Icons.bug_report, color: Colors.orange),
                   title: const Text('Debug Tools'),
                   children: [
-                    ListTile(
-                      leading: const Icon(Icons.analytics),
-                      title: const Text('Debug Products'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DebugProductsScreen(),
-                          ),
-                        );
-                      },
-                    ),
+                    // Debug Products removed
                   ],
                 );
               },

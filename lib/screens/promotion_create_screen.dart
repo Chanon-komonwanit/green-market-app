@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:green_market/models/promotion.dart';
+import 'package:green_market/models/unified_promotion.dart';
 import 'package:green_market/services/promotion_service.dart';
 
 class PromotionCreateScreen extends StatefulWidget {
@@ -119,18 +119,23 @@ class _PromotionCreateScreenState extends State<PromotionCreateScreen> {
                         content: Text('กรุณาเลือกวันเริ่มต้นและสิ้นสุด')));
                     return;
                   }
-                  final promo = Promotion(
+                  final promo = UnifiedPromotion(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     sellerId: widget.sellerId,
                     title: title,
-                    code: '',
                     description: description,
-                    image: imageUrl,
-                    discountType: discountType,
-                    discountValue: discountValue,
+                    type: PromotionType.percentage, // Default type
+                    category: PromotionCategory.general,
+                    discountCode: '', // Empty code for now
+                    discountPercent:
+                        discountType == 'percentage' ? discountValue : null,
+                    discountAmount:
+                        discountType == 'fixed' ? discountValue : null,
+                    imageUrl: imageUrl,
                     startDate: startDate!,
                     endDate: endDate!,
                     isActive: isActive,
+                    createdAt: DateTime.now(),
                   );
                   await PromotionService().createPromotion(promo);
                   Navigator.of(context).pop();

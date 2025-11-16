@@ -1,55 +1,108 @@
 // lib/main.dart
+// Green Market - Entry point ของแอปพลิเคชัน
+// จัดการ Firebase initialization, Provider setup, และ Route management
 
 import 'package:flutter/material.dart';
-import 'screens/search_screen.dart';
-import 'screens/flash_sale_screen.dart';
-import 'screens/category_screen.dart';
-import 'screens/notification_screen.dart';
-import 'screens/order_screen.dart';
-import 'screens/chat_screen.dart';
-import 'screens/payment_screen.dart';
-import 'models/order.dart';
-import 'package:green_market/screens/notifications_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+// Core
 import 'package:green_market/firebase_options.dart';
 import 'package:green_market/main_app_shell.dart';
+
+// Services
+import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/services/notification_service.dart';
+import 'package:green_market/services/image_cache_manager.dart';
+
+// Providers
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/providers/cart_provider_enhanced.dart';
-import 'package:green_market/theme/app_theme.dart';
-import 'package:green_market/screens/seller/add_product_screen.dart';
-import 'package:green_market/screens/seller/edit_product_screen.dart';
-import 'package:green_market/screens/shipping_address_screen.dart';
-import 'package:green_market/services/firebase_service.dart';
-import 'package:green_market/screens/splash_screen.dart';
-import 'package:green_market/screens/auth/login_screen.dart'; // Explicitly import LoginScreen
-import 'package:green_market/services/notification_service.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/providers/eco_coins_provider.dart';
 import 'package:green_market/providers/theme_provider.dart';
+import 'package:green_market/providers/coupon_provider.dart';
+
+// Screens
+import 'package:green_market/screens/splash_screen.dart';
+import 'package:green_market/screens/auth/login_screen.dart';
+import 'package:green_market/screens/search_screen.dart';
+import 'package:green_market/screens/flash_sale_screen.dart';
+import 'package:green_market/screens/category_screen.dart';
+import 'package:green_market/screens/notifications_screen.dart';
+import 'package:green_market/screens/order_screen.dart';
+import 'package:green_market/screens/orders_screen.dart';
+import 'package:green_market/screens/chat_screen.dart';
+import 'package:green_market/screens/payment_screen.dart';
+import 'package:green_market/screens/shipping_address_screen.dart';
 import 'package:green_market/screens/eco_coins_screen.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:green_market/models/product.dart';
 import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
+import 'package:green_market/screens/seller/add_product_screen.dart';
+import 'package:green_market/screens/seller/edit_product_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/wishlist_screen.dart';
-import 'package:green_market/providers/coupon_provider.dart';
-import 'package:green_market/screens/orders_screen.dart';
 
+// Models
+import 'package:green_market/models/order.dart';
+import 'package:green_market/models/product.dart';
+
+/// จุดเริ่มต้นของแอปพลิเคชัน Green Market
+/// จัดการการเริ่มต้น Firebase และ Locale initialization
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // เริ่มต้น Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // เริ่มต้น Firebase พร้อม error handling
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase initialized successfully');
 
-  // เริ่มต้นการจัดรูปแบบวันที่
-  await initializeDateFormatting('th', null);
+    // เริ่มต้นการจัดรูปแบบวันที่ภาษาไทย
+    await initializeDateFormatting('th', null);
+    debugPrint('✅ Thai locale initialized successfully');
 
-  runApp(MyApp());
+    // เริ่มต้น Image Cache Manager สำหรับการจัดการรูปภาพระดับองค์กร
+    ImageCacheManager().initialize();
+    debugPrint('✅ Image Cache Manager initialized');
+
+    runApp(MyApp());
+  } catch (e, stackTrace) {
+    // Log error และแสดง error page
+    debugPrint('❌ App initialization failed: $e');
+    debugPrint('Stack trace: $stackTrace');
+
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text('เกิดข้อผิดพลาดในการเริ่มต้นแอป'),
+                const SizedBox(height: 8),
+                Text('Error: $e'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Restart app
+                    main();
+                  },
+                  child: const Text('ลองอีกครั้ง'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -103,29 +156,40 @@ class MyApp extends StatelessWidget {
             home: Consumer2<AuthProvider, UserProvider>(
               // Use Consumer2 to listen to both
               builder: (context, auth, user, _) {
-                print('Main.dart - Auth user: ${auth.user?.email}');
-                print('Main.dart - Auth initializing: ${auth.isInitializing}');
-                print('Main.dart - User loading: ${user.isLoading}');
-                print('Main.dart - Current user: ${user.currentUser?.email}');
+                // Auth Debug Information (Production: Remove or use conditional logging)
+                if (kDebugMode) {
+                  debugPrint('Main.dart - Auth user: ${auth.user?.email}');
+                  debugPrint(
+                      'Main.dart - Auth initializing: ${auth.isInitializing}');
+                  debugPrint('Main.dart - User loading: ${user.isLoading}');
+                  debugPrint(
+                      'Main.dart - Current user: ${user.currentUser?.email}');
+                }
 
                 // Show splash screen while initializing auth or loading user data for the first time.
                 if (auth.isInitializing ||
                     (auth.user != null &&
                         user.isLoading &&
                         user.currentUser == null)) {
-                  print('Main.dart - Showing SplashScreen');
+                  if (kDebugMode) {
+                    debugPrint('Main.dart - Showing SplashScreen');
+                  }
                   return const SplashScreen();
                 }
 
                 if (auth.user == null) {
-                  print('Main.dart - Showing LoginScreen');
+                  if (kDebugMode) {
+                    debugPrint('Main.dart - Showing LoginScreen');
+                  }
                   // If user is not logged in, show the authentication screen.
                   return const LoginScreen();
                 } else {
                   // ตรวจสอบว่า user data โหลดเสร็จแล้วหรือไม่
                   if (user.currentUser == null && !user.isLoading) {
-                    print(
-                        'Main.dart - User data missing, attempting to reload');
+                    if (kDebugMode) {
+                      debugPrint(
+                          'Main.dart - User data missing, attempting to reload');
+                    }
                     // ลอง reload user data อีกครั้ง
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       user.loadUserData(auth.user!.uid);
@@ -133,7 +197,9 @@ class MyApp extends StatelessWidget {
                     return const SplashScreen();
                   }
 
-                  print('Main.dart - Showing MainAppShell');
+                  if (kDebugMode) {
+                    debugPrint('Main.dart - Showing MainAppShell');
+                  }
                   // If user is logged in, show the main app shell.
                   // The shell itself can then decide what to show based on user role.
                   return const MainAppShell();
@@ -141,117 +207,167 @@ class MyApp extends StatelessWidget {
               },
             ),
             onGenerateRoute: (RouteSettings settings) {
-              if (settings.name == '/shipping-address') {
-                // Reverted to string literal as ShippingAddressScreen.routeName is not defined in provided context
-                return MaterialPageRoute(
-                    builder: (_) => const ShippingAddressScreen());
-              }
-              if (settings.name == '/notifications') {
-                return MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen());
-              }
-              if (settings.name == '/eco-coins') {
-                return MaterialPageRoute(
-                    builder: (_) => const EcoCoinsScreen());
-              }
-              if (settings.name == '/seller/add-product') {
-                return MaterialPageRoute(
-                    builder: (_) => const AddProductScreen());
-              }
-              if (settings.name == '/seller/edit-product') {
-                final product = settings.arguments as Product?;
-                if (product != null) {
-                  return MaterialPageRoute(
-                    builder: (_) => EditProductScreen(product: product),
-                  );
+              try {
+                switch (settings.name) {
+                  case '/shipping-address':
+                    return MaterialPageRoute(
+                        builder: (_) => const ShippingAddressScreen());
+
+                  case '/notifications':
+                    return MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen());
+
+                  case '/eco-coins':
+                    return MaterialPageRoute(
+                        builder: (_) => const EcoCoinsScreen());
+
+                  case '/seller/add-product':
+                    return MaterialPageRoute(
+                        builder: (_) => const AddProductScreen());
+
+                  case '/seller/edit-product':
+                    final product = settings.arguments as Product?;
+                    if (product != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => EditProductScreen(product: product),
+                      );
+                    }
+                    // Return error route if product is null
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ข้อมูลสินค้าไม่ถูกต้อง'),
+                        ),
+                      ),
+                    );
+
+                  case '/investment-hub':
+                    return MaterialPageRoute(
+                      builder: (_) => const InvestmentHubScreen(),
+                    );
+
+                  case '/sustainable-activities-hub':
+                    return MaterialPageRoute(
+                      builder: (_) => const SustainableActivitiesHubScreen(),
+                    );
+
+                  case '/search':
+                    return MaterialPageRoute(
+                      builder: (_) => const SearchScreen(),
+                    );
+
+                  case '/flash-sale':
+                    return MaterialPageRoute(
+                      builder: (_) => FlashSaleScreen(),
+                    );
+
+                  case '/categories':
+                    return MaterialPageRoute(
+                      builder: (_) => CategoryScreen(),
+                    );
+
+                  case '/orders':
+                    final userId = settings.arguments as String?;
+                    if (userId != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => OrderScreen(userId: userId),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ข้อมูลผู้ใช้ไม่ถูกต้อง'),
+                        ),
+                      ),
+                    );
+
+                  case '/chat':
+                    final args = settings.arguments as Map<String, dynamic>?;
+                    if (args != null &&
+                        args['productId'] != null &&
+                        args['productName'] != null &&
+                        args['productImageUrl'] != null &&
+                        args['buyerId'] != null &&
+                        args['sellerId'] != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          chatId: args['chatId'],
+                          productId: args['productId'],
+                          productName: args['productName'],
+                          productImageUrl: args['productImageUrl'],
+                          buyerId: args['buyerId'],
+                          sellerId: args['sellerId'],
+                        ),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ข้อมูลการแชทไม่ถูกต้อง'),
+                        ),
+                      ),
+                    );
+
+                  case '/payment':
+                    final order = settings.arguments as Order?;
+                    if (order != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => PaymentScreen(order: order),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ข้อมูลคำสั่งซื้อไม่ถูกต้อง'),
+                        ),
+                      ),
+                    );
+
+                  case '/seller-dashboard':
+                    return MaterialPageRoute(
+                      builder: (_) => const SellerDashboardScreen(),
+                    );
+
+                  case '/wishlist':
+                    return MaterialPageRoute(
+                      builder: (_) => const WishlistScreen(),
+                    );
+
+                  case '/reorder':
+                    return MaterialPageRoute(
+                      builder: (_) => const OrdersScreen(),
+                    );
+
+                  default:
+                    // Route not found - return null to use onUnknownRoute
+                    return null;
                 }
-              }
-              if (settings.name == '/investment-hub') {
+              } catch (e) {
+                // Log error and return error page
+                debugPrint('Route generation error: $e');
                 return MaterialPageRoute(
-                  builder: (_) => const InvestmentHubScreen(),
-                );
-              }
-              if (settings.name == '/sustainable-activities-hub') {
-                return MaterialPageRoute(
-                  builder: (_) => const SustainableActivitiesHubScreen(),
-                );
-              }
-              if (settings.name == '/search') {
-                return MaterialPageRoute(
-                  builder: (_) => const SearchScreen(),
-                );
-              }
-              if (settings.name == '/flash-sale') {
-                return MaterialPageRoute(
-                  builder: (_) => FlashSaleScreen(),
-                );
-              }
-              if (settings.name == '/categories') {
-                return MaterialPageRoute(
-                  builder: (_) => CategoryScreen(),
-                );
-              }
-              if (settings.name == '/notifications') {
-                return MaterialPageRoute(
-                  builder: (_) => NotificationScreen(),
-                );
-              }
-              if (settings.name == '/orders') {
-                final userId = settings.arguments as String?;
-                if (userId != null) {
-                  return MaterialPageRoute(
-                    builder: (_) => OrderScreen(userId: userId),
-                  );
-                }
-              }
-              if (settings.name == '/chat') {
-                final args = settings.arguments as Map<String, dynamic>?;
-                if (args != null &&
-                    args['productId'] != null &&
-                    args['productName'] != null &&
-                    args['productImageUrl'] != null &&
-                    args['buyerId'] != null &&
-                    args['sellerId'] != null) {
-                  return MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      chatId: args['chatId'],
-                      productId: args['productId'],
-                      productName: args['productName'],
-                      productImageUrl: args['productImageUrl'],
-                      buyerId: args['buyerId'],
-                      sellerId: args['sellerId'],
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('ข้อผิดพลาด')),
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error, size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          const Text('เกิดข้อผิดพลาดในการโหลดหน้า'),
+                          const SizedBox(height: 8),
+                          Text('Error: $e'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('กลับ'),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                }
-              }
-              if (settings.name == '/payment') {
-                final order = settings.arguments as Order?;
-                if (order != null) {
-                  return MaterialPageRoute(
-                    builder: (_) => PaymentScreen(order: order),
-                  );
-                }
-              }
-              // เพิ่ม route สำหรับ seller dashboard
-              if (settings.name == '/seller-dashboard') {
-                return MaterialPageRoute(
-                  builder: (_) => const SellerDashboardScreen(),
+                  ),
                 );
               }
-              // เพิ่ม route สำหรับ wishlist
-              if (settings.name == '/wishlist') {
-                return MaterialPageRoute(
-                  builder: (_) => const WishlistScreen(),
-                );
-              }
-              // เพิ่ม route สำหรับ reorder
-              if (settings.name == '/reorder') {
-                return MaterialPageRoute(
-                  builder: (_) => const OrdersScreen(),
-                );
-              }
-              // หากไม่ตรงกับ route ที่กำหนดไว้ ให้ return null
-              return null;
             },
           );
         },

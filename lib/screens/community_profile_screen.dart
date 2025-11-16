@@ -558,24 +558,30 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     }
 
     if (_userPosts.isEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          SizedBox(height: 32),
-          Icon(Icons.inbox, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'ยังไม่มีโพสต์ในโปรไฟล์นี้',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16),
-          Text(
-            'หากข้อมูลไม่แสดงหรือโหลดนาน กรุณาลองดึงเพื่อรีเฟรชหน้าจอ',
-            style: TextStyle(fontSize: 14, color: Colors.redAccent),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // Changed to min to prevent overflow
+          children: const [
+            SizedBox(height: 32),
+            Icon(Icons.inbox, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'ยังไม่มีโพสต์ในโปรไฟล์นี้',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            Flexible(
+              // Added Flexible to prevent overflow
+              child: Text(
+                'หากข้อมูลไม่แสดงหรือโหลดนาน กรุณาลองดึงเพื่อรีเฟรชหน้าจอ',
+                style: TextStyle(fontSize: 14, color: Colors.redAccent),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       );
     }
 

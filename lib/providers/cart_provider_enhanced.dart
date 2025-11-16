@@ -427,4 +427,36 @@ class CartProviderEnhanced extends ChangeNotifier {
       notifyListeners(); // Single notification at the end
     }
   }
+
+  /// Enhanced dispose method สำหรับการล้างข้อมูลและทรัพยากร
+  @override
+  void dispose() {
+    // ล้างข้อมูลตะกร้า
+    _items.clear();
+
+    // ล้างสถานะ error
+    _errorMessage = null;
+    _isLoading = false;
+
+    debugPrint('CartProviderEnhanced: Resources cleaned up');
+    super.dispose();
+  }
+
+  /// สร้าง summary ของตะกร้าสำหรับ analytics
+  Map<String, dynamic> toAnalyticsSummary() {
+    return {
+      'itemCount': itemCount,
+      'totalItems': totalItemsInCart,
+      'totalAmount': totalAmount,
+      'totalWeight': totalWeight,
+      'uniqueSellers': sellerIds.length,
+      'averageItemPrice': isEmpty ? 0.0 : totalAmount / totalItemsInCart,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  String toString() {
+    return 'CartProviderEnhanced(items: $itemCount, total: $totalAmount, weight: ${totalWeight}kg)';
+  }
 }

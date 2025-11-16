@@ -8,7 +8,7 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/widgets/green_world_icon.dart';
 import 'package:green_market/providers/auth_provider.dart';
 import 'package:green_market/services/firebase_service.dart';
-import 'package:green_market/models/green_activity.dart';
+import 'package:green_market/models/sustainable_activity.dart';
 import 'package:green_market/models/green_investment.dart';
 import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';

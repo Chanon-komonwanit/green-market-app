@@ -62,6 +62,198 @@ class Order {
     this.updatedAt,
   });
 
+  // === ENHANCED BUSINESS LOGIC METHODS ===
+
+  /// Comprehensive validation of order data
+  bool get isValid {
+    return validationErrors.isEmpty;
+  }
+
+  /// Get all validation errors for this order
+  List<String> get validationErrors {
+    final errors = <String>[];
+
+    if (id.trim().isEmpty) errors.add('Order ID is required');
+    if (userId.trim().isEmpty) errors.add('User ID is required');
+    if (totalAmount <= 0) errors.add('Total amount must be greater than 0');
+    if (shippingFee < 0) errors.add('Shipping fee cannot be negative');
+    if (subTotal <= 0) errors.add('Subtotal must be greater than 0');
+    if (fullName.trim().isEmpty) errors.add('Full name is required');
+    if (phoneNumber.trim().isEmpty) errors.add('Phone number is required');
+    if (addressLine1.trim().isEmpty) errors.add('Address is required');
+    if (subDistrict.trim().isEmpty) errors.add('Sub-district is required');
+    if (district.trim().isEmpty) errors.add('District is required');
+    if (province.trim().isEmpty) errors.add('Province is required');
+    if (zipCode.trim().isEmpty) errors.add('Zip code is required');
+    if (items.isEmpty) errors.add('Order must contain at least one item');
+    if (sellerIds.isEmpty) errors.add('Order must have at least one seller');
+    if (!isValidStatus(status)) errors.add('Invalid order status: $status');
+    if (!isValidPaymentMethod(paymentMethod)) {
+      errors.add('Invalid payment method: $paymentMethod');
+    }
+
+    // Validate phone number format (basic Thai mobile number validation)
+    if (!RegExp(r'^[0-9]{10}$')
+        .hasMatch(phoneNumber.replaceAll(RegExp(r'[^0-9]'), ''))) {
+      errors.add('Invalid phone number format');
+    }
+
+    // Validate zip code (Thai zip code is 5 digits)
+    if (!RegExp(r'^[0-9]{5}$').hasMatch(zipCode)) {
+      errors.add('Zip code must be 5 digits');
+    }
+
+    // Validate total amount calculation
+    final calculatedTotal = subTotal + shippingFee;
+    if ((totalAmount - calculatedTotal).abs() > 0.01) {
+      errors.add('Total amount calculation mismatch');
+    }
+
+    return errors;
+  }
+
+  /// Check if order status is valid
+  static bool isValidStatus(String status) {
+    const validStatuses = {
+      'pending_payment',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+      'rejected'
+    };
+    return validStatuses.contains(status);
+  }
+
+  /// Check if payment method is valid
+  static bool isValidPaymentMethod(String method) {
+    const validMethods = {'qr_code', 'cash_on_delivery'};
+    return validMethods.contains(method);
+  }
+
+  /// Check if order can be cancelled
+  bool get canBeCancelled {
+    const cancellableStatuses = {'pending_payment', 'processing'};
+    return cancellableStatuses.contains(status);
+  }
+
+  /// Check if order can be shipped
+  bool get canBeShipped {
+    return status == 'processing';
+  }
+
+  /// Check if order can be delivered
+  bool get canBeDelivered {
+    return status == 'shipped';
+  }
+
+  /// Check if order is in final status
+  bool get isFinalized {
+    const finalStatuses = {'delivered', 'cancelled', 'rejected'};
+    return finalStatuses.contains(status);
+  }
+
+  /// Check if payment is required
+  bool get requiresPayment {
+    return status == 'pending_payment';
+  }
+
+  /// Check if payment is cash on delivery
+  bool get isCashOnDelivery {
+    return paymentMethod == 'cash_on_delivery';
+  }
+
+  /// Check if payment is QR code
+  bool get isQRPayment {
+    return paymentMethod == 'qr_code';
+  }
+
+  /// Get order status in Thai
+  String get statusInThai {
+    switch (status) {
+      case 'pending_payment':
+        return 'รอการชำระเงิน';
+      case 'processing':
+        return 'กำลังเตรียมสินค้า';
+      case 'shipped':
+        return 'จัดส่งแล้ว';
+      case 'delivered':
+        return 'จัดส่งสำเร็จ';
+      case 'cancelled':
+        return 'ยกเลิกแล้ว';
+      case 'rejected':
+        return 'ถูกปฏิเสธ';
+      default:
+        return 'สถานะไม่ทราบ';
+    }
+  }
+
+  /// Get payment method in Thai
+  String get paymentMethodInThai {
+    switch (paymentMethod) {
+      case 'qr_code':
+        return 'โอนเงินผ่าน QR Code';
+      case 'cash_on_delivery':
+        return 'เก็บเงินปลายทาง';
+      default:
+        return 'ไม่ระบุ';
+    }
+  }
+
+  /// Calculate total eco score for this order
+  double get totalEcoScore {
+    if (items.isEmpty) return 0.0;
+    double totalScore = 0.0;
+    for (final item in items) {
+      totalScore += item.ecoScore * item.quantity;
+    }
+    return totalScore /
+        items.fold<int>(0, (total, item) => total + item.quantity);
+  }
+
+  /// Get order age in days
+  int get ageInDays {
+    return DateTime.now().difference(orderDate.toDate()).inDays;
+  }
+
+  /// Check if order is overdue (more than 7 days in pending_payment)
+  bool get isOverdue {
+    return status == 'pending_payment' && ageInDays > 7;
+  }
+
+  /// Get formatted total amount
+  String get formattedTotalAmount {
+    return '฿${totalAmount.toStringAsFixed(2)}';
+  }
+
+  /// Get formatted shipping fee
+  String get formattedShippingFee {
+    return '฿${shippingFee.toStringAsFixed(2)}';
+  }
+
+  /// Get formatted subtotal
+  String get formattedSubTotal {
+    return '฿${subTotal.toStringAsFixed(2)}';
+  }
+
+  /// Get total quantity of items
+  int get totalQuantity {
+    return items.fold<int>(0, (total, item) => total + item.quantity);
+  }
+
+  /// Check if order has tracking information
+  bool get hasTracking {
+    return trackingNumber != null && trackingNumber!.isNotEmpty;
+  }
+
+  /// Get estimated delivery date (7 days from order date)
+  DateTime? get estimatedDeliveryDate {
+    if (status == 'delivered' && deliveredAt != null) {
+      return deliveredAt!.toDate();
+    }
+    return orderDate.toDate().add(const Duration(days: 7));
+  }
+
   // Factory for Firestore DocumentSnapshot
   factory Order.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -208,5 +400,42 @@ class Order {
       deliveredAt: deliveredAt ?? this.deliveredAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  // === ENHANCED UTILITY METHODS ===
+
+  @override
+  String toString() {
+    return 'Order(id: $id, userId: $userId, status: $status, '
+        'totalAmount: $formattedTotalAmount, orderDate: ${orderDate.toDate()}, '
+        'items: ${items.length}, sellers: ${sellerIds.length})';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Order &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          userId == other.userId;
+
+  @override
+  int get hashCode => id.hashCode ^ userId.hashCode;
+
+  /// Create a JSON representation for debugging
+  Map<String, dynamic> toDebugJson() {
+    return {
+      'id': id,
+      'status': status,
+      'statusThai': statusInThai,
+      'totalAmount': formattedTotalAmount,
+      'itemCount': items.length,
+      'sellerCount': sellerIds.length,
+      'isValid': isValid,
+      'canBeCancelled': canBeCancelled,
+      'hasTracking': hasTracking,
+      'ageInDays': ageInDays,
+      'validationErrors': validationErrors,
+    };
   }
 }

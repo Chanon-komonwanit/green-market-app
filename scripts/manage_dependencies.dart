@@ -1,18 +1,15 @@
 #!/usr/bin/env dart
-
-/// Green Market - Dependency Management Script
-/// สคริปต์สำหรับจัดการ dependencies ของโปรเจค
-///
-/// การใช้งาน:
-/// ```bash
-/// dart run scripts/manage_dependencies.dart [command]
-/// ```
-///
-/// Commands:
-/// - check: ตรวจสอบ dependencies ที่ล้าสมัย
-/// - update: อัพเดต dependencies ที่ปลอดภัย
-/// - audit: ตรวจสอบความปลอดภัย
-/// - clean: ทำความสะอาด cache
+// Green Market - Dependency Management Script
+// สคริปต์สำหรับจัดการ dependencies ของโปรเจค
+//
+// การใช้งาน:
+// dart run scripts/manage_dependencies.dart [command]
+//
+// Commands:
+// - check: ตรวจสอบ dependencies ที่ล้าสมัย
+// - update: อัพเดต dependencies ที่ปลอดภัย
+// - audit: ตรวจสอบความปลอดภัย
+// - clean: ทำความสะอาด cache
 
 import 'dart:io';
 

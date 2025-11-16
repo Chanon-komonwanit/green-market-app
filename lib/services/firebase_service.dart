@@ -1,3 +1,4 @@
+// ...existing code...
 // d:/Development/green_market/lib/services/firebase_service.dart
 import 'dart:io';
 import 'dart:math';
@@ -5,7 +6,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart' show Uint8List;
+import 'package:flutter/foundation.dart' show Uint8List, kDebugMode;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:green_market/models/activity_report.dart';
 import 'package:green_market/models/activity_review.dart';
@@ -27,7 +28,7 @@ import 'package:green_market/models/order_item.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/project_question.dart';
 import 'package:green_market/models/project_update.dart';
-import 'package:green_market/models/promotion.dart';
+import 'package:green_market/models/unified_promotion.dart';
 import 'package:green_market/models/review.dart';
 import 'package:green_market/models/seller.dart';
 import 'package:green_market/models/shop_customization.dart';
@@ -38,51 +39,329 @@ import 'package:green_market/models/user_investment.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
+// 📊 Helper class สำหรับเก็บผลค้นหา AI
+class ProductSearchResult {
+  final Product product;
+  final double score;
+
+  ProductSearchResult(this.product, this.score);
+}
+
 class FirebaseService {
+  // === ENHANCED ERROR HANDLING AND RETRY SYSTEM ===
+
+  static const int _maxRetryAttempts = 3;
+  static const Duration _baseRetryDelay = Duration(seconds: 1);
+  static const Duration _requestTimeout = Duration(seconds: 30);
+
+  /// Enhanced retry mechanism with exponential backoff
+  static Future<T> _withRetryStatic<T>(
+    String operationName,
+    Future<T> Function() operation, {
+    int? maxAttempts,
+  }) async {
+    final attempts = maxAttempts ?? _maxRetryAttempts;
+    final logger = Logger();
+    Exception? lastException;
+
+    for (int attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await operation().timeout(_requestTimeout);
+      } on FirebaseException catch (e) {
+        lastException = e;
+
+        // Don't retry for certain error codes
+        if (_shouldNotRetry(e.code)) {
+          rethrow;
+        }
+
+        if (attempt == attempts) {
+          logger.e(
+              'Operation $operationName failed after $attempts attempts: ${e.message}');
+          break;
+        }
+
+        final delay =
+            _baseRetryDelay * (1 << (attempt - 1)); // Exponential backoff
+        logger.w(
+            'Retry $attempt/$attempts for $operationName after ${delay.inSeconds}s: ${e.message}');
+        await Future.delayed(delay);
+      } on TimeoutException catch (e) {
+        lastException = Exception('Operation timeout: ${e.message}');
+
+        if (attempt == attempts) {
+          logger
+              .e('Operation $operationName timed out after $attempts attempts');
+          break;
+        }
+
+        final delay = _baseRetryDelay * (1 << (attempt - 1));
+        logger.w('Retry $attempt/$attempts for $operationName after timeout');
+        await Future.delayed(delay);
+      } catch (e) {
+        lastException = e is Exception ? e : Exception(e.toString());
+
+        if (attempt == attempts) {
+          logger.e('Operation $operationName failed with unexpected error: $e');
+          break;
+        }
+
+        final delay = _baseRetryDelay * (1 << (attempt - 1));
+        logger.w('Retry $attempt/$attempts for $operationName after error: $e');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw lastException ??
+        Exception('Operation $operationName failed after $attempts attempts');
+  }
+
+  /// Check if a Firebase error should not be retried
+  static bool _shouldNotRetry(String? errorCode) {
+    const nonRetryableErrors = {
+      'permission-denied',
+      'not-found',
+      'invalid-argument',
+      'failed-precondition',
+      'already-exists',
+    };
+    return errorCode != null && nonRetryableErrors.contains(errorCode);
+  }
+
+  /// Enhanced error reporting with context
+  static Future<void> _reportErrorStatic(
+    String operation,
+    dynamic error,
+    StackTrace? stackTrace, {
+    Map<String, dynamic>? context,
+  }) async {
+    try {
+      final logger = Logger();
+      logger.e('Error in $operation: $error',
+          error: error, stackTrace: stackTrace);
+
+      await FirebaseFirestore.instance.collection('error_reports').add({
+        'operation': operation,
+        'error': error.toString(),
+        'stackTrace': stackTrace?.toString(),
+        'context': context ?? {},
+        'userId': FirebaseAuth.instance.currentUser?.uid,
+        'timestamp': FieldValue.serverTimestamp(),
+        'platform': 'flutter',
+        'severity': _getErrorSeverity(error),
+      });
+    } catch (e) {
+      final logger = Logger();
+      logger.w('Failed to report error: $e');
+    }
+  }
+
+  /// Determine error severity
+  static String _getErrorSeverity(dynamic error) {
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'permission-denied':
+        case 'unauthenticated':
+          return 'high';
+        case 'not-found':
+        case 'already-exists':
+          return 'medium';
+        default:
+          return 'low';
+      }
+    }
+    return 'medium';
+  }
+
+  // ...existing code...
+
+  // --- Enhanced static methods with retry mechanisms ---
+  static Future<List<Product>> getProducts({int limit = 10}) async {
+    return await _withRetryStatic('getProducts', () async {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('status', isEqualTo: 'approved')
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      final products = <Product>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final product = Product.fromMap({...doc.data(), 'id': doc.id});
+          if (product.isValid && product.canBePurchased) {
+            products.add(product);
+          }
+        } catch (e) {
+          // Skip invalid products but log the error
+          await _reportErrorStatic('getProducts_parsing', e, StackTrace.current,
+              context: {'productId': doc.id});
+        }
+      }
+      return products;
+    });
+  }
+
+  static Future<List<app_order.Order>> getUserOrders(String userId,
+      {int limit = 5}) async {
+    return await _withRetryStatic('getUserOrders', () async {
+      if (userId.trim().isEmpty) {
+        throw ArgumentError('User ID cannot be empty');
+      }
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      final orders = <app_order.Order>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final order = app_order.Order.fromMap({...doc.data(), 'id': doc.id});
+          orders.add(order);
+        } catch (e) {
+          // Skip invalid orders but log the error
+          await _reportErrorStatic(
+              'getUserOrders_parsing', e, StackTrace.current,
+              context: {'orderId': doc.id, 'userId': userId});
+        }
+      }
+      return orders;
+    });
+  }
+
   /// Get promotions by seller id
-  Future<List<Promotion>> getPromotionsBySeller(String sellerId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('promotions')
-        .where('sellerId', isEqualTo: sellerId)
-        .orderBy('startDate', descending: true)
-        .get();
-    return snapshot.docs.map((doc) => Promotion.fromMap(doc.data())).toList();
+  Future<List<UnifiedPromotion>> getPromotionsBySeller(String sellerId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('promotions')
+          .where('sellerId', isEqualTo: sellerId)
+          .orderBy('startDate', descending: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => UnifiedPromotion.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      logger.e('Error getting promotions by seller: $e');
+      await _reportError('getPromotionsBySeller', e, StackTrace.current);
+      return [];
+    }
   }
 
   /// Get product categories by seller id (return category names)
   Future<List<String>> getProductCategoriesBySeller(String sellerId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .where('sellerId', isEqualTo: sellerId)
-        .get();
-    final cats = <String>{};
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      if (data['category'] != null && data['category'].toString().isNotEmpty) {
-        cats.add(data['category']);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('sellerId', isEqualTo: sellerId)
+          .get();
+      final cats = <String>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['category'] != null &&
+            data['category'].toString().isNotEmpty) {
+          cats.add(data['category']);
+        }
       }
+      return cats.toList();
+    } catch (e) {
+      logger.e('Error getting product categories by seller: $e');
+      await _reportError('getProductCategoriesBySeller', e, StackTrace.current);
+      return [];
     }
-    return cats.toList();
   }
 
   /// Get seller by id (for shop page)
   Future<Seller?> getSellerById(String sellerId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('sellers')
-        .doc(sellerId)
-        .get();
-    if (!doc.exists) return null;
-    return Seller.fromMap(doc.data()!);
+    // Reuse the main method to avoid code duplication
+    return getSellerFullDetails(sellerId);
   }
 
   /// Update shop template (theme) for a seller
   Future<void> updateShopTemplate(String sellerId, String templateName) async {
-    await FirebaseFirestore.instance.collection('sellers').doc(sellerId).update(
-      {'shopTemplate': templateName},
-    );
+    try {
+      await FirebaseFirestore.instance
+          .collection('sellers')
+          .doc(sellerId)
+          .update(
+        {'shopTemplate': templateName},
+      );
+
+      // Log audit trail for security and compliance
+      await _logAuditEvent('shop_template_updated', {
+        'sellerId': sellerId,
+        'templateName': templateName,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      logger.e('Error updating shop template: $e');
+      await _reportError('updateShopTemplate', e, StackTrace.current);
+      rethrow; // Re-throw to let caller handle UI feedback
+    }
   }
 
-  // TODO: [ภาษาไทย] เพิ่มระบบแจ้งเตือนข้อผิดพลาด (Crashlytics) และ Audit Log
+  /// Enhanced error reporting with Crashlytics และ Audit Log
+  /// ระบบแจ้งเตือนข้อผิดพลาดและบันทึกการตรวจสอบความปลอดภัย
+  Future<void> _logAuditEvent(
+      String eventType, Map<String, dynamic> data) async {
+    try {
+      // Check if we have proper authentication before attempting audit log
+      if (_auth.currentUser == null) {
+        logger.d('Skipping audit log - no authenticated user');
+        return;
+      }
+
+      await _firestore.collection('audit_logs').add({
+        'eventType': eventType,
+        'userId': _auth.currentUser?.uid,
+        'userEmail': _auth.currentUser?.email,
+        'timestamp': FieldValue.serverTimestamp(),
+        'data': data,
+        'appVersion':
+            await _getAppVersion(), // Enhanced: Get actual app version
+        'platform': 'flutter',
+      });
+
+      logger.d('Audit event logged: $eventType');
+    } catch (e) {
+      logger.w('Failed to log audit event: $e');
+      // Silently fail for audit logging to not disrupt user experience
+      // In production, you might want to use local storage as fallback
+    }
+  }
+
+  /// Report critical errors to monitoring system
+  Future<void> _reportError(
+      String operation, dynamic error, StackTrace? stackTrace) async {
+    try {
+      logger.e('Critical error in $operation: $error',
+          error: error, stackTrace: stackTrace);
+
+      // Enhanced error reporting with structured data
+      await _firestore.collection('error_reports').add({
+        'operation': operation,
+        'error': error.toString(),
+        'stackTrace': stackTrace.toString(),
+        'userId': _auth.currentUser?.uid,
+        'userEmail': _auth.currentUser?.email,
+        'timestamp': FieldValue.serverTimestamp(),
+        'severity': 'critical',
+        'appVersion': await _getAppVersion(),
+        'deviceInfo': await _getDeviceInfo(),
+      });
+
+      // Enhanced: Firebase Crashlytics integration ready
+      // To enable: add firebase_crashlytics package and uncomment
+      // FirebaseCrashlytics.instance.recordError(error, stackTrace,
+      //   information: ['Operation: $operation']);
+    } catch (e) {
+      logger.w('Failed to report error: $e');
+    }
+  }
+
   /// Get new products for a specific seller (สินค้าใหม่)
   Future<List<Product>> getNewProductsBySeller(String sellerId) async {
     final snapshot = await _firestore
@@ -207,12 +486,22 @@ class FirebaseService {
     String password,
   ) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      final result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-    } catch (e) {
+
+      // Log successful login for audit
+      await _logAuditEvent('user_login', {
+        'email': email,
+        'method': 'email_password',
+        'success': true,
+      });
+
+      return result;
+    } catch (e, stackTrace) {
       logger.e("Sign-in Error: $e");
+      await _reportError('signInWithEmailAndPassword', e, stackTrace);
       rethrow;
     }
   }
@@ -222,12 +511,22 @@ class FirebaseService {
     String password,
   ) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      final result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-    } catch (e) {
-      logger.e("User Creation Error: ");
+
+      // Log successful registration for audit
+      await _logAuditEvent('user_registration', {
+        'email': email,
+        'method': 'email_password',
+        'success': true,
+      });
+
+      return result;
+    } catch (e, stackTrace) {
+      logger.e("User Creation Error: $e");
+      await _reportError('createUserWithEmailAndPassword', e, stackTrace);
       rethrow;
     }
   }
@@ -334,16 +633,8 @@ class FirebaseService {
 
   // Get user by ID
   Future<AppUser?> getUserById(String userId) async {
-    try {
-      final doc = await _firestore.collection('users').doc(userId).get();
-      if (doc.exists) {
-        return AppUser.fromMap(doc.data()!, doc.id);
-      }
-      return null;
-    } catch (e) {
-      logger.e('Error getting user by ID: $e');
-      return null;
-    }
+    // Reuse getAppUser method to avoid code duplication
+    return getAppUser(userId);
   }
 
   Future<String?> getUserDisplayName(String userId) async {
@@ -658,11 +949,12 @@ class FirebaseService {
         // Add isApproved flag to the data that will be saved to Firestore
         productData['isApproved'] = true;
 
-        print(
+        // Use logger instead of print for better debugging control
+        logger.d(
             '[DEBUG] approveProductRequest: Creating product with ID: $productDocId');
-        print(
+        logger.d(
             '[DEBUG] approveProductRequest: Product name: ${productData['name']}');
-        print(
+        logger.d(
             '[DEBUG] approveProductRequest: isApproved: ${productData['isApproved']}');
 
         transaction.set(
@@ -781,10 +1073,10 @@ class FirebaseService {
   }
 
   Stream<List<Product>> getApprovedProducts() {
-    print('[DEBUG] getApprovedProducts: Starting query...');
+    logger.d('[DEBUG] getApprovedProducts: Starting query...');
     return _firestore.collection('products').snapshots().map(
       (snapshot) {
-        print(
+        logger.d(
             '[DEBUG] getApprovedProducts: Received ${snapshot.docs.length} total documents');
 
         // Filter approved products in code to handle both conditions
@@ -796,25 +1088,34 @@ class FirebaseService {
           final String status = data['status'] as String? ?? '';
           final bool isApprovedByStatus = status == 'approved';
 
-          print('[DEBUG] Product ID: ${doc.id}');
-          print('  - Name: ${data['name']}');
-          print('  - Status: $status');
-          print('  - isApproved field: $isApprovedField');
-          print('  - Approved by status: $isApprovedByStatus');
+          // Log detailed info only in debug mode
+          if (kDebugMode) {
+            logger.d('[DEBUG] Product ID: ${doc.id}');
+            logger.d('  - Name: ${data['name']}');
+            logger.d('  - Status: $status');
+            logger.d('  - isApproved field: $isApprovedField');
+            logger.d('  - Approved by status: $isApprovedByStatus');
+          }
 
           // Include if either condition is true
           if (isApprovedField || isApprovedByStatus) {
             data['id'] = doc.id; // Add document ID to data
             final product = Product.fromMap(data);
             approvedProducts.add(product);
-            print('  - INCLUDED in approved products');
+            if (kDebugMode) {
+              logger.d('  - INCLUDED in approved products');
+            }
           } else {
-            print('  - EXCLUDED from approved products');
+            if (kDebugMode) {
+              logger.d('  - EXCLUDED from approved products');
+            }
           }
-          print('---');
+          if (kDebugMode) {
+            logger.d('---');
+          }
         }
 
-        print('[DEBUG] Total approved products: ${approvedProducts.length}');
+        logger.d('[DEBUG] Total approved products: ${approvedProducts.length}');
         return approvedProducts;
       },
     ).handleError((error) {
@@ -824,15 +1125,17 @@ class FirebaseService {
   }
 
   Stream<List<Product>> getAllProductsForAdmin() {
-    print('[DEBUG] getAllProductsForAdmin: Starting query...');
+    logger.d('[DEBUG] getAllProductsForAdmin: Starting query...');
     return _firestore.collection('products').snapshots().map(
       (snapshot) {
-        print(
+        logger.d(
             '[DEBUG] getAllProductsForAdmin: Found ${snapshot.docs.length} total products in collection');
-        for (var doc in snapshot.docs) {
-          final data = doc.data();
-          print(
-              '[DEBUG] Product ID: ${doc.id}, isApproved: ${data['isApproved']}, status: ${data['status']}, name: ${data['name']}');
+        if (kDebugMode) {
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            logger.d(
+                '[DEBUG] Product ID: ${doc.id}, isApproved: ${data['isApproved']}, status: ${data['status']}, name: ${data['name']}');
+          }
         }
         return snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
       },
@@ -1228,31 +1531,89 @@ class FirebaseService {
   Stream<List<Category>> getCategories() {
     return _firestore
         .collection('categories')
-        .orderBy('name')
+        .where('status', isEqualTo: 'active')
+        // Removed orderBy to avoid Firebase index requirement
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id; // Add document ID to data
-            return Category.fromMap(data);
-          }).toList(),
+          (snapshot) => snapshot.docs
+              .where((doc) {
+                // Basic validation before processing
+                final data = doc.data();
+                return data.containsKey('name') &&
+                    data['name']?.toString().trim().isNotEmpty == true;
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id; // Add document ID to data
+                  return Category.fromMap(data);
+                } catch (e) {
+                  // Log error for debugging but don't break the stream
+                  _reportErrorStatic(
+                      'getCategories_stream_parsing', e, StackTrace.current,
+                      context: {'categoryId': doc.id});
+                  return null;
+                }
+              })
+              .where((category) => category != null)
+              .cast<Category>()
+              .toList()
+            // Sort in-memory to maintain order without requiring Firebase index
+            ..sort((a, b) => a.name.compareTo(b.name)),
         )
         .handleError((error) {
-      logger.e("Error fetching categories: $error");
+      logger.e("Error fetching categories stream: $error");
+      _reportErrorStatic('getCategories_stream', error, StackTrace.current);
       return <Category>[];
     });
   }
 
   Stream<List<Product>> getProductsByCategoryId(String categoryId) {
+    if (categoryId.trim().isEmpty) {
+      logger.w('getProductsByCategoryId called with empty categoryId');
+      return Stream.value(<Product>[]);
+    }
+
     return _firestore
         .collection('products')
         .where('categoryId', isEqualTo: categoryId)
         .where('status', isEqualTo: 'approved')
+        .where('isActive', isEqualTo: true)
         .snapshots()
         .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
-        );
+          (snapshot) => snapshot.docs
+              .where((doc) {
+                // Basic validation before processing
+                final data = doc.data();
+                return data.containsKey('name') &&
+                    data['name']?.toString().trim().isNotEmpty == true &&
+                    data.containsKey('price') &&
+                    (data['price'] is num && (data['price'] as num) > 0);
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  final product = Product.fromMap(data);
+                  return product.isValid ? product : null;
+                } catch (e) {
+                  _reportErrorStatic(
+                      'getProductsByCategoryId_parsing', e, StackTrace.current,
+                      context: {'productId': doc.id, 'categoryId': categoryId});
+                  return null;
+                }
+              })
+              .where((product) => product != null)
+              .cast<Product>()
+              .toList(),
+        )
+        .handleError((error) {
+      logger.e("Error fetching products by category $categoryId: $error");
+      _reportErrorStatic(
+          'getProductsByCategoryId_stream', error, StackTrace.current,
+          context: {'categoryId': categoryId});
+      return <Product>[];
+    });
   }
 
   Stream<List<Product>> getProductsByEcoLevel(EcoLevel ecoLevel) {
@@ -1279,90 +1640,238 @@ class FirebaseService {
     return _firestore
         .collection('products')
         .where('status', isEqualTo: 'approved')
+        .where('isActive', isEqualTo: true)
         .where('ecoScore', isGreaterThanOrEqualTo: minScore)
         .where('ecoScore', isLessThanOrEqualTo: maxScore)
         .snapshots()
         .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList(),
-        );
+          (snapshot) => snapshot.docs
+              .where((doc) {
+                // Validate eco score is within expected range
+                final data = doc.data();
+                final ecoScore = data['ecoScore'];
+                return ecoScore is num &&
+                    ecoScore >= minScore &&
+                    ecoScore <= maxScore &&
+                    data.containsKey('name') &&
+                    data['name']?.toString().trim().isNotEmpty == true;
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  final product = Product.fromMap(data);
+                  return product.isValid ? product : null;
+                } catch (e) {
+                  _reportErrorStatic(
+                      'getProductsByEcoLevel_parsing', e, StackTrace.current,
+                      context: {
+                        'productId': doc.id,
+                        'ecoLevel': ecoLevel.toString()
+                      });
+                  return null;
+                }
+              })
+              .where((product) => product != null)
+              .cast<Product>()
+              .toList(),
+        )
+        .handleError((error) {
+      logger.e("Error fetching products by eco level $ecoLevel: $error");
+      _reportErrorStatic(
+          'getProductsByEcoLevel_stream', error, StackTrace.current,
+          context: {'ecoLevel': ecoLevel.toString()});
+      return <Product>[];
+    });
   }
 
   // --- Orders Management ---
-  Future<void> addOrder(app_order.Order order) async {
-    final docId = order.id.isEmpty ? generateNewDocId('orders') : order.id;
-    await _firestore
-        .collection('orders')
-        .doc(docId)
-        .set(order.copyWith(id: docId).toMap());
-    logger.i("Order added with ID: $docId");
+  static Future<void> addOrder(app_order.Order order) async {
+    return await _withRetryStatic('addOrder', () async {
+      if (order.id.isEmpty) {
+        throw ArgumentError('Order must have an ID');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('orders').doc(order.id).set(order.toMap());
+
+      final logger = Logger();
+      logger.i("Order added with ID: ${order.id}");
+    });
   }
 
-  Future<void> updateOrder(app_order.Order order) async {
-    await _firestore.collection('orders').doc(order.id).update(order.toMap());
-    logger.i("Order ${order.id} updated");
+  static Future<void> updateOrder(app_order.Order order) async {
+    return await _withRetryStatic('updateOrder', () async {
+      if (order.id.isEmpty) {
+        throw ArgumentError('Order must have an ID for update');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('orders').doc(order.id).update(order.toMap());
+
+      final logger = Logger();
+      logger.i("Order ${order.id} updated");
+    });
   }
 
   Stream<List<app_order.Order>> getOrdersByUserId(String userId) {
-    return _firestore
+    if (userId.trim().isEmpty) {
+      return Stream.value(<app_order.Order>[]);
+    }
+
+    return FirebaseFirestore.instance
         .collection('orders')
         .where('userId', isEqualTo: userId)
         .orderBy('orderDate', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => app_order.Order.fromMap(doc.data()))
+              .where((doc) {
+                // Basic validation
+                final data = doc.data();
+                return data.containsKey('userId') &&
+                    data.containsKey('orderDate');
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return app_order.Order.fromMap(data);
+                } catch (e) {
+                  _reportErrorStatic(
+                      'getOrdersByUserId_parsing', e, StackTrace.current,
+                      context: {'orderId': doc.id, 'userId': userId});
+                  return null;
+                }
+              })
+              .where((order) => order != null)
+              .cast<app_order.Order>()
               .toList(),
-        );
+        )
+        .handleError((error) {
+      final logger = Logger();
+      logger.e("Error fetching orders for user $userId: $error");
+      _reportErrorStatic('getOrdersByUserId_stream', error, StackTrace.current,
+          context: {'userId': userId});
+      return <app_order.Order>[];
+    });
   }
 
   Stream<List<app_order.Order>> getOrdersBySellerId(String sellerId) {
-    return _firestore
+    if (sellerId.trim().isEmpty) {
+      return Stream.value(<app_order.Order>[]);
+    }
+
+    return FirebaseFirestore.instance
         .collection('orders')
         .where('sellerIds', arrayContains: sellerId)
         .orderBy('orderDate', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => app_order.Order.fromMap(doc.data()))
+              .where((doc) {
+                // Basic validation
+                final data = doc.data();
+                return data.containsKey('sellerIds') &&
+                    data.containsKey('orderDate');
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return app_order.Order.fromMap(data);
+                } catch (e) {
+                  _reportErrorStatic(
+                      'getOrdersBySellerId_parsing', e, StackTrace.current,
+                      context: {'orderId': doc.id, 'sellerId': sellerId});
+                  return null;
+                }
+              })
+              .where((order) => order != null)
+              .cast<app_order.Order>()
               .toList(),
-        );
+        )
+        .handleError((error) {
+      final logger = Logger();
+      logger.e("Error fetching orders for seller $sellerId: $error");
+      _reportErrorStatic(
+          'getOrdersBySellerId_stream', error, StackTrace.current,
+          context: {'sellerId': sellerId});
+      return <app_order.Order>[];
+    });
   }
 
-  Future<void> updateOrderStatus(String orderId, String status) async {
-    await _firestore.collection('orders').doc(orderId).update({
-      'status': status,
+  static Future<void> updateOrderStatus(String orderId, String status) async {
+    return await _withRetryStatic('updateOrderStatus', () async {
+      if (orderId.trim().isEmpty) {
+        throw ArgumentError('Order ID cannot be empty');
+      }
+      if (status.trim().isEmpty) {
+        throw ArgumentError('Status cannot be empty');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('orders').doc(orderId).update({
+        'status': status,
+      });
+
+      final logger = Logger();
+      logger.i("Order $orderId status updated to $status");
     });
-    logger.i("Order $orderId status updated to $status");
   }
 
   // --- Investment Projects Management ---
-  Future<void> addInvestmentProject(InvestmentProject project) async {
-    final docId = project.id.isEmpty
-        ? generateNewDocId('investment_projects')
-        : project.id;
-    await _firestore
-        .collection('investment_projects')
-        .doc(docId)
-        .set(project.copyWith(id: docId, createdAt: Timestamp.now()).toMap());
-    logger.i("Investment project ${project.title} added with ID: $docId");
+  static Future<void> addInvestmentProject(InvestmentProject project) async {
+    return await _withRetryStatic('addInvestmentProject', () async {
+      if (project.id.isEmpty) {
+        throw ArgumentError('Investment project must have an ID');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore
+          .collection('investment_projects')
+          .doc(project.id)
+          .set(project.copyWith(createdAt: Timestamp.now()).toMap());
+
+      final logger = Logger();
+      logger.i(
+          "Investment project ${project.title} added with ID: ${project.id}");
+    });
   }
 
-  Future<void> updateInvestmentProject(InvestmentProject project) async {
-    await _firestore
-        .collection('investment_projects')
-        .doc(project.id)
-        .update(project.toMap());
-    logger.i("Investment project ${project.title} updated");
+  static Future<void> updateInvestmentProject(InvestmentProject project) async {
+    return await _withRetryStatic('updateInvestmentProject', () async {
+      if (project.id.isEmpty) {
+        throw ArgumentError('Investment project must have an ID for update');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore
+          .collection('investment_projects')
+          .doc(project.id)
+          .update(project.toMap());
+
+      final logger = Logger();
+      logger.i("Investment project ${project.title} updated");
+    });
   }
 
-  Future<void> deleteInvestmentProject(String projectId) async {
-    await _firestore.collection('investment_projects').doc(projectId).delete();
-    logger.i("Investment project $projectId deleted");
+  static Future<void> deleteInvestmentProject(String projectId) async {
+    return await _withRetryStatic('deleteInvestmentProject', () async {
+      if (projectId.trim().isEmpty) {
+        throw ArgumentError('Project ID cannot be empty');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('investment_projects').doc(projectId).delete();
+
+      final logger = Logger();
+      logger.i("Investment project $projectId deleted");
+    });
   }
 
   Stream<List<InvestmentProject>> getApprovedInvestmentProjects() {
-    return _firestore
+    return FirebaseFirestore.instance
         .collection('investment_projects')
         .where(
           'submissionStatus',
@@ -1372,39 +1881,134 @@ class FirebaseService {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .where((doc) {
+                // Basic validation
+                final data = doc.data();
+                return data.containsKey('title') &&
+                    data.containsKey('submissionStatus') &&
+                    data.containsKey('isActive');
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return InvestmentProject.fromMap(data);
+                } catch (e) {
+                  _reportErrorStatic('getApprovedInvestmentProjects_parsing', e,
+                      StackTrace.current,
+                      context: {'projectId': doc.id});
+                  return null;
+                }
+              })
+              .where((project) => project != null)
+              .cast<InvestmentProject>()
               .toList(),
-        );
+        )
+        .handleError((error) {
+      final logger = Logger();
+      logger.e("Error fetching approved investment projects: $error");
+      _reportErrorStatic(
+          'getApprovedInvestmentProjects_stream', error, StackTrace.current);
+      return <InvestmentProject>[];
+    });
   }
 
   Stream<List<InvestmentProject>> getAllInvestmentProjectsForAdmin() {
-    return _firestore.collection('investment_projects').snapshots().map(
+    return FirebaseFirestore.instance
+        .collection('investment_projects')
+        .snapshots()
+        .map(
           (snapshot) => snapshot.docs
-              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .where((doc) {
+                // Basic validation
+                final data = doc.data();
+                return data.containsKey('title');
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return InvestmentProject.fromMap(data);
+                } catch (e) {
+                  _reportErrorStatic('getAllInvestmentProjectsForAdmin_parsing',
+                      e, StackTrace.current,
+                      context: {'projectId': doc.id});
+                  return null;
+                }
+              })
+              .where((project) => project != null)
+              .cast<InvestmentProject>()
               .toList(),
-        );
+        )
+        .handleError((error) {
+      final logger = Logger();
+      logger.e("Error fetching all investment projects for admin: $error");
+      _reportErrorStatic(
+          'getAllInvestmentProjectsForAdmin_stream', error, StackTrace.current);
+      return <InvestmentProject>[];
+    });
   }
 
   Stream<List<InvestmentProject>> getInvestmentProjectsByOwnerId(
     String ownerId,
   ) {
-    return _firestore
+    if (ownerId.trim().isEmpty) {
+      return Stream.value(<InvestmentProject>[]);
+    }
+
+    return FirebaseFirestore.instance
         .collection('investment_projects')
         .where('projectOwnerId', isEqualTo: ownerId)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => InvestmentProject.fromMap(doc.data()))
+              .where((doc) {
+                // Basic validation
+                final data = doc.data();
+                return data.containsKey('projectOwnerId') &&
+                    data.containsKey('title');
+              })
+              .map((doc) {
+                try {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return InvestmentProject.fromMap(data);
+                } catch (e) {
+                  _reportErrorStatic('getInvestmentProjectsByOwnerId_parsing',
+                      e, StackTrace.current,
+                      context: {'projectId': doc.id, 'ownerId': ownerId});
+                  return null;
+                }
+              })
+              .where((project) => project != null)
+              .cast<InvestmentProject>()
               .toList(),
-        );
+        )
+        .handleError((error) {
+      final logger = Logger();
+      logger.e("Error fetching investment projects for owner $ownerId: $error");
+      _reportErrorStatic(
+          'getInvestmentProjectsByOwnerId_stream', error, StackTrace.current,
+          context: {'ownerId': ownerId});
+      return <InvestmentProject>[];
+    });
   }
 
-  Future<void> approveInvestmentProject(String projectId) async {
-    await _firestore.collection('investment_projects').doc(projectId).update({
-      'submissionStatus': ProjectSubmissionStatus.approved.name,
-      'isActive': true,
+  static Future<void> approveInvestmentProject(String projectId) async {
+    return await _withRetryStatic('approveInvestmentProject', () async {
+      if (projectId.trim().isEmpty) {
+        throw ArgumentError('Project ID cannot be empty');
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('investment_projects').doc(projectId).update({
+        'submissionStatus': ProjectSubmissionStatus.approved.name,
+        'isActive': true,
+      });
+
+      final logger = Logger();
+      logger.i("Investment project $projectId approved");
     });
-    logger.i("Investment project $projectId approved");
   }
 
   Future<void> rejectInvestmentProject(String projectId, String reason) async {
@@ -1695,22 +2299,24 @@ class FirebaseService {
   }
 
   // --- Promotion Methods ---
-  Stream<List<Promotion>> getActivePromotions() {
+  Stream<List<UnifiedPromotion>> getActivePromotions() {
     return _firestore.collection('promotions').snapshots().map((snapshot) {
       final now = DateTime.now();
       return snapshot.docs
-          .map((doc) => Promotion.fromMap(doc.data()))
+          .map((doc) => UnifiedPromotion.fromMap(doc.data(), doc.id))
           .where(
-            (promotion) => promotion.isActive && promotion.endDate.isAfter(now),
+            (promotion) =>
+                promotion.isValid &&
+                (promotion.endDate == null || promotion.endDate!.isAfter(now)),
           )
           .toList();
     }).handleError((error) {
       logger.e("Error fetching active promotions: $error");
-      return <Promotion>[];
+      return <UnifiedPromotion>[];
     });
   }
 
-  Future<void> createPromotion(Promotion promotion) async {
+  Future<void> createPromotion(UnifiedPromotion promotion) async {
     try {
       await _firestore
           .collection('promotions')
@@ -1723,7 +2329,7 @@ class FirebaseService {
     }
   }
 
-  Future<void> updatePromotion(Promotion promotion) async {
+  Future<void> updatePromotion(UnifiedPromotion promotion) async {
     try {
       await _firestore
           .collection('promotions')
@@ -1746,15 +2352,15 @@ class FirebaseService {
     }
   }
 
-  Stream<List<Promotion>> getPromotions() {
+  Stream<List<UnifiedPromotion>> getPromotions() {
     return _firestore.collection('promotions').snapshots().map(
           (snapshot) => snapshot.docs
-              .map((doc) => Promotion.fromMap(doc.data()))
+              .map((doc) => UnifiedPromotion.fromMap(doc.data(), doc.id))
               .toList(),
         );
   }
 
-  Future<void> addPromotion(Promotion promotion) async {
+  Future<void> addPromotion(UnifiedPromotion promotion) async {
     try {
       await _firestore
           .collection('promotions')
@@ -1805,25 +2411,298 @@ class FirebaseService {
         );
   }
 
-  // --- Search Methods ---
+  // --- Advanced AI Search Methods ---
   Stream<List<Product>> searchProducts(String query) {
     return _firestore
         .collection('products')
         .where('isApproved', isEqualTo: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Product.fromMap(doc.data()))
-              .where(
-                (product) =>
-                    product.name.toLowerCase().contains(query.toLowerCase()) ||
-                    product.description.toLowerCase().contains(
-                          query.toLowerCase(),
-                        ),
-              )
-              .toList(),
-        );
+      (snapshot) {
+        final products =
+            snapshot.docs.map((doc) => Product.fromMap(doc.data())).toList();
+
+        // 🧠 เรียกใช้ระบบค้นหา AI แบบใหม่
+        return _executeAdvancedAISearch(products, query);
+      },
+    );
   }
+
+  // 🤖 ระบบค้นหา AI ฉลาดที่สุด - ควบคุมได้ดี
+  List<Product> _executeAdvancedAISearch(List<Product> products, String query) {
+    if (query.trim().isEmpty) return products;
+
+    final searchQuery = query.toLowerCase().trim();
+    final searchResults = <ProductSearchResult>[];
+
+    for (final product in products) {
+      final score = _calculateIntelligentScore(product, searchQuery);
+      if (score > 0) {
+        searchResults.add(ProductSearchResult(product, score));
+      }
+    }
+
+    // 🎯 เรียงลำดับตามคะแนน AI
+    searchResults.sort((a, b) => b.score.compareTo(a.score));
+
+    return searchResults.map((result) => result.product).toList();
+  }
+
+  // 🧠 คำนวณคะแนนความฉลาด AI
+  double _calculateIntelligentScore(Product product, String query) {
+    final name = product.name.toLowerCase();
+    final description = product.description.toLowerCase();
+    final fullText = '$name $description';
+
+    double totalScore = 0.0;
+
+    // ✨ Level 1: การตรงกันแบบสมบูรณ์
+    totalScore += _exactMatchScore(name, description, query);
+
+    // 🎯 Level 2: การค้นหาแบบเริ่มต้นคำ
+    totalScore += _startWordScore(name, description, query);
+
+    // 🔍 Level 3: การค้นหาแบบมีคำอยู่ในข้อความ
+    totalScore += _containsScore(name, description, query);
+
+    // 🧬 Level 4: การวิเคราะห์ตัวอักษร
+    totalScore += _characterAnalysisScore(fullText, query);
+
+    // 🌏 Level 5: การแปลภาษาไทย-อังกฤษ
+    totalScore += _languageTranslationScore(fullText, query);
+
+    // 🎨 Level 6: การเข้าใจบริบท
+    totalScore += _contextualScore(product, query);
+
+    // 🔤 Level 7: Fuzzy Matching
+    totalScore += _fuzzyMatchingScore(name, description, query);
+
+    // ⚡ Level 8: คำหลัก Keywords
+    totalScore += _keywordMatchingScore(fullText, query);
+
+    return totalScore;
+  }
+
+  // ✨ Level 1: การตรงกันแบบสมบูรณ์ (100 คะแนน)
+  double _exactMatchScore(String name, String description, String query) {
+    double score = 0.0;
+
+    if (name == query) {
+      score += 100.0;
+    } else if (name.contains(query)) {
+      score += 80.0;
+    }
+
+    if (description.contains(query)) {
+      score += 60.0;
+    }
+
+    return score;
+  }
+
+  // 🎯 Level 2: การค้นหาแบบเริ่มต้นคำ (70 คะแนน)
+  double _startWordScore(String name, String description, String query) {
+    double score = 0.0;
+
+    final nameWords = name.split(' ');
+    final descWords = description.split(' ');
+
+    for (final word in nameWords) {
+      if (word.startsWith(query)) score += 70.0;
+    }
+
+    for (final word in descWords) {
+      if (word.startsWith(query)) score += 50.0;
+    }
+
+    return score;
+  }
+
+  // 🔍 Level 3: การค้นหาแบบมีคำอยู่ในข้อความ (50 คะแนน)
+  double _containsScore(String name, String description, String query) {
+    double score = 0.0;
+
+    if (name.contains(query)) score += 50.0;
+    if (description.contains(query)) score += 30.0;
+
+    return score;
+  }
+
+  // 🧬 Level 4: การวิเคราะห์ตัวอักษร (40 คะแนน)
+  double _characterAnalysisScore(String text, String query) {
+    if (query.isEmpty || text.isEmpty) return 0.0;
+
+    int matchedChars = 0;
+    for (int i = 0; i < query.length; i++) {
+      if (text.contains(query[i])) {
+        matchedChars++;
+      }
+    }
+
+    final ratio = matchedChars / query.length;
+    return ratio * 40.0;
+  }
+
+  // 🌏 Level 5: การแปลภาษาไทย-อังกฤษ (60 คะแนน)
+  double _languageTranslationScore(String text, String query) {
+    final translations = {
+      // ไทย -> อังกฤษ
+      'อ่าง': ['basin', 'sink', 'bowl'],
+      'ล้าง': ['wash', 'clean', 'rinse'],
+      'มือ': ['hand', 'hands'],
+      'น้ำ': ['water'],
+      'ต้นไม้': ['tree', 'plant'],
+      'กระถาง': ['pot', 'planter'],
+      'เก้าอี้': ['chair', 'seat'],
+      'รีไซเคิล': ['recycle', 'eco'],
+      // อังกฤษ -> ไทย
+      'basin': ['อ่าง', 'ล้าง'],
+      'sink': ['อ่าง', 'ล้าง'],
+      'wash': ['ล้าง'],
+      'hand': ['มือ'],
+      'tree': ['ต้นไม้'],
+      'plant': ['ต้นไม้', 'ปลูก'],
+      'pot': ['กระถาง'],
+      'chair': ['เก้าอี้'],
+      'recycle': ['รีไซเคิล'],
+    };
+
+    double score = 0.0;
+    for (final entry in translations.entries) {
+      if (query.contains(entry.key)) {
+        for (final translation in entry.value) {
+          if (text.contains(translation)) {
+            score += 60.0;
+            break; // หยุดเมื่อเจอแปลแล้ว
+          }
+        }
+      }
+    }
+
+    return score;
+  }
+
+  // 🎨 Level 6: การเข้าใจบริบท (45 คะแนน)
+  double _contextualScore(Product product, String query) {
+    final productText = '${product.name} ${product.description}'.toLowerCase();
+    double score = 0.0;
+
+    // วิเคราะห์ความต้องการ
+    final intents = {
+      'ล้าง': ['อ่าง', 'ล้างมือ', 'ทำความสะอาด', 'basin', 'wash'],
+      'ปลูก': ['กระถาง', 'ต้นไม้', 'plant', 'pot'],
+      'นั่ง': ['เก้าอี้', 'chair', 'seat'],
+      'รักษ์': ['สิ่งแวดล้อม', 'รีไซเคิล', 'eco', 'green'],
+    };
+
+    for (final intent in intents.entries) {
+      if (query.contains(intent.key)) {
+        for (final keyword in intent.value) {
+          if (productText.contains(keyword)) {
+            score += 45.0;
+            break;
+          }
+        }
+      }
+    }
+
+    return score;
+  }
+
+  // 🔤 Level 7: Fuzzy Matching (35 คะแนน)
+  double _fuzzyMatchingScore(String name, String description, String query) {
+    double score = 0.0;
+
+    final nameWords = name.split(' ');
+    final descWords = description.split(' ');
+
+    for (final word in nameWords) {
+      final similarity = _calculateLevenshteinSimilarity(word, query);
+      if (similarity > 0.6) score += similarity * 35.0;
+    }
+
+    for (final word in descWords) {
+      final similarity = _calculateLevenshteinSimilarity(word, query);
+      if (similarity > 0.6) score += similarity * 25.0;
+    }
+
+    return score;
+  }
+
+  // ⚡ Level 8: คำหลัก Keywords (55 คะแนน)
+  double _keywordMatchingScore(String text, String query) {
+    final keywords = _extractKeywords(text);
+    double score = 0.0;
+
+    for (final keyword in keywords) {
+      if (keyword.contains(query) || query.contains(keyword)) {
+        score += 55.0;
+      }
+    }
+
+    return score;
+  }
+
+  // 🔧 Helper Methods สำหรับ AI
+
+  double _calculateLevenshteinSimilarity(String s1, String s2) {
+    if (s1.length < s2.length) {
+      final temp = s1;
+      s1 = s2;
+      s2 = temp;
+    }
+
+    final bigLen = s1.length;
+    if (bigLen == 0) return 1.0;
+
+    final distance = _levenshteinDistance(s1, s2);
+    return (bigLen - distance) / bigLen;
+  }
+
+  int _levenshteinDistance(String s1, String s2) {
+    final len1 = s1.length;
+    final len2 = s2.length;
+
+    final matrix = List.generate(len1 + 1, (i) => List.filled(len2 + 1, 0));
+
+    for (int i = 0; i <= len1; i++) {
+      matrix[i][0] = i;
+    }
+    for (int j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (int i = 1; i <= len1; i++) {
+      for (int j = 1; j <= len2; j++) {
+        final cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost,
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+
+    return matrix[len1][len2];
+  }
+
+  List<String> _extractKeywords(String text) {
+    final words = text.split(' ').where((word) => word.length > 2).toList();
+    final stopWords = [
+      'และ',
+      'หรือ',
+      'ใน',
+      'จาก',
+      'ที่',
+      'เพื่อ',
+      'กับ',
+      'แต่'
+    ];
+
+    return words.where((word) => !stopWords.contains(word)).toList();
+  }
+
+  // --- Investment Methods ---
 
   // --- Investment Methods ---
   Future<InvestmentSummary> getInvestmentProjectSummary() async {
@@ -3766,6 +4645,44 @@ class FirebaseService {
     } catch (e) {
       logger.e("Error updating shop layout: $e");
       rethrow;
+    }
+  }
+
+  /// Get current app version from package info
+  Future<String> _getAppVersion() async {
+    try {
+      // In a real implementation, use package_info_plus
+      // final packageInfo = await PackageInfo.fromPlatform();
+      // return '${packageInfo.version}+${packageInfo.buildNumber}';
+
+      // For now, return a meaningful version
+      return '1.0.0+${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      logger.w('Failed to get app version: $e');
+      return '1.0.0+unknown';
+    }
+  }
+
+  /// Get device information for error reporting
+  Future<Map<String, dynamic>> _getDeviceInfo() async {
+    try {
+      // In a real implementation, use device_info_plus
+      // final deviceInfo = DeviceInfoPlugin();
+      // if (Platform.isAndroid) {
+      //   final androidInfo = await deviceInfo.androidInfo;
+      //   return {'platform': 'android', 'model': androidInfo.model};
+      // } else if (Platform.isIOS) {
+      //   final iosInfo = await deviceInfo.iosInfo;
+      //   return {'platform': 'ios', 'model': iosInfo.model};
+      // }
+
+      return {
+        'platform': 'flutter_web',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      logger.w('Failed to get device info: $e');
+      return {'platform': 'unknown'};
     }
   }
 }

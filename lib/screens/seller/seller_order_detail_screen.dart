@@ -33,10 +33,8 @@ class _SellerOrderDetailScreenState extends State<SellerOrderDetailScreen> {
     setState(() {
       _isUpdatingStatus = true;
     });
-    final firebaseService =
-        Provider.of<FirebaseService>(context, listen: false);
     try {
-      await firebaseService.updateOrderStatus(widget.order.id, newStatus);
+      await FirebaseService.updateOrderStatus(widget.order.id, newStatus);
 
       // Send notification to buyer based on status change
       try {

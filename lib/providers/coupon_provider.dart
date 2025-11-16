@@ -175,7 +175,8 @@ class CouponProvider extends ChangeNotifier {
 
     final coupon = _appliedCoupon!;
     final promotion = coupon.promotion;
-    double subtotal = cartItems.fold(0, (sum, item) => sum + item.totalPrice);
+    double subtotal =
+        cartItems.fold(0, (total, item) => total + item.totalPrice);
 
     // ตรวจสอบยอดขั้นต่ำ
     if (promotion.minimumPurchase != null &&
@@ -214,9 +215,22 @@ class CouponProvider extends ChangeNotifier {
         break;
 
       case PromotionType.buyXGetY:
-        // คำนวณตามจำนวนสินค้า
-        // TODO: implement buy X get Y logic
-        details = 'ซื้อ ${promotion.buyQuantity} แถม ${promotion.getQuantity}';
+        // คำนวณ Buy X Get Y promotion
+        if (promotion.buyQuantity != null && promotion.getQuantity != null) {
+          // TODO: ต้องมีการส่งจำนวนสินค้าเข้ามาด้วยเพื่อคำนวณ
+          // สำหรับตอนนี้คืน discount 0 และแสดงรายละเอียด
+          discountAmount = 0;
+
+          // คำนวณจำนวนชุดที่ได้รับโปรโมชั่น
+          // ตัวอย่าง: ถ้าซื้อ 5 ชิ้น โปรโมชั่นซื้อ 2 แถม 1 จะได้ 2 ชุด (แถม 2 ชิ้น)
+          // final totalSets = (itemQuantity / promotion.buyQuantity!).floor();
+          // final freeItems = totalSets * promotion.getQuantity!;
+
+          details =
+              'ซื้อ ${promotion.buyQuantity} แถม ${promotion.getQuantity}';
+        } else {
+          details = 'โปรโมชั่นซื้อแถม';
+        }
         break;
 
       case PromotionType.flashSale:

@@ -28,21 +28,21 @@ class CartIconWithBadge extends StatelessWidget {
               right: 6,
               top: 6,
               child: Container(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(AppDimens.xxSmallPadding),
                 decoration: BoxDecoration(
                   color: AppColors
                       .errorRed, // Ensure AppColors.errorRed is defined
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppDimens.smallRadius),
                 ),
                 constraints: const BoxConstraints(
-                  minWidth: 16,
-                  minHeight: 16,
+                  minWidth: AppDimens.badgeMinSize,
+                  minHeight: AppDimens.badgeMinSize,
                 ),
                 child: Text(
                   cart.itemCount.toString(),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
+                    fontSize: AppDimens.extraSmallFontSize,
                   ),
                   textAlign: TextAlign.center,
                 ),

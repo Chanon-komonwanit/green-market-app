@@ -212,7 +212,7 @@ class ManualShippingProvider extends ShippingProvider {
   Future<bool> cancelShipment(String shipmentId) async {
     try {
       // Update order status to cancelled
-      await _firebaseService.updateOrderStatus(
+      await FirebaseService.updateOrderStatus(
           shipmentId.replaceAll('manual_', ''), 'cancelled');
 
       // Add tracking event

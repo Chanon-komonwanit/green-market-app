@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/theme/app_colors.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/models/product.dart';
@@ -31,12 +32,34 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // เนื่องจากยังไม่มีระบบ wishlist ใน Firebase service ยัง เราจะแสดงหน้าว่างก่อน
-      // TODO: Implement getWishlistProducts in FirebaseService
-      await Future.delayed(
-          const Duration(milliseconds: 500)); // Simulate loading
-      _wishlistProducts = []; // Empty for now
+      // Enhanced: Load wishlist products from Firebase
+      final wishlistSnapshot = await FirebaseFirestore.instance
+          .collection('wishlists')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+
+      final productIds = wishlistSnapshot.docs
+          .map((doc) => doc.data()['productId'] as String)
+          .toList();
+
+      if (productIds.isNotEmpty) {
+        // Load actual product data
+        final productsSnapshot = await FirebaseFirestore.instance
+            .collection('products')
+            .where(FieldPath.documentId, whereIn: productIds)
+            .get();
+
+        _wishlistProducts = productsSnapshot.docs
+            .map((doc) => Product.fromMap({'id': doc.id, ...doc.data()}))
+            .toList();
+      } else {
+        _wishlistProducts = [];
+      }
     } catch (e) {
+      print('Error loading wishlist: $e');
+      // Fallback: show empty list
+      _wishlistProducts = [];
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลดรายการโปรด: $e')),

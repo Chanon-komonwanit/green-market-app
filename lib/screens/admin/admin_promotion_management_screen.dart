@@ -1,6 +1,6 @@
 // lib/screens/admin/admin_promotion_management_screen.dart
 import 'package:flutter/material.dart';
-import 'package:green_market/models/promotion.dart';
+import 'package:green_market/models/unified_promotion.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/app_utils.dart';
@@ -23,7 +23,7 @@ class AdminPromotionManagementScreen extends StatelessWidget {
             style: theme.textTheme.titleLarge
                 ?.copyWith(color: theme.colorScheme.primary)),
       ),
-      body: StreamBuilder<List<Promotion>>(
+      body: StreamBuilder<List<UnifiedPromotion>>(
         stream: firebaseService.getPromotions(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -66,12 +66,13 @@ class AdminPromotionManagementScreen extends StatelessWidget {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('รหัส: ${promotion.code}'),
-                      Text('ส่วนลด: ${promotion.discountValue}%'),
+                      Text('รหัส: ${promotion.discountCode ?? "ไม่มี"}'),
                       Text(
-                          'เริ่ม: ${DateFormat('dd MMM yyyy').format(promotion.startDate)}'),
+                          'ส่วนลด: ${promotion.discountPercent != null ? '${promotion.discountPercent}%' : promotion.discountAmount != null ? '${promotion.discountAmount} บาท' : 'ไม่กำหนด'}'),
                       Text(
-                          'สิ้นสุด: ${DateFormat('dd MMM yyyy').format(promotion.endDate)}'),
+                          'เริ่ม: ${promotion.startDate != null ? DateFormat('dd MMM yyyy').format(promotion.startDate!) : "ไม่กำหนด"}'),
+                      Text(
+                          'สิ้นสุด: ${promotion.endDate != null ? DateFormat('dd MMM yyyy').format(promotion.endDate!) : "ไม่กำหนด"}'),
                     ],
                   ),
                   trailing: Row(
@@ -138,27 +139,34 @@ class AdminPromotionManagementScreen extends StatelessWidget {
     );
   }
 
-  void _showPromotionDialog(BuildContext context, {Promotion? promotion}) {
+  void _showPromotionDialog(BuildContext context,
+      {UnifiedPromotion? promotion}) {
     // Corrected: Already correct
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController(text: promotion?.title ?? '');
-    final codeController = TextEditingController(text: promotion?.code ?? '');
+    final codeController =
+        TextEditingController(text: promotion?.discountCode ?? '');
     final descriptionController =
         TextEditingController(text: promotion?.description ?? '');
-    String? selectedDiscountType = promotion?.discountType;
-    final discountController =
-        TextEditingController(text: promotion?.discountValue.toString() ?? '');
-    String selectedImageUrl = promotion?.image ?? '';
+    String? selectedDiscountType = promotion?.discountPercent != null
+        ? 'percentage'
+        : promotion?.discountAmount != null
+            ? 'fixed'
+            : null;
+    final discountController = TextEditingController(
+        text: (promotion?.discountPercent ?? promotion?.discountAmount ?? '')
+            .toString());
+    String selectedImageUrl = promotion?.imageUrl ?? '';
 
     // For dates, you'd typically use a date picker and store DateTime objects
     // For simplicity, we'll just show text fields here.
     final startDateController = TextEditingController(
         text: promotion?.startDate != null
-            ? DateFormat('yyyy-MM-dd').format(promotion!.startDate)
+            ? DateFormat('yyyy-MM-dd').format(promotion!.startDate!)
             : '');
     final endDateController = TextEditingController(
         text: promotion?.endDate != null
-            ? DateFormat('yyyy-MM-dd').format(promotion!.endDate)
+            ? DateFormat('yyyy-MM-dd').format(promotion!.endDate!)
             : '');
 
     showDialog(
@@ -344,20 +352,28 @@ class AdminPromotionManagementScreen extends StatelessWidget {
                     final firebaseService =
                         Provider.of<FirebaseService>(context, listen: false);
                     try {
-                      final newPromo = Promotion(
-                        id: promotion?.id ?? '',
+                      final newPromo = UnifiedPromotion(
+                        id: promotion?.id ??
+                            DateTime.now().millisecondsSinceEpoch.toString(),
                         sellerId: 'admin', // ระบุว่าโปรนี้สร้างโดยแอดมิน
                         title: titleController.text.trim(),
-                        code: codeController.text.trim(),
                         description: descriptionController.text.trim(),
-                        image: selectedImageUrl,
-                        discountType: selectedDiscountType!,
-                        discountValue:
-                            double.parse(discountController.text.trim()),
+                        type: PromotionType.percentage, // Default type
+                        category: PromotionCategory.general,
+                        discountCode: codeController.text.trim(),
+                        discountPercent: selectedDiscountType == 'percentage'
+                            ? double.parse(discountController.text.trim())
+                            : null,
+                        discountAmount: selectedDiscountType == 'fixed'
+                            ? double.parse(discountController.text.trim())
+                            : null,
+                        imageUrl: selectedImageUrl,
                         startDate: DateFormat('yyyy-MM-dd')
                             .parse(startDateController.text.trim()),
                         endDate: DateFormat('yyyy-MM-dd')
                             .parse(endDateController.text.trim()),
+                        createdAt: promotion?.createdAt ?? DateTime.now(),
+                        updatedAt: DateTime.now(),
                         isActive: true, // Default to active
                       );
                       if (promotion == null) {

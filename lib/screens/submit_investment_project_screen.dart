@@ -124,9 +124,9 @@ class _SubmitInvestmentProjectScreenState
       );
 
       if (widget.project == null) {
-        await firebaseService.addInvestmentProject(projectToSave);
+        await FirebaseService.addInvestmentProject(projectToSave);
       } else {
-        await firebaseService.updateInvestmentProject(projectToSave);
+        await FirebaseService.updateInvestmentProject(projectToSave);
       }
 
       // Pop loading indicator

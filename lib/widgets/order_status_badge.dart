@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/order_status_utils.dart';
 
 /// World-class reusable status badge for order status
@@ -26,25 +27,35 @@ class OrderStatusBadge extends StatelessWidget {
       label: 'สถานะออเดอร์: $display',
       child: Container(
         padding: dense
-            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 2)
-            : const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            ? const EdgeInsets.symmetric(
+                horizontal: AppDimens.smallPadding,
+                vertical: AppDimens.xxSmallPadding)
+            : const EdgeInsets.symmetric(
+                horizontal: AppDimens.mediumPadding,
+                vertical: AppDimens.xSmallPadding),
         decoration: BoxDecoration(
           color: color.withOpacity(0.12),
           border: Border.all(color: color, width: 1.2),
-          borderRadius: BorderRadius.circular(dense ? 10 : 16),
+          borderRadius: BorderRadius.circular(
+              dense ? AppDimens.smallRadius : AppDimens.largeRadius),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(_statusIcon(status), color: color, size: dense ? 16 : 20),
-            const SizedBox(width: 6),
+            Icon(_statusIcon(status),
+                color: color,
+                size:
+                    dense ? AppDimens.iconSmallSize : AppDimens.iconMediumSize),
+            const SizedBox(width: AppDimens.xSmallPadding),
             Text(
               display,
               style: textStyle ??
                   TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
-                    fontSize: dense ? 13 : 15,
+                    fontSize: dense
+                        ? AppDimens.mediumFontSize
+                        : AppDimens.largeFontSize,
                   ),
             ),
           ],

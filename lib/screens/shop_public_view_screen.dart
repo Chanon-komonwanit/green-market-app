@@ -5,7 +5,7 @@ import 'package:green_market/services/promotion_service.dart';
 import 'package:green_market/models/seller.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/models/app_user.dart';
-import 'package:green_market/models/promotion.dart';
+import 'package:green_market/models/unified_promotion.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -56,6 +56,38 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
   ShopTemplate? _selectedTemplate;
   bool _isOwner = false;
 
+  // Enhanced: Load featured products from Firebase
+  Future<List<dynamic>> _loadFeaturedProducts() async {
+    try {
+      // Load featured products for this seller
+      final snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('sellerId', isEqualTo: widget.sellerId)
+          .where('isFeatured', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .limit(10)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      print('Error loading featured products: $e');
+      // Fallback: load best selling or recent products
+      try {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('products')
+            .where('sellerId', isEqualTo: widget.sellerId)
+            .orderBy('createdAt', descending: true)
+            .limit(5)
+            .get();
+
+        return snapshot.docs.map((doc) => doc.data()).toList();
+      } catch (e2) {
+        print('Error loading fallback products: $e2');
+        return [];
+      }
+    }
+  }
+
   // --- Coupon Claim Logic ---
   Future<int> _getUserClaimedCouponCount(
       String userId, String promotionId) async {
@@ -67,7 +99,7 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
     return snapshot.docs.length;
   }
 
-  Future<bool> _claimCoupon(String userId, Promotion promo) async {
+  Future<bool> _claimCoupon(String userId, UnifiedPromotion promo) async {
     final claimsRef = FirebaseFirestore.instance.collection('coupon_claims');
     final promoRef =
         FirebaseFirestore.instance.collection('promotions').doc(promo.id);
@@ -85,7 +117,7 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
         'claimedAt': FieldValue.serverTimestamp(),
       });
       tx.update(promoRef, {
-        'couponUsed': FieldValue.increment(1),
+        'usedCount': FieldValue.increment(1),
       });
     });
     return true;
@@ -335,7 +367,7 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
                     const SizedBox(height: 12),
                     // โซนโปรโมชั่น/ส่วนลด
                     // โซนโปรโมชั่น/ส่วนลด (ใช้ข้อมูลจริง)
-                    StreamBuilder<List<Promotion>>(
+                    StreamBuilder<List<UnifiedPromotion>>(
                       stream: PromotionService()
                           .getPromotionsBySeller(widget.sellerId),
                       builder: (context, promoSnapshot) {
@@ -386,8 +418,9 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        leading: promo.imageUrl.isNotEmpty
-                                            ? Image.network(promo.imageUrl,
+                                        leading: (promo.imageUrl?.isNotEmpty ??
+                                                false)
+                                            ? Image.network(promo.imageUrl!,
                                                 width: 40,
                                                 height: 40,
                                                 fit: BoxFit.cover)
@@ -398,31 +431,28 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(promo.description),
-                                            if (promo.couponCondition != null &&
-                                                promo.couponCondition!
-                                                    .isNotEmpty)
-                                              Text(
-                                                  'เงื่อนไข: ${promo.couponCondition!}',
+                                            if (promo.terms != null &&
+                                                promo.terms!.isNotEmpty)
+                                              Text('เงื่อนไข: ${promo.terms!}',
                                                   style: const TextStyle(
                                                       fontSize: 12,
                                                       color: Colors.orange)),
-                                            if (promo.couponQuantity != null)
+                                            if (promo.usageLimit != null)
                                               Text(
-                                                  'คงเหลือ: ${(promo.couponQuantity! - (promo.couponUsed ?? 0)).clamp(0, promo.couponQuantity!)}',
+                                                  'คงเหลือ: ${(promo.usageLimit! - promo.usedCount).clamp(0, promo.usageLimit!)}',
                                                   style: const TextStyle(
                                                       fontSize: 12)),
                                           ],
                                         ),
-                                        trailing: promo.discountType ==
-                                                'percentage'
+                                        trailing: promo.discountPercent != null
                                             ? Chip(
                                                 label: Text(
-                                                    'ลด ${promo.discountValue}%'),
+                                                    'ลด ${promo.discountPercent!.toStringAsFixed(0)}%'),
                                                 backgroundColor:
                                                     Colors.green[100])
                                             : Chip(
                                                 label: Text(
-                                                    'ลด ${promo.discountValue} บาท'),
+                                                    'ลด ${promo.discountAmount?.toStringAsFixed(0) ?? '0'} บาท'),
                                                 backgroundColor:
                                                     Colors.blue[100]),
                                       ),
@@ -443,11 +473,10 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
                                                 final userClaimedCount =
                                                     snapshot.data ?? 0;
                                                 final canClaim = promo
-                                                            .couponQuantity !=
+                                                            .usageLimit !=
                                                         null &&
-                                                    (promo.couponQuantity! -
-                                                            (promo.couponUsed ??
-                                                                0)) >
+                                                    (promo.usageLimit! -
+                                                            promo.usedCount) >
                                                         0 &&
                                                     (promo.usageLimitPerUser ==
                                                             null ||
@@ -513,14 +542,59 @@ class _ShopPublicViewScreenState extends State<ShopPublicViewScreen> {
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('สินค้าแนะนำ',
+                        children: [
+                          const Text('สินค้าแนะนำ',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16)),
-                          SizedBox(height: 4),
-                          Text(
-                              'ตัวอย่าง: สินค้าเด่นของร้าน | สินค้าขายดี | สินค้าใหม่ล่าสุด'),
-                          // TODO: เชื่อมต่อข้อมูลสินค้าแนะนำจริงจาก Firebase
+                          const SizedBox(height: 4),
+                          // Enhanced: Show featured products from Firebase
+                          FutureBuilder<List<dynamic>>(
+                            future: _loadFeaturedProducts(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Text('กำลังโหลดสินค้าแนะนำ...');
+                              }
+
+                              if (snapshot.hasError) {
+                                return const Text(
+                                    'ไม่สามารถโหลดสินค้าแนะนำได้');
+                              }
+
+                              final featuredProducts = snapshot.data ?? [];
+                              if (featuredProducts.isEmpty) {
+                                return const Text('ยังไม่มีสินค้าแนะนำ');
+                              }
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      'สินค้าเด่น ${featuredProducts.length} รายการ'),
+                                  const SizedBox(height: 8),
+                                  // แสดงรายการสินค้าแนะนำแบบย่อ
+                                  ...featuredProducts
+                                      .take(3)
+                                      .map((product) => Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 4),
+                                            child: Text(
+                                              '• ${product['name'] ?? 'สินค้า'}',
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.green),
+                                            ),
+                                          )),
+                                  if (featuredProducts.length > 3)
+                                    Text(
+                                      'และอีก ${featuredProducts.length - 3} รายการ...',
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.grey),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),

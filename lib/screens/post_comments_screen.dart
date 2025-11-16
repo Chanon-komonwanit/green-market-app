@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/community_post.dart';
 import '../models/community_comment.dart';
@@ -477,14 +478,52 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
     if (user == null) return;
 
     try {
-      // TODO: Implement comment like toggle in Firebase service
-      // TODO: [ภาษาไทย] เพิ่มฟีเจอร์กดถูกใจ/เลิกถูกใจคอมเมนต์ โดยบันทึกข้อมูลไปยัง Firebase
+      // Enhanced: Implement comment like toggle with Firebase
+      final commentRef = FirebaseFirestore.instance
+          .collection('post_comments')
+          .doc(comment.id);
+
+      final likesCollection = commentRef.collection('likes');
+      final userLikeDoc = likesCollection.doc(user.id);
+
+      // Check if user already liked this comment
+      final userLikeSnapshot = await userLikeDoc.get();
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final commentSnapshot = await transaction.get(commentRef);
+        final currentLikes = commentSnapshot.data()?['likesCount'] ?? 0;
+
+        if (userLikeSnapshot.exists) {
+          // Unlike: remove like and decrement count
+          transaction.delete(userLikeDoc);
+          transaction.update(commentRef, {
+            'likesCount': currentLikes - 1,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Like: add like and increment count
+          transaction.set(userLikeDoc, {
+            'userId': user.id,
+            'userName': user.displayName ?? 'ผู้ใช้',
+            'likedAt': FieldValue.serverTimestamp(),
+          });
+          transaction.update(commentRef, {
+            'likesCount': currentLikes + 1,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้'),
-            backgroundColor: AppColors.infoBlue),
+        SnackBar(
+          content:
+              Text(userLikeSnapshot.exists ? 'เลิกถูกใจแล้ว' : 'ถูกใจแล้ว'),
+          backgroundColor: AppColors.successGreen,
+          duration: const Duration(seconds: 1),
+        ),
       );
     } catch (e) {
+      print('Error toggling comment like: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),

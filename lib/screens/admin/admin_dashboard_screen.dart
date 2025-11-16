@@ -298,9 +298,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               text = const Text('', style: style);
                               break;
                           }
-                          // fl_chart v1.x: meta มี axisSide ใน meta, ต้องส่ง meta เท่านั้น
+                          // fl_chart v1.x: ต้องใช้ axisSide และ space
                           return SideTitleWidget(
-                              space: 16, meta: meta, child: text);
+                              axisSide: meta.axisSide, space: 16, child: text);
                         },
                         reservedSize: 42,
                       ),

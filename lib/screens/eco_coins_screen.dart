@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/eco_coin.dart';
 import '../utils/constants.dart';
-import '../widgets/eco_coins_widget.dart';
+import '../widgets/unified_eco_coins_widget.dart';
 
 class EcoCoinsScreen extends StatefulWidget {
   final EcoCoinBalance? balance;

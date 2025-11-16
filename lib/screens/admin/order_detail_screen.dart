@@ -109,9 +109,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
 
     try {
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
-
       // Update order with shipping info
       final updatedOrder = currentOrder.copyWith(
         trackingNumber: _trackingNumberController.text,
@@ -124,7 +121,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             : currentOrder.status,
       );
 
-      await firebaseService.updateOrder(updatedOrder);
+      await FirebaseService.updateOrder(updatedOrder);
 
       setState(() {
         currentOrder = updatedOrder;

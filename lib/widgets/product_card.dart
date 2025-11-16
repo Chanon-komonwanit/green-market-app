@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/utils/constants.dart';
+import 'package:green_market/widgets/optimized_image_widget.dart';
+import 'package:green_market/services/optimized_image_service.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -78,54 +80,13 @@ class _ProductCardState extends State<ProductCard> {
                               print(
                                   '[IMAGE] DEBUG ProductCard: Image URL: $imageUrl');
 
-                              return Image.network(
-                                imageUrl,
-                                errorBuilder: (context, error, stackTrace) {
-                                  print(
-                                      '[ERROR] DEBUG ProductCard: Error loading image $imageUrl');
-                                  print(
-                                      '[ERROR] DEBUG ProductCard: Error: $error');
-                                  return Container(
-                                    color: Colors.grey[200],
-                                    child: const Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.broken_image,
-                                            size: 50, color: Colors.grey),
-                                        Text('ไม่สามารถโหลดรูปได้',
-                                            style: TextStyle(fontSize: 10)),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                fit: BoxFit.cover,
+                              return OptimizedImageWidget(
+                                imageUrl: imageUrl,
                                 width: double.infinity,
                                 height: double.infinity,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) {
-                                    print(
-                                        '[SUCCESS] DEBUG ProductCard: Image loaded successfully: $imageUrl');
-                                    return child;
-                                  }
-                                  print(
-                                      '[LOADING] DEBUG ProductCard: Loading progress for $imageUrl: ${loadingProgress.cumulativeBytesLoaded}/${loadingProgress.expectedTotalBytes}');
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value:
-                                          loadingProgress.expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                      color: AppColors.primaryTeal,
-                                      strokeWidth: 2.0,
-                                    ),
-                                  );
-                                },
+                                fit: BoxFit.cover,
+                                quality: ImageQuality.high,
+                                borderRadius: BorderRadius.circular(8),
                               );
                             },
                           ),

@@ -84,7 +84,7 @@ class ShippingServiceManager {
 
       // Update order status if successful
       if (result.success) {
-        await _firebaseService.updateOrderStatus(order.id, 'shipped');
+        await FirebaseService.updateOrderStatus(order.id, 'shipped');
       }
 
       return result;

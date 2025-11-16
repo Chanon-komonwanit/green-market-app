@@ -201,7 +201,7 @@ class _AdminManageInvestmentProjectsScreenState
         return;
       }
 
-      await firebaseService.approveInvestmentProject(projectId);
+      await FirebaseService.approveInvestmentProject(projectId);
 
       final notification = AppNotification(
         id: firebaseService.generateNewDocId('notifications'),
@@ -325,7 +325,7 @@ class _AdminManageInvestmentProjectsScreenState
           ElevatedButton(
             onPressed: () async {
               try {
-                await firebaseService.deleteInvestmentProject(projectId);
+                await FirebaseService.deleteInvestmentProject(projectId);
                 showAppSnackBar(context, 'ลบโครงการสำเร็จ', isSuccess: true);
                 if (dialogContext.mounted) {
                   Navigator.of(dialogContext).pop();
@@ -496,13 +496,13 @@ class _AdminManageInvestmentProjectsScreenState
                     );
 
                     if (project == null) {
-                      await firebaseService
-                          .addInvestmentProject(updatedProject);
+                      await FirebaseService.addInvestmentProject(
+                          updatedProject);
                       showAppSnackBar(context, 'เพิ่มโครงการสำเร็จ',
                           isSuccess: true);
                     } else {
-                      await firebaseService
-                          .updateInvestmentProject(updatedProject);
+                      await FirebaseService.updateInvestmentProject(
+                          updatedProject);
                       showAppSnackBar(context, 'แก้ไขโครงการสำเร็จ',
                           isSuccess: true);
                     }

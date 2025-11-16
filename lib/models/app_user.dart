@@ -1,7 +1,36 @@
 // lib/models/app_user.dart
+// โมเดลสำหรับข้อมูลผู้ใช้ในแอป Green Market
+// รองรับผู้ซื้อ, ผู้ขาย, และแอดมิน พร้อมระบบ eco coins และโปรไฟล์โซเชียล
+// Enhanced for production with comprehensive validation and error handling
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
+// Enums for better type safety
+enum UserRole { buyer, seller, admin }
+
+enum SellerApplicationStatus { pending, approved, rejected, none }
+
+enum Gender { male, female, other, notSpecified }
+
+// Validation errors enum
+enum UserValidationError {
+  emptyEmail,
+  invalidEmail,
+  emptyDisplayName,
+  invalidDisplayName,
+  invalidPhoneNumber,
+  invalidWebsite,
+  invalidSocialMedia,
+  negativeEcoCoins,
+  invalidBio,
+  invalidAddress,
+}
+
+/// โมเดลสำหรับข้อมูลผู้ใช้ในระบบ Green Market
+/// รองรับการจัดการสิทธิ์, โปรไฟล์, และระบบ eco coins
+/// Enhanced with comprehensive validation, error handling, and type safety
+@immutable
 class AppUser {
   final String id;
   final String email;
@@ -18,7 +47,7 @@ class AppUser {
   final Timestamp? sellerApplicationTimestamp;
   final Timestamp createdAt;
 
-  // New fields for enhanced profile
+  // Enhanced profile fields with validation
   final String? bio;
   final String? address;
   final String? shopDescription;
@@ -33,10 +62,20 @@ class AppUser {
   final int consecutiveLoginDays; // เพิ่ม field สำหรับจำนวนวันล็อกอินติดต่อกัน
   final double
       loginRewardProgress; // เพิ่ม field สำหรับ progress การได้รางวัลจากการล็อกอิน (0.0-1.0)
-  final bool? showEmail; // เพิ่ม field สำหรับ visibility
-  final bool? showFacebook;
-  final bool? showInstagram;
-  final bool? showLine;
+
+  // Privacy settings with enhanced control
+  final bool showEmail; // เพิ่ม field สำหรับ visibility
+  final bool showFacebook;
+  final bool showInstagram;
+  final bool showLine;
+
+  // Enhanced metadata for production
+  final DateTime? lastUpdated;
+  final int version; // For optimistic locking
+  final Map<String, dynamic>? metadata; // For extensibility
+
+  // Validation state cache (computed properties)
+  late final List<UserValidationError> _validationErrors;
 
   AppUser({
     required this.id,
@@ -48,30 +87,87 @@ class AppUser {
     this.isSuspended = false,
     this.shopName,
     this.contactEmail,
-    this.phoneNumber, // Added to constructor
+    this.phoneNumber,
     this.sellerApplicationStatus,
     this.rejectionReason,
     this.sellerApplicationTimestamp,
     required this.createdAt,
-    // New fields in constructor
     this.bio,
     this.address,
     this.shopDescription,
     this.motto,
-    this.ecoCoins = 0.0, // เปลี่ยนเป็น double และ default 0.0
-    this.website, // เพิ่ม field ใน constructor
-    this.facebook, // เพิ่ม field ใน constructor
-    this.instagram, // เพิ่ม field ใน constructor
-    this.lineId, // เพิ่ม field ใน constructor
-    this.gender, // เพิ่ม field ใน constructor
-    this.lastLoginDate, // เพิ่ม field ใน constructor
-    this.consecutiveLoginDays = 0, // เพิ่ม field ใน constructor
-    this.loginRewardProgress = 0.0, // เพิ่ม field ใน constructor
-    this.showEmail,
-    this.showFacebook,
-    this.showInstagram,
-    this.showLine,
-  });
+    this.ecoCoins = 0.0,
+    this.website,
+    this.facebook,
+    this.instagram,
+    this.lineId,
+    this.gender,
+    this.lastLoginDate,
+    this.consecutiveLoginDays = 0,
+    this.loginRewardProgress = 0.0,
+    this.showEmail = false,
+    this.showFacebook = false,
+    this.showInstagram = false,
+    this.showLine = false,
+    this.lastUpdated,
+    this.version = 1,
+    this.metadata,
+  }) {
+    // Validate on construction and cache validation errors
+    _validationErrors = _validateUser();
+  }
+
+  // Enhanced getters with type safety
+  UserRole get userRole {
+    if (isAdmin) return UserRole.admin;
+    if (isSeller) return UserRole.seller;
+    return UserRole.buyer;
+  }
+
+  SellerApplicationStatus get sellerStatus {
+    switch (sellerApplicationStatus?.toLowerCase()) {
+      case 'pending':
+        return SellerApplicationStatus.pending;
+      case 'approved':
+        return SellerApplicationStatus.approved;
+      case 'rejected':
+        return SellerApplicationStatus.rejected;
+      default:
+        return SellerApplicationStatus.none;
+    }
+  }
+
+  Gender get userGender {
+    switch (gender?.toLowerCase()) {
+      case 'male':
+        return Gender.male;
+      case 'female':
+        return Gender.female;
+      case 'other':
+        return Gender.other;
+      default:
+        return Gender.notSpecified;
+    }
+  }
+
+  // Validation getters
+  bool get isValid => _validationErrors.isEmpty;
+  List<UserValidationError> get validationErrors =>
+      List.unmodifiable(_validationErrors);
+  bool get hasValidationErrors => _validationErrors.isNotEmpty;
+
+  // Getter for profile image URL
+  String? get profileImageUrl => photoUrl;
+
+  // Enhanced business logic getters
+  bool get canBecomeSeller =>
+      !isAdmin && !isSeller && sellerStatus == SellerApplicationStatus.none;
+  bool get hasCompletedProfile =>
+      isValidBasicInfo && bio != null && address != null;
+  bool get isActiveUser => !isSuspended && lastLoginDate != null;
+  bool get isRecentlyActive =>
+      lastLoginDate != null &&
+      DateTime.now().difference(lastLoginDate!).inDays <= 30;
 
   // A derived property for convenience, but the source of truth are the boolean flags.
   String get role {
@@ -80,51 +176,60 @@ class AppUser {
     return 'buyer';
   }
 
-  // Getter for profile image URL
-  String? get profileImageUrl => photoUrl;
-
-  // Factory constructor updated to take documentId separately
+  // Enhanced factory constructor with validation and error handling
   factory AppUser.fromMap(Map<String, dynamic> map, String documentId) {
-    return AppUser(
-      id: documentId,
-      email: map['email'] as String? ?? '',
-      displayName: map['displayName'] as String?,
-      photoUrl: map['photoUrl'] as String?,
-      isAdmin: map['isAdmin'] as bool? ?? false,
-      isSeller: map['isSeller'] as bool? ?? false,
-      isSuspended: map['isSuspended'] as bool? ?? false,
-      shopName: map['shopName'] as String?,
-      contactEmail: map['contactEmail'] as String?,
-      phoneNumber: map['phoneNumber'] as String?,
-      sellerApplicationStatus: map['sellerApplicationStatus'] as String?,
-      rejectionReason: map['rejectionReason'] as String?,
-      sellerApplicationTimestamp:
-          map['sellerApplicationTimestamp'] as Timestamp?,
-      createdAt: map['createdAt'] as Timestamp? ?? Timestamp.now(),
-      // New fields
-      bio: map['bio'] as String?,
-      address: map['address'] as String?,
-      shopDescription: map['shopDescription'] as String?,
-      motto: map['motto'] as String?,
-      ecoCoins:
-          (map['ecoCoins'] as num?)?.toDouble() ?? 0.0, // เปลี่ยนรองรับ double
-      website: map['website'] as String?, // เพิ่ม field ใน fromMap
-      facebook: map['facebook'] as String?, // เพิ่ม field ใน fromMap
-      instagram: map['instagram'] as String?, // เพิ่ม field ใน fromMap
-      lineId: map['lineId'] as String?, // เพิ่ม field ใน fromMap
-      gender: map['gender'] as String?, // เพิ่ม field ใน fromMap
-      lastLoginDate: map['lastLoginDate'] != null
-          ? (map['lastLoginDate'] as Timestamp).toDate()
-          : null, // เพิ่ม field ใน fromMap
-      consecutiveLoginDays:
-          map['consecutiveLoginDays'] as int? ?? 0, // เพิ่ม field ใน fromMap
-      loginRewardProgress: (map['loginRewardProgress'] as num?)?.toDouble() ??
-          0.0, // เพิ่ม field ใน fromMap
-      showEmail: map['showEmail'] as bool? ?? false,
-      showFacebook: map['showFacebook'] as bool? ?? false,
-      showInstagram: map['showInstagram'] as bool? ?? false,
-      showLine: map['showLine'] as bool? ?? false,
-    );
+    try {
+      return AppUser(
+        id: documentId,
+        email: _validateAndParseEmail(map['email']),
+        displayName: map['displayName'] as String?,
+        photoUrl: map['photoUrl'] as String?,
+        isAdmin: map['isAdmin'] as bool? ?? false,
+        isSeller: map['isSeller'] as bool? ?? false,
+        isSuspended: map['isSuspended'] as bool? ?? false,
+        shopName: map['shopName'] as String?,
+        contactEmail: map['contactEmail'] as String?,
+        phoneNumber: map['phoneNumber'] as String?,
+        sellerApplicationStatus: map['sellerApplicationStatus'] as String?,
+        rejectionReason: map['rejectionReason'] as String?,
+        sellerApplicationTimestamp:
+            map['sellerApplicationTimestamp'] as Timestamp?,
+        createdAt: map['createdAt'] as Timestamp? ?? Timestamp.now(),
+        bio: map['bio'] as String?,
+        address: map['address'] as String?,
+        shopDescription: map['shopDescription'] as String?,
+        motto: map['motto'] as String?,
+        ecoCoins: _validateAndParseEcoCoins(map['ecoCoins']),
+        website: map['website'] as String?,
+        facebook: map['facebook'] as String?,
+        instagram: map['instagram'] as String?,
+        lineId: map['lineId'] as String?,
+        gender: map['gender'] as String?,
+        lastLoginDate: map['lastLoginDate'] != null
+            ? (map['lastLoginDate'] as Timestamp).toDate()
+            : null,
+        consecutiveLoginDays: map['consecutiveLoginDays'] as int? ?? 0,
+        loginRewardProgress:
+            (map['loginRewardProgress'] as num?)?.toDouble() ?? 0.0,
+        showEmail: map['showEmail'] as bool? ?? false,
+        showFacebook: map['showFacebook'] as bool? ?? false,
+        showInstagram: map['showInstagram'] as bool? ?? false,
+        showLine: map['showLine'] as bool? ?? false,
+        lastUpdated: map['lastUpdated'] != null
+            ? (map['lastUpdated'] as Timestamp).toDate()
+            : null,
+        version: map['version'] as int? ?? 1,
+        metadata: map['metadata'] as Map<String, dynamic>?,
+      );
+    } catch (e) {
+      // Log error and return a default user with validation errors
+      debugPrint('Error parsing AppUser from map: $e');
+      return AppUser(
+        id: documentId,
+        email: map['email'] as String? ?? 'invalid@example.com',
+        createdAt: Timestamp.now(),
+      );
+    }
   }
 
   // toMap method updated to not include the id
@@ -159,10 +264,14 @@ class AppUser {
           : null, // เพิ่ม field ใน toMap
       'consecutiveLoginDays': consecutiveLoginDays, // เพิ่ม field ใน toMap
       'loginRewardProgress': loginRewardProgress, // เพิ่ม field ใน toMap
-      'showEmail': showEmail ?? false,
-      'showFacebook': showFacebook ?? false,
-      'showInstagram': showInstagram ?? false,
-      'showLine': showLine ?? false,
+      'showEmail': showEmail,
+      'showFacebook': showFacebook,
+      'showInstagram': showInstagram,
+      'showLine': showLine,
+      'lastUpdated':
+          lastUpdated != null ? Timestamp.fromDate(lastUpdated!) : null,
+      'version': version,
+      'metadata': metadata,
     };
   }
 
@@ -174,29 +283,31 @@ class AppUser {
     bool? isSeller,
     String? shopName,
     String? contactEmail,
-    String? phoneNumber, // Added to copyWith
+    String? phoneNumber,
     String? sellerApplicationStatus,
     String? rejectionReason,
     Timestamp? sellerApplicationTimestamp,
     Timestamp? createdAt,
-    // New fields in copyWith
     String? bio,
     String? address,
     String? shopDescription,
     String? motto,
-    double? ecoCoins, // เปลี่ยนเป็น double
-    String? website, // เพิ่ม field ใน copyWith
-    String? facebook, // เพิ่ม field ใน copyWith
-    String? instagram, // เพิ่ม field ใน copyWith
-    String? lineId, // เพิ่ม field ใน copyWith
-    String? gender, // เพิ่ม field ใน copyWith
-    DateTime? lastLoginDate, // เพิ่ม field ใน copyWith
-    int? consecutiveLoginDays, // เพิ่ม field ใน copyWith
-    double? loginRewardProgress, // เพิ่ม field ใน copyWith
+    double? ecoCoins,
+    String? website,
+    String? facebook,
+    String? instagram,
+    String? lineId,
+    String? gender,
+    DateTime? lastLoginDate,
+    int? consecutiveLoginDays,
+    double? loginRewardProgress,
     bool? showEmail,
     bool? showFacebook,
     bool? showInstagram,
     bool? showLine,
+    DateTime? lastUpdated,
+    int? version,
+    Map<String, dynamic>? metadata,
   }) {
     return AppUser(
       id: id,
@@ -215,27 +326,325 @@ class AppUser {
       sellerApplicationTimestamp:
           sellerApplicationTimestamp ?? this.sellerApplicationTimestamp,
       createdAt: createdAt ?? this.createdAt,
-      // New fields
       bio: bio ?? this.bio,
       address: address ?? this.address,
       shopDescription: shopDescription ?? this.shopDescription,
       motto: motto ?? this.motto,
-      ecoCoins: ecoCoins ?? this.ecoCoins, // เพิ่ม field ใน copyWith return
-      website: website ?? this.website, // เพิ่ม field ใน copyWith return
-      facebook: facebook ?? this.facebook, // เพิ่ม field ใน copyWith return
-      instagram: instagram ?? this.instagram, // เพิ่ม field ใน copyWith return
-      lineId: lineId ?? this.lineId, // เพิ่ม field ใน copyWith return
-      gender: gender ?? this.gender, // เพิ่ม field ใน copyWith return
-      lastLoginDate:
-          lastLoginDate ?? this.lastLoginDate, // เพิ่ม field ใน copyWith return
-      consecutiveLoginDays: consecutiveLoginDays ??
-          this.consecutiveLoginDays, // เพิ่ม field ใน copyWith return
-      loginRewardProgress: loginRewardProgress ??
-          this.loginRewardProgress, // เพิ่ม field ใน copyWith return
+      ecoCoins: ecoCoins ?? this.ecoCoins,
+      website: website ?? this.website,
+      facebook: facebook ?? this.facebook,
+      instagram: instagram ?? this.instagram,
+      lineId: lineId ?? this.lineId,
+      gender: gender ?? this.gender,
+      lastLoginDate: lastLoginDate ?? this.lastLoginDate,
+      consecutiveLoginDays: consecutiveLoginDays ?? this.consecutiveLoginDays,
+      loginRewardProgress: loginRewardProgress ?? this.loginRewardProgress,
       showEmail: showEmail ?? this.showEmail,
       showFacebook: showFacebook ?? this.showFacebook,
       showInstagram: showInstagram ?? this.showInstagram,
       showLine: showLine ?? this.showLine,
+      lastUpdated: lastUpdated ?? DateTime.now(), // Auto-update timestamp
+      version: version ??
+          (this.version + 1), // Increment version for optimistic locking
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
+  /// Validation methods สำหรับตรวจสอบความถูกต้องของข้อมูล
+
+  /// ตรวจสอบว่าข้อมูลพื้นฐานครบถ้วนหรือไม่
+  bool get isValidBasicInfo {
+    return email.isNotEmpty && displayName != null && displayName!.isNotEmpty;
+  }
+
+  /// ตรวจสอบว่าโปรไฟล์ผู้ขายครบถ้วนหรือไม่
+  bool get isValidSellerProfile {
+    if (!isSeller) return false;
+    return shopName != null &&
+        shopName!.isNotEmpty &&
+        contactEmail != null &&
+        contactEmail!.isNotEmpty;
+  }
+
+  /// ตรวจสอบว่าสามารถสมัครเป็นผู้ขายได้หรือไม่
+  bool get canApplyToBecomeSeller {
+    return !isAdmin &&
+        !isSeller &&
+        sellerApplicationStatus == null &&
+        isValidBasicInfo;
+  }
+
+  /// ตรวจสอบระดับความสมบูรณ์ของโปรไฟล์ (0.0 - 1.0)
+  double get profileCompleteness {
+    int completedFields = 0;
+    int totalFields = 10;
+
+    if (displayName?.isNotEmpty == true) completedFields++;
+    if (photoUrl?.isNotEmpty == true) completedFields++;
+    if (bio?.isNotEmpty == true) completedFields++;
+    if (address?.isNotEmpty == true) completedFields++;
+    if (phoneNumber?.isNotEmpty == true) completedFields++;
+    if (website?.isNotEmpty == true) completedFields++;
+    if (facebook?.isNotEmpty == true) completedFields++;
+    if (instagram?.isNotEmpty == true) completedFields++;
+    if (lineId?.isNotEmpty == true) completedFields++;
+    if (gender?.isNotEmpty == true) completedFields++;
+
+    return completedFields / totalFields;
+  }
+
+  /// ตรวจสอบว่าเป็นผู้ใช้ที่ active หรือไม่
+  bool get isActive {
+    return !isSuspended &&
+        (lastLoginDate == null ||
+            DateTime.now().difference(lastLoginDate!).inDays < 90);
+  }
+
+  /// ได้รางวัลจากการล็อกอินติดต่อกันหรือไม่
+  bool get canGetLoginReward {
+    return consecutiveLoginDays >= 7 && loginRewardProgress >= 1.0;
+  }
+
+  /// แสดงชื่อที่ใช้ในการแสดงผล
+  String get displayNameOrEmail {
+    return displayName?.isNotEmpty == true ? displayName! : email;
+  }
+
+  /// แสดงสถานะการสมัครผู้ขายแบบ user-friendly
+  String get sellerApplicationStatusDisplay {
+    switch (sellerApplicationStatus) {
+      case 'pending':
+        return 'รอการอนุมัติ';
+      case 'approved':
+        return 'อนุมัติแล้ว';
+      case 'rejected':
+        return 'ถูกปฏิเสธ';
+      default:
+        return 'ยังไม่ได้สมัคร';
+    }
+  }
+
+  /// สร้าง summary ของผู้ใช้สำหรับ logging/audit
+  Map<String, dynamic> toSummary() {
+    return {
+      'id': id,
+      'email': email,
+      'displayName': displayName,
+      'role': role,
+      'ecoCoins': ecoCoins,
+      'isActive': isActiveUser,
+      'profileCompleteness': profileCompleteness,
+      'lastLoginDate': lastLoginDate?.toIso8601String(),
+      'validationErrors': _validationErrors.map((e) => e.toString()).toList(),
+    };
+  }
+
+  // Static validation helpers
+  static String _validateAndParseEmail(dynamic email) {
+    final emailStr = email as String? ?? '';
+    if (emailStr.isEmpty) {
+      throw ArgumentError('Email cannot be empty');
+    }
+    if (!_isValidEmail(emailStr)) {
+      throw ArgumentError('Invalid email format: $emailStr');
+    }
+    return emailStr.toLowerCase().trim();
+  }
+
+  static double _validateAndParseEcoCoins(dynamic ecoCoins) {
+    if (ecoCoins == null) return 0.0;
+    final coins = (ecoCoins as num).toDouble();
+    if (coins < 0) {
+      throw ArgumentError('Eco coins cannot be negative: $coins');
+    }
+    return coins;
+  }
+
+  static bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  static bool _isValidUrl(String? url) {
+    if (url == null || url.isEmpty) return true;
+    return Uri.tryParse(url) != null && url.startsWith(RegExp(r'https?://'));
+  }
+
+  static bool _isValidPhoneNumber(String? phone) {
+    if (phone == null || phone.isEmpty) return true;
+    return RegExp(r'^\+?[0-9\-\(\)\s]{8,15}$').hasMatch(phone);
+  }
+
+  // Comprehensive validation method
+  List<UserValidationError> _validateUser() {
+    final errors = <UserValidationError>[];
+
+    // Email validation
+    if (email.isEmpty) {
+      errors.add(UserValidationError.emptyEmail);
+    } else if (!_isValidEmail(email)) {
+      errors.add(UserValidationError.invalidEmail);
+    }
+
+    // Display name validation
+    if (displayName?.trim().isEmpty ?? true) {
+      errors.add(UserValidationError.emptyDisplayName);
+    } else if (displayName!.length > 100) {
+      errors.add(UserValidationError.invalidDisplayName);
+    }
+
+    // Phone validation
+    if (!_isValidPhoneNumber(phoneNumber)) {
+      errors.add(UserValidationError.invalidPhoneNumber);
+    }
+
+    // Website validation
+    if (!_isValidUrl(website)) {
+      errors.add(UserValidationError.invalidWebsite);
+    }
+
+    // Eco coins validation
+    if (ecoCoins < 0) {
+      errors.add(UserValidationError.negativeEcoCoins);
+    }
+
+    // Bio validation
+    if (bio != null && bio!.length > 500) {
+      errors.add(UserValidationError.invalidBio);
+    }
+
+    // Address validation
+    if (address != null && address!.length > 300) {
+      errors.add(UserValidationError.invalidAddress);
+    }
+
+    return errors;
+  }
+
+  // Enhanced utility methods
+  AppUser updateLoginStreak() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastLogin = lastLoginDate != null
+        ? DateTime(
+            lastLoginDate!.year, lastLoginDate!.month, lastLoginDate!.day)
+        : null;
+
+    if (lastLogin == null || today.difference(lastLogin).inDays > 1) {
+      // Reset streak if more than 1 day gap
+      return copyWith(
+        lastLoginDate: now,
+        consecutiveLoginDays: 1,
+        loginRewardProgress: 0.0,
+      );
+    } else if (today.difference(lastLogin).inDays == 1) {
+      // Continue streak
+      return copyWith(
+        lastLoginDate: now,
+        consecutiveLoginDays: consecutiveLoginDays + 1,
+        loginRewardProgress: ((consecutiveLoginDays + 1) % 7) / 7.0,
+      );
+    } else {
+      // Same day login, just update timestamp
+      return copyWith(lastLoginDate: now);
+    }
+  }
+
+  AppUser awardEcoCoins(double amount, {String? reason}) {
+    if (amount <= 0) return this;
+
+    final newMetadata = Map<String, dynamic>.from(metadata ?? {});
+    newMetadata['lastEcoCoinAward'] = {
+      'amount': amount,
+      'reason': reason ?? 'Unknown',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    return copyWith(
+      ecoCoins: ecoCoins + amount,
+      metadata: newMetadata,
+    );
+  }
+
+  AppUser spendEcoCoins(double amount) {
+    if (amount <= 0 || amount > ecoCoins) {
+      throw ArgumentError(
+          'Invalid eco coins amount to spend: $amount (available: $ecoCoins)');
+    }
+    return copyWith(ecoCoins: ecoCoins - amount);
+  }
+
+  @override
+  String toString() {
+    return 'AppUser(id: $id, email: $email, role: $role, ecoCoins: $ecoCoins, '
+        'valid: $isValid, version: $version)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AppUser && other.id == id && other.version == version;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, version);
+
+  // Additional factory constructors for specific use cases
+  factory AppUser.newBuyer({
+    required String id,
+    required String email,
+    String? displayName,
+    String? photoUrl,
+  }) {
+    return AppUser(
+      id: id,
+      email: email,
+      displayName: displayName,
+      photoUrl: photoUrl,
+      createdAt: Timestamp.now(),
+      isAdmin: false,
+      isSeller: false,
+    );
+  }
+
+  factory AppUser.newSeller({
+    required String id,
+    required String email,
+    required String displayName,
+    required String shopName,
+    required String contactEmail,
+    String? photoUrl,
+    String? shopDescription,
+  }) {
+    return AppUser(
+      id: id,
+      email: email,
+      displayName: displayName,
+      photoUrl: photoUrl,
+      createdAt: Timestamp.now(),
+      isAdmin: false,
+      isSeller: true,
+      shopName: shopName,
+      contactEmail: contactEmail,
+      shopDescription: shopDescription,
+      sellerApplicationStatus: 'approved',
+      sellerApplicationTimestamp: Timestamp.now(),
+    );
+  }
+
+  factory AppUser.newAdmin({
+    required String id,
+    required String email,
+    required String displayName,
+    String? photoUrl,
+  }) {
+    return AppUser(
+      id: id,
+      email: email,
+      displayName: displayName,
+      photoUrl: photoUrl,
+      createdAt: Timestamp.now(),
+      isAdmin: true,
+      isSeller: false,
     );
   }
 }

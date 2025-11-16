@@ -17,11 +17,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _pay() async {
     setState(() => _isProcessing = true);
-    final success = await _paymentService.processPayment(widget.order, {});
-    setState(() {
-      _isProcessing = false;
-      _result = success ? 'ชำระเงินสำเร็จ' : 'ชำระเงินล้มเหลว';
-    });
+    try {
+      final result = await _paymentService.processPayment(widget.order, {});
+      setState(() {
+        _isProcessing = false;
+        _result = result.success
+            ? 'ชำระเงินสำเร็จ'
+            : (result.errorMessage ?? 'ชำระเงินล้มเหลว');
+      });
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+        _result = 'เกิดข้อผิดพลาด: ${e.toString()}';
+      });
+    }
   }
 
   @override

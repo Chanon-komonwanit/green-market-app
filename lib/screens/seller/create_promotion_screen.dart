@@ -536,8 +536,9 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                     suffixText: '฿',
                   ),
                   validator: (value) {
-                    if (value?.isEmpty ?? true)
+                    if (value?.isEmpty ?? true) {
                       return 'กรุณาใส่ราคา Flash Sale';
+                    }
                     final price = double.tryParse(value!);
                     if (price == null || price <= 0) return 'ราคาต้องมากกว่า 0';
                     if (_originalPrice != null && price >= _originalPrice!) {

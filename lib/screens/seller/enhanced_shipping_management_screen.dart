@@ -799,9 +799,7 @@ class _EnhancedShippingManagementScreenState
 
   Future<void> _markAsDelivered(app_order.Order order) async {
     try {
-      final firebaseService =
-          Provider.of<FirebaseService>(context, listen: false);
-      await firebaseService.updateOrderStatus(order.id, 'delivered');
+      await FirebaseService.updateOrderStatus(order.id, 'delivered');
 
       // Update tracking status
       if (order.trackingNumber != null) {

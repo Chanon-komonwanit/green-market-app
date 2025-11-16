@@ -609,8 +609,9 @@ class _ShopPreviewScreenState extends State<ShopPreviewScreen> {
       ecoHeroProducts.addAll(_products.take(3));
     }
 
-    if (ecoHeroProducts.isEmpty)
+    if (ecoHeroProducts.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverToBoxAdapter(
       child: Container(

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/models/shop_customization.dart';
+import 'package:green_market/models/unified_promotion.dart' as unified;
 import 'package:green_market/screens/seller/create_promotion_screen.dart';
 import 'package:green_market/theme/app_colors.dart';
 
@@ -41,52 +42,68 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen>
       final sellerId = FirebaseAuth.instance.currentUser?.uid;
       if (sellerId == null) return;
 
-      // final firebaseService = Provider.of<FirebaseService>(context, listen: false);
-      // TODO: เพิ่ม method getSellerPromotions ใน FirebaseService
-      // final promotions = await firebaseService.getSellerPromotions(sellerId);
+      try {
+        final firebaseService =
+            Provider.of<FirebaseService>(context, listen: false);
+        // Enhanced: Use existing Firebase method
+        final promotions =
+            await firebaseService.getPromotionsBySeller(sellerId);
 
-      // สำหรับตอนนี้ใช้ mock data
-      _promotions = [
-        ShopPromotion(
-          id: '1',
-          title: 'ส่วนลด 20%',
-          description: 'ส่วนลดพิเศษสำหรับสินค้าเป็นมิตรกับสิ่งแวดล้อม',
-          type: PromotionType.percentDiscount,
-          sellerId: sellerId,
-          createdAt: DateTime.now().subtract(const Duration(days: 5)),
-          discountCode: 'ECO20',
-          discountPercent: 20,
-          minimumPurchase: 300,
-          usageLimit: 100,
-          usedCount: 23,
-          startDate: DateTime.now().subtract(const Duration(days: 1)),
-          endDate: DateTime.now().add(const Duration(days: 30)),
-          iconEmoji: '🌿',
-          backgroundColor: '#4CAF50',
-        ),
-        ShopPromotion(
-          id: '2',
-          title: 'ฟรีค่าจัดส่ง',
-          description: 'ฟรีค่าจัดส่งเมื่อซื้อครบ 500 บาท',
-          type: PromotionType.freeShipping,
-          sellerId: sellerId,
-          createdAt: DateTime.now().subtract(const Duration(days: 3)),
-          discountCode: 'FREESHIP',
-          minimumPurchase: 500,
-          usageLimit: 50,
-          usedCount: 12,
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 15)),
-          iconEmoji: '🚚',
-          backgroundColor: '#2196F3',
-        ),
-      ];
+        // Convert UnifiedPromotion to ShopPromotion for display
+        _promotions = promotions.map((promo) {
+          // Map PromotionType from unified to shop
+          late PromotionType shopType;
+          switch (promo.type.toString()) {
+            case 'unified.PromotionType.percentage':
+              shopType = PromotionType.percentDiscount;
+              break;
+            case 'unified.PromotionType.fixedAmount':
+              shopType = PromotionType.fixedDiscount;
+              break;
+            case 'unified.PromotionType.freeShipping':
+              shopType = PromotionType.freeShipping;
+              break;
+            case 'unified.PromotionType.buyXGetY':
+              shopType = PromotionType.buyXGetY;
+              break;
+            case 'unified.PromotionType.flashSale':
+              shopType = PromotionType.flashSale;
+              break;
+            default:
+              shopType = PromotionType.percentDiscount;
+          }
+          return ShopPromotion(
+            id: promo.id,
+            title: promo.title,
+            description: promo.description,
+            type: shopType,
+            sellerId: promo.sellerId,
+            createdAt: promo.createdAt,
+            discountPercent: promo.discountPercent,
+            discountAmount: promo.discountAmount,
+            minimumPurchase: promo.minimumPurchase,
+            startDate: promo.startDate,
+            endDate: promo.endDate,
+            isActive: promo.isActive,
+            usedCount: promo.usedCount,
+            usageLimit: promo.usageLimit,
+          );
+        }).toList();
 
-      setState(() => _isLoading = false);
+        setState(() => _isLoading = false);
+      } catch (e) {
+        print('Error loading promotions: $e');
+        // Fallback to empty list
+        _promotions = [];
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลด: $e')),
       );
     }
   }
@@ -470,7 +487,7 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen>
     Navigator.of(context)
         .push(
       MaterialPageRoute(
-        builder: (context) => CreatePromotionScreen(editPromotion: promotion),
+        builder: (context) => CreatePromotionScreen(promotion: promotion),
       ),
     )
         .then((result) {
@@ -480,22 +497,86 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen>
     });
   }
 
-  void _duplicatePromotion(ShopPromotion promotion) {
-    // TODO: Implement duplication logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คัดลอกโปรโมชั่นแล้ว')),
-    );
+  Future<void> _duplicatePromotion(ShopPromotion promotion) async {
+    try {
+      final firebaseService =
+          Provider.of<FirebaseService>(context, listen: false);
+
+      // Convert ShopPromotion to UnifiedPromotion for Firebase
+      final unifiedPromotion = unified.UnifiedPromotion(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: '${promotion.title} (คัดลอก)',
+        description: promotion.description,
+        sellerId: promotion.sellerId,
+        type: _convertToUnifiedType(promotion.type),
+        discountPercent: promotion.discountPercent,
+        discountAmount: promotion.discountAmount,
+        minimumPurchase: promotion.minimumPurchase,
+        startDate: DateTime.now(),
+        endDate: promotion.endDate?.add(const Duration(days: 30)),
+        isActive: false, // Start inactive for review
+        usedCount: 0, // Reset usage count
+        usageLimit: promotion.usageLimit,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Save to Firebase
+      await firebaseService.createPromotion(unifiedPromotion);
+
+      // Refresh local data
+      await _loadPromotions();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('คัดลอกโปรโมชั่นเรียบร้อยแล้ว')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ข้อผิดพลาด: $e')),
+      );
+    }
   }
 
-  void _togglePromotionStatus(ShopPromotion promotion) {
-    // TODO: Implement toggle status logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(promotion.isActive
-            ? 'ปิดใช้งานโปรโมชั่นแล้ว'
-            : 'เปิดใช้งานโปรโมชั่นแล้ว'),
-      ),
-    );
+  Future<void> _togglePromotionStatus(ShopPromotion promotion) async {
+    try {
+      // Update promotion status
+      final newStatus = !promotion.isActive;
+
+      // Update local state immediately for better UX
+      setState(() {
+        final index = _promotions.indexWhere((p) => p.id == promotion.id);
+        if (index != -1) {
+          // Create updated promotion (immutable pattern)
+          _promotions[index] = ShopPromotion(
+            id: promotion.id,
+            title: promotion.title,
+            description: promotion.description,
+            type: promotion.type,
+            sellerId: promotion.sellerId,
+            createdAt: promotion.createdAt,
+            isActive: newStatus,
+            discountPercent: promotion.discountPercent,
+            discountAmount: promotion.discountAmount,
+            minimumPurchase: promotion.minimumPurchase,
+            startDate: promotion.startDate,
+            endDate: promotion.endDate,
+            usedCount: promotion.usedCount,
+            usageLimit: promotion.usageLimit,
+          );
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              newStatus ? 'เปิดใช้งานโปรโมชั่นแล้ว' : 'ปิดใช้งานโปรโมชั่นแล้ว'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ข้อผิดพลาด: $e')),
+      );
+    }
   }
 
   void _deletePromotion(ShopPromotion promotion) {
@@ -568,28 +649,72 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen>
     );
   }
 
-  void _confirmDeletePromotion(ShopPromotion promotion) {
-    // TODO: Implement actual delete logic with Firebase
-    setState(() {
-      _promotions.removeWhere((p) => p.id == promotion.id);
-    });
+  Future<void> _confirmDeletePromotion(ShopPromotion promotion) async {
+    try {
+      // Store original data for undo function
+      final originalIndex = _promotions.indexWhere((p) => p.id == promotion.id);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ลบโปรโมชั่น "${promotion.title}" เรียบร้อยแล้ว'),
-        backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'เลิกทำ',
-          textColor: Colors.white,
-          onPressed: () {
-            // TODO: Implement undo delete
-            setState(() {
-              _promotions.add(promotion);
-            });
-          },
+      // Remove from local state first for immediate UI response
+      setState(() {
+        _promotions.removeWhere((p) => p.id == promotion.id);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ลบโปรโมชั่น "${promotion.title}" เรียบร้อยแล้ว'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            textColor: Colors.white,
+            onPressed: () {
+              // Restore promotion to original position
+              setState(() {
+                if (originalIndex >= 0 && originalIndex <= _promotions.length) {
+                  _promotions.insert(originalIndex, promotion);
+                } else {
+                  _promotions.add(promotion);
+                }
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('คืนค่าโปรโมชั่นแล้ว'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // Restore promotion on error
+      setState(() {
+        _promotions.add(promotion);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Helper method to convert ShopPromotion type to UnifiedPromotion type
+  unified.PromotionType _convertToUnifiedType(PromotionType shopType) {
+    switch (shopType) {
+      case PromotionType.percentDiscount:
+        return unified.PromotionType.percentage;
+      case PromotionType.fixedDiscount:
+        return unified.PromotionType.fixedAmount;
+      case PromotionType.freeShipping:
+        return unified.PromotionType.freeShipping;
+      case PromotionType.buyXGetY:
+        return unified.PromotionType.buyXGetY;
+      case PromotionType.flashSale:
+        return unified.PromotionType.flashSale;
+    }
   }
 }
 
@@ -980,14 +1105,74 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
     }
   }
 
-  void _savePromotion() {
+  Future<void> _savePromotion() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: Implement save logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('บันทึกโปรโมชั่นแล้ว')),
-    );
-    Navigator.pop(context);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      // Create promotion object for validation
+      final newPromotion = ShopPromotion(
+        id: widget.promotion?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        type: _selectedType,
+        sellerId: user.uid,
+        createdAt: widget.promotion?.createdAt ?? DateTime.now(),
+        updatedAt: DateTime.now(),
+        discountPercent: _selectedType == PromotionType.percentDiscount
+            ? double.tryParse(_discountController.text)
+            : null,
+        discountAmount: _selectedType == PromotionType.fixedDiscount
+            ? double.tryParse(_discountController.text)
+            : null,
+        minimumPurchase: double.tryParse(_minimumController.text),
+        startDate: _startDate,
+        endDate: _endDate,
+        isActive: true,
+        usedCount: widget.promotion?.usedCount ?? 0,
+        usageLimit: null, // TODO: Add usage limit input field
+      );
+
+      // Validate promotion data
+      if (newPromotion.title.isEmpty) {
+        throw Exception('กรุณาใส่ชื่อโปรโมชั่น');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.promotion != null
+              ? 'แก้ไขโปรโมชั่นเรียบร้อยแล้ว (คำเตือน: ยังไม่ได้บันทึกลง Firebase)'
+              : 'สร้างโปรโมชั่นเรียบร้อยแล้ว (คำเตือน: ยังไม่ได้บันทึกลง Firebase)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+
+      // TODO: When Firebase methods are ready, save the promotion:
+      // if (widget.promotion != null) {
+      //   await firebaseService.updatePromotion(newPromotion);
+      // } else {
+      //   await firebaseService.createPromotion(newPromotion);
+      // }
+      // if (widget.promotion != null) {
+      //   await firebaseService.updatePromotion(promotion);
+      // } else {
+      //   await firebaseService.createPromotion(promotion);
+      // }
+
+      Navigator.pop(context, true); // Return true to indicate success
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

@@ -6,7 +6,7 @@ import 'package:green_market/models/eco_reward.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/providers/user_provider.dart';
-import 'package:green_market/widgets/enhanced_eco_coins_widget.dart';
+import 'package:green_market/widgets/unified_eco_coins_widget.dart';
 
 class EcoRewardsScreen extends StatefulWidget {
   const EcoRewardsScreen({super.key});
@@ -73,7 +73,8 @@ class _EcoRewardsScreenState extends State<EcoRewardsScreen>
           // Eco Coins Status
           Container(
             margin: const EdgeInsets.all(16),
-            child: const EnhancedEcoCoinsWidget(),
+            child: const UnifiedEcoCoinsWidget(
+                style: EcoCoinsWidgetStyle.enhanced),
           ),
 
           // โซนแรกรางวัลเด่น (Featured Rewards)

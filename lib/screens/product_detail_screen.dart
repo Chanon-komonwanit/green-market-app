@@ -59,16 +59,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _addToCart(BuildContext context, Product product) {
     try {
+      // ตรวจสอบ product ที่ส่งมา
+      if (product.stock <= 0) {
+        _showErrorMessage(context, 'สินค้านี้หมดสต็อกแล้ว');
+        return;
+      }
+
       final cartProvider =
           Provider.of<CartProviderEnhanced>(context, listen: false);
+
+      // เพิ่มการ feedback ให้ user รู้ว่ากำลังโหลด
+      _showLoadingMessage(context, 'กำลังเพิ่มไปยังตะกร้า...');
+
       cartProvider.addItem(product);
 
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${product.name} ถูกเพิ่มในตะกร้าแล้ว'),
             duration: const Duration(seconds: 2),
-            backgroundColor: AppColors.primaryTeal,
+            backgroundColor: AppColors.successGreen,
             action: SnackBarAction(
               label: 'ดูตะกร้า',
               textColor: Colors.white,
@@ -82,37 +93,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         );
       }
     } catch (e) {
-      print('Error adding to cart: $e');
+      debugPrint('Error adding to cart: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('เกิดข้อผิดพลาดในการเพิ่มไปยังตะกร้า'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorMessage(context, 'เกิดข้อผิดพลาดในการเพิ่มไปยังตะกร้า');
       }
     }
   }
 
   void _buyNow(BuildContext context, Product product) {
     try {
+      // ตรวจสอบ stock ก่อน
+      if (product.stock <= 0) {
+        _showErrorMessage(context, 'สินค้านี้หมดสต็อกแล้ว');
+        return;
+      }
+
+      _showLoadingMessage(context, 'กำลังดำเนินการ...');
+
       final cartProvider =
           Provider.of<CartProviderEnhanced>(context, listen: false);
       cartProvider.addItem(product);
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => const CartScreen(navigateToCheckout: true),
-      ));
-    } catch (e) {
-      print('Error in buy now: $e');
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('เกิดข้อผิดพลาดในการซื้อสินค้า'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const CartScreen(navigateToCheckout: true),
+        ));
+      }
+    } catch (e) {
+      debugPrint('Error in buy now: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorMessage(context, 'เกิดข้อผิดพลาดในการซื้อสินค้า');
       }
     }
   }
@@ -436,6 +449,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Helper methods สำหรับการแสดงข้อความ
+  void _showErrorMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.errorRed,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  void _showLoadingMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(message),
+          ],
+        ),
+        backgroundColor: AppColors.graySecondary,
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

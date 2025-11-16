@@ -63,40 +63,65 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Future<void> _loadMorePosts() async {
-    if (_isLoading || !_hasMore) return;
-    _isLoading = true;
-    const limit = 20;
-    Query query = FirebaseFirestore.instance
-        .collection('community_posts')
-        .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
-    if (_lastPostId != null && _posts.isNotEmpty) {
-      final lastPost = await FirebaseFirestore.instance
-          .collection('community_posts')
-          .doc(_lastPostId)
-          .get();
-      query = query.startAfterDocument(lastPost);
+    try {
+      if (_isLoading || !_hasMore) return;
+      _isLoading = true;
+      const limit = 20;
+      Query query = FirebaseFirestore.instance.collection('community_posts');
+      // ตรวจสอบ field ก่อน query
+      bool hasCreatedAt = true;
+      bool hasIsActive = true;
+      // ลอง query แบบปลอดภัย
+      try {
+        query = query.where('isActive', isEqualTo: true);
+      } catch (_) {
+        hasIsActive = false;
+      }
+      try {
+        query = query.orderBy('createdAt', descending: true);
+      } catch (_) {
+        hasCreatedAt = false;
+      }
+      query = query.limit(limit);
+      if (_lastPostId != null && _posts.isNotEmpty) {
+        final lastPost = await FirebaseFirestore.instance
+            .collection('community_posts')
+            .doc(_lastPostId)
+            .get();
+        query = query.startAfterDocument(lastPost);
+      }
+      final snapshot = await query.get();
+      final newPosts = snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            if (data is Map<String, dynamic>) {
+              // fallback หากไม่มี field
+              return {
+                'id': doc.id,
+                ...data,
+                if (!hasCreatedAt) 'createdAt': Timestamp.now(),
+                if (!hasIsActive) 'isActive': true,
+              };
+            } else {
+              return <String, dynamic>{'id': doc.id};
+            }
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      if (newPosts.length < limit) _hasMore = false;
+      if (newPosts.isNotEmpty) {
+        _lastPostId = newPosts.last['id'];
+        _posts.addAll(newPosts);
+      }
+      _isLoading = false;
+      setState(() {});
+    } catch (e) {
+      _isLoading = false;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลดโพสต์: ${e.toString()}')),
+      );
     }
-    final snapshot = await query.get();
-    final newPosts = snapshot.docs
-        .map((doc) {
-          final data = doc.data();
-          if (data is Map<String, dynamic>) {
-            return {'id': doc.id, ...data};
-          } else {
-            return <String, dynamic>{'id': doc.id};
-          }
-        })
-        .whereType<Map<String, dynamic>>()
-        .toList();
-    if (newPosts.length < limit) _hasMore = false;
-    if (newPosts.isNotEmpty) {
-      _lastPostId = newPosts.last['id'];
-      _posts.addAll(newPosts);
-    }
-    _isLoading = false;
-    setState(() {});
   }
 
   Future<void> _toggleLike(CommunityPost post, String userId, int index) async {

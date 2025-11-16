@@ -5,9 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_market/models/category.dart';
 import 'package:green_market/models/product.dart';
-import 'package:green_market/models/promotion.dart';
+import 'package:green_market/models/unified_promotion.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/providers/eco_coins_provider.dart';
+import 'package:green_market/providers/coupon_provider.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/widgets/smart_eco_hero_tab.dart';
 import 'package:green_market/screens/category_products_screen.dart';
@@ -15,8 +16,7 @@ import 'package:green_market/services/smart_product_analytics_service.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
-import 'package:green_market/widgets/eco_coins_widget.dart';
-import 'package:green_market/widgets/enhanced_eco_coins_widget.dart';
+import 'package:green_market/widgets/unified_eco_coins_widget.dart';
 import 'package:green_market/widgets/green_world_icon.dart';
 import 'package:green_market/widgets/animated_green_world_button.dart';
 import 'package:green_market/utils/constants.dart';
@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen>
     Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_bannerController.hasClients) {
         _homeDataFuture.then((data) {
-          final promotions = data['promotions'] as List<Promotion>;
+          final promotions = data['promotions'] as List<UnifiedPromotion>;
           if (promotions.isNotEmpty) {
             final nextPage = (_bannerController.page?.round() ?? 0) + 1;
             _bannerController.animateToPage(
@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen>
           const Duration(seconds: 10),
           onTimeout: () {
             print('[WARNING] Promotions fetch timed out after 10 seconds');
-            return <Promotion>[];
+            return <UnifiedPromotion>[];
           },
         ),
         firebaseService.getApprovedProducts().first.timeout(
@@ -165,11 +165,11 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ]).catchError((error) {
         print('[ERROR] Future.wait failed: $error');
-        return [<Category>[], <Promotion>[], <Product>[]];
+        return [<Category>[], <UnifiedPromotion>[], <Product>[]];
       });
 
       final categories = futures[0] as List<Category>;
-      final promotions = futures[1] as List<Promotion>;
+      final promotions = futures[1] as List<UnifiedPromotion>;
       final products = futures[2] as List<Product>;
 
       // Log successful data fetch with detailed product info
@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen>
       // Return safe default values
       return {
         'categories': <Category>[],
-        'promotions': <Promotion>[],
+        'promotions': <UnifiedPromotion>[],
         'products': <Product>[],
       };
     }
@@ -206,6 +206,274 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   bool get wantKeepAlive => true;
+
+  // ปุ่มด่วนแบบไอคอนเล็กๆ - โค้ดส่วนลด(ซ้าย) + เหรียญ(ขวา) แทนที่กรอบที่ลบไป
+  Widget _buildQuickActionsBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // ปุ่มโค้ดส่วนลด (ซ้าย)
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (context) => _buildCouponBottomSheet(),
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.local_offer,
+                    color: Colors.orange[600],
+                    size: 28,
+                  ),
+                ),
+                const Text(
+                  'โค้ดส่วนลด',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 40), // ระยะห่างระหว่างปุ่ม
+          // ปุ่มเหรียญ (ขวา)
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/eco-coins');
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        color: Colors.amber[700],
+                        size: 26,
+                      ),
+                      const SizedBox(width: 4),
+                      Consumer<EcoCoinProvider>(
+                        builder: (context, provider, child) {
+                          return Text(
+                            '${provider.availableCoins}',
+                            style: TextStyle(
+                              color: Colors.amber[700],
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const Text(
+                  'เหรียญ EcoCoin',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bottom sheet สำหรับแสดงคูปอง
+  Widget _buildCouponBottomSheet() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Icon(
+                Icons.local_offer,
+                color: Color(0xFF2E7D32),
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'โค้ดส่วนลดจาก Green Market',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E7D32),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Consumer<CouponProvider>(
+            builder: (context, couponProvider, child) {
+              final userCoupons = couponProvider.userCoupons;
+
+              if (userCoupons.isEmpty) {
+                return Column(
+                  children: [
+                    const Icon(
+                      Icons.inbox_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'ยังไม่มีคูปองส่วนลด',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'ช้อปเพื่อรับคูปองสุดคุ้ม!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // เลื่อนไปดูสินค้า
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        'เริ่มช้อปปิ้ง',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [
+                  ...userCoupons.take(3).map((coupon) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2E7D32).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF2E7D32).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2E7D32),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.local_offer,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  coupon.promotion.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'ลด ${coupon.promotion.discountPercent ?? 0}%',
+                                  style: const TextStyle(
+                                    color: Color(0xFF2E7D32),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2E7D32),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              coupon.promotion.discountCode ?? 'NO CODE',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +639,7 @@ class _HomeScreenState extends State<HomeScreen>
 
           final data = snapshot.data!;
           final categories = data['categories'] as List<Category>;
-          final promotions = data['promotions'] as List<Promotion>;
+          final promotions = data['promotions'] as List<UnifiedPromotion>;
           final products = data['products'] as List<Product>;
 
           return RefreshIndicator(
@@ -382,8 +650,8 @@ class _HomeScreenState extends State<HomeScreen>
             },
             child: CustomScrollView(
               slivers: [
-                // Enhanced Eco Coins - ย้ายขึ้นมาเป็นอันดับแรก
-                SliverToBoxAdapter(child: _buildEnhancedEcoCoinsSection()),
+                // ปุ่มเหรียญและโค้ดส่วนลดแบบ Shopee - แทนที่กรอบที่ลบไป
+                SliverToBoxAdapter(child: _buildQuickActionsBar()),
                 // Smart Eco Hero Section - สินค้าระดับสูงสุด
                 SliverToBoxAdapter(child: Builder(
                   builder: (context) {
@@ -427,240 +695,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Widget _buildWelcomeMessage() - REMOVED
   // Replaced with _buildEnhancedEcoCoinsSection()
-
-  Widget _buildEnhancedEcoCoinsSection() {
-    return AnimatedBuilder(
-      animation: _cardAnimationController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _cardAnimationController.value) * 30),
-          child: Opacity(
-            opacity: _cardAnimationController.value,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF1B5E20), // Deep forest green
-                    const Color(0xFF2E7D32), // Forest green
-                    const Color(0xFF388E3C), // Green
-                    const Color(0xFF4CAF50), // Light green
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: const [0.0, 0.3, 0.7, 1.0],
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1B5E20).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF4CAF50).withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.eco_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Green Market',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            Text(
-                              'World-Class Sustainable Shopping',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                                letterSpacing: 0.8,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Eco Coins Widget แบบเล็กสวยงาม
-                  GestureDetector(
-                    onTap: () {
-                      // นำทางไปหน้า Eco Coins
-                      Navigator.pushNamed(context, '/eco-coins');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.25),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Eco Coins Widget ที่มีอยู่แล้ว
-                          const EcoCoinsWidget(showAnimation: false),
-                          const SizedBox(width: 12),
-                          // ข้อความอธิบาย
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'สะสมเหลียญรางวัล',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  'ช้อปเพื่อสิ่งแวดล้อม รับเหลียญคืน',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withOpacity(0.85),
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // ลูกศรเข้าดู
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.white.withOpacity(0.9),
-                              size: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  StreamBuilder<User?>(
-                    stream: FirebaseAuth.instance.authStateChanges(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData && snapshot.data != null) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.20),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.4),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.person, color: Colors.white, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'สวัสดี ${snapshot.data!.displayName ?? 'ผู้ใช้'}!',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/login');
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.4),
-                            ),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.login, color: Colors.white, size: 18),
-                              SizedBox(width: 8),
-                              Text(
-                                'เข้าสู่ระบบเพื่อรับสิทธิประโยชน์เพิ่มเติม',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildCategoriesSection(List<Category> categories) {
     if (categories.isEmpty) {
@@ -906,7 +940,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildPromotionsSection(List<Promotion> promotions) {
+  Widget _buildPromotionsSection(List<UnifiedPromotion> promotions) {
     return AnimatedBuilder(
       animation: _cardAnimationController,
       builder: (context, child) {
@@ -994,7 +1028,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildPromotionCard(Promotion promotion, int index) {
+  Widget _buildPromotionCard(UnifiedPromotion promotion, int index) {
     final gradientColors = [
       [AppColors.primaryTeal, AppColors.peacockBlue],
       [AppColors.emeraldGreen, AppColors.primaryTeal],
@@ -1093,7 +1127,7 @@ class _HomeScreenState extends State<HomeScreen>
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Text(
-                          'ส่วนลด ${promotion.discountValue}%',
+                          'ส่วนลด ${promotion.discountPercent?.toStringAsFixed(0) ?? promotion.discountAmount?.toStringAsFixed(0) ?? '0'}${promotion.discountPercent != null ? '%' : ' บาท'}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

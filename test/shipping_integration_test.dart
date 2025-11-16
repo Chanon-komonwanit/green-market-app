@@ -17,12 +17,6 @@ class TestFirebaseService implements FirebaseService {
   }
 
   @override
-  Future<void> updateOrder(app_order.Order order) async {
-    // Mock successful update
-    return;
-  }
-
-  @override
   Future<bool> addTrackingEvent(
       String orderId, Map<String, dynamic> eventData) async {
     // Mock successful tracking event

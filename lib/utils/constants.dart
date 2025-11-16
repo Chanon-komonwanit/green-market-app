@@ -316,6 +316,43 @@ class AppTheme {
   static const double smallFontSize = 12.0;
 }
 
+// App Dimensions - Consolidated size constants
+class AppDimens {
+  // Padding & Margins
+  static const double xxSmallPadding = 2.0;
+  static const double xSmallPadding = 4.0;
+  static const double smallPadding = 8.0;
+  static const double mediumPadding = 16.0;
+  static const double largePadding = 24.0;
+  static const double xLargePadding = 32.0;
+
+  // Border Radius
+  static const double smallRadius = 8.0;
+  static const double mediumRadius = 12.0;
+  static const double largeRadius = 16.0;
+  static const double circularRadius = 50.0;
+
+  // Font Sizes
+  static const double extraSmallFontSize = 10.0;
+  static const double smallFontSize = 12.0;
+  static const double mediumFontSize = 14.0;
+  static const double largeFontSize = 16.0;
+  static const double xLargeFontSize = 18.0;
+  static const double xxLargeFontSize = 20.0;
+  static const double titleFontSize = 24.0;
+
+  // Badge & Icon Sizes
+  static const double badgeMinSize = 16.0;
+  static const double iconSmallSize = 16.0;
+  static const double iconMediumSize = 24.0;
+  static const double iconLargeSize = 32.0;
+
+  // Elevation
+  static const double cardElevation = 4.0;
+  static const double buttonElevation = 2.0;
+  static const double dialogElevation = 8.0;
+}
+
 // App Text Styles
 class AppTextStyles {
   // ใช้สำหรับหัวข้อใหญ่ที่สุดในหน้า หรือ Hero text

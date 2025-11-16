@@ -1,6 +1,7 @@
 // lib/widgets/share_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/community_post.dart';
 import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
@@ -237,22 +238,52 @@ class _ShareDialogState extends State<ShareDialog> {
   }
 
   void _shareExternal() {
+    // ใช้ share_plus package สำหรับการแชร์จริงไปยังแอปอื่นๆ
+    final shareText = '''
+🌱 แชร์จาก Green Market
+
+${widget.post.content}
+
+โดย: ${widget.post.userDisplayName}
+วันที่: ${widget.post.createdAt.toDate().toString().split(' ')[0]}
+
+🔗 ดูเพิ่มเติมที่: https://greenmarket.app/post/${widget.post.id}
+
+#GreenMarket #สีเขียว #ความยั่งยืน
+''';
+
     setState(() {
       _isSharing = true;
     });
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        _isSharing = false;
-      });
-      Navigator.pop(context);
-      // TODO: ใช้แพ็กเกจ share_plus สำหรับระบบแชร์จริง
-      // TODO: [ภาษาไทย] นำแพ็กเกจ share_plus มาใช้สำหรับแชร์โพสต์ไปยังแอปอื่น ๆ จริง
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('แชร์โพสต์ภายนอกเรียบร้อย'),
-          backgroundColor: AppColors.infoBlue,
-        ),
-      );
+
+    Share.share(
+      shareText,
+      subject: 'แชร์โพสต์จาก Green Market',
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
+        });
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('แชร์โพสต์เรียบร้อยแล้ว'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    }).catchError((error) {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการแชร์: $error'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
     });
   }
 }

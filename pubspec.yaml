@@ -27,10 +27,13 @@ dependencies:
   # === State Management & Architecture ===
   provider: ^6.1.2                # State management pattern
 
+  # === HTTP & Network ===
+  http: ^1.2.2                    # HTTP client for network requests
+
   # === UI & User Experience ===
   flutter_colorpicker: ^1.1.0     # Color picker widget
-  fl_chart: ^1.0.0                # Charts and graphs
-  flutter_markdown: ^0.7.7+1      # Markdown rendering
+  fl_chart: ^0.69.0               # Charts and graphs (downgrade for compatibility)
+  flutter_markdown: ^0.7.7+1      # Markdown rendering (keep using until replacement available)
   flutter_rating_bar: ^4.0.1      # Product rating stars
   photo_view: ^0.15.0             # Image viewer with zoom
   carousel_slider: ^5.0.0         # Image carousels
@@ -41,12 +44,12 @@ dependencies:
   image_picker: ^1.1.2            # Camera & gallery access
   file_picker: ^10.2.0            # File system access
   url_launcher: ^6.3.0            # Open URLs and apps
-  share_plus: ^11.0.0             # Native sharing
+  share_plus: ^12.0.1             # Native sharing functionality
   google_sign_in: ^7.1.1          # Google authentication
   flutter_local_notifications: ^19.4.0  # Push notifications
-  connectivity_plus: ^6.0.5       # Network monitoring
-  device_info_plus: ^11.5.0       # Device information
-  package_info_plus: ^8.0.2       # App info
+  connectivity_plus: ^7.0.0       # Network connectivity status
+  device_info_plus: ^12.2.0       # Device information
+  package_info_plus: ^9.0.0       # App version and package info
   shared_preferences: ^2.2.2      # Local storage
   path_provider: ^2.1.4           # File paths
 

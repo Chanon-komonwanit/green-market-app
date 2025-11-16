@@ -1,5 +1,6 @@
 // lib/services/admin_management_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:green_market/utils/debug_config.dart';
 
 class AdminManagementService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -40,12 +41,12 @@ class AdminManagementService {
           });
         }
       } catch (e) {
-        print('Admins collection not found or empty');
+        ProductionLogger.w('Admins collection not found or empty');
       }
 
       return adminUsers;
     } catch (e) {
-      print('Error getting admin users: $e');
+      ProductionLogger.e('Error getting admin users: $e');
       return [];
     }
   }
