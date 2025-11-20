@@ -5,6 +5,7 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/seller/world_class_seller_dashboard.dart';
 import 'package:green_market/screens/user/become_seller_screen.dart';
 import 'package:green_market/screens/user/edit_profile_screen.dart';
 import 'package:green_market/utils/app_utils.dart';
@@ -140,10 +141,10 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuTile(
             context: context,
             icon: Icons.store_outlined,
-            title: 'แดชบอร์ดร้านค้า',
+            title: 'แดชบอร์ดร้านค้า (World-Class)',
             onTap: () {
               Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const SellerDashboardScreen(),
+                builder: (context) => const WorldClassSellerDashboard(),
               ));
             },
           ),

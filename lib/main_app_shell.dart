@@ -14,6 +14,7 @@ import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ h
 import 'screens/my_home_screen.dart'; // My Home Screen - ใช้ relative path
 import 'package:green_market/screens/green_world_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/seller/world_class_seller_dashboard.dart';
 import 'package:green_market/screens/green_community_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -98,7 +99,8 @@ class _MainAppShellState extends State<MainAppShell> {
 
     // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
     if (userProvider.isSeller) {
-      pages.add(const SellerDashboardScreen()); // 2. ร้านค้าของฉัน
+      pages.add(
+          const WorldClassSellerDashboard()); // 2. ร้านค้าของฉัน - Enhanced!
     }
 
     // เพิ่มแท็บสำหรับแอดมิน

@@ -264,7 +264,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       _clearForm();
       if (mounted) {
-        Navigator.of(context).pop(); // Go back to SellerProductsScreen
+        // Return `true` so the caller can detect success and refresh lists
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       // If product creation fails, attempt to delete any images that were already uploaded

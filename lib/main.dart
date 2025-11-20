@@ -44,6 +44,7 @@ import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/edit_product_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
+import 'package:green_market/screens/seller/world_class_seller_dashboard.dart';
 import 'package:green_market/screens/wishlist_screen.dart';
 
 // Models
@@ -325,7 +326,7 @@ class MyApp extends StatelessWidget {
 
                   case '/seller-dashboard':
                     return MaterialPageRoute(
-                      builder: (_) => const SellerDashboardScreen(),
+                      builder: (_) => const WorldClassSellerDashboard(),
                     );
 
                   case '/wishlist':
