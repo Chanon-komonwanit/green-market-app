@@ -33,7 +33,7 @@ import 'package:green_market/screens/search_screen.dart';
 import 'package:green_market/screens/flash_sale_screen.dart';
 import 'package:green_market/screens/category_screen.dart';
 import 'package:green_market/screens/notifications_screen.dart';
-import 'package:green_market/screens/order_screen.dart';
+
 import 'package:green_market/screens/orders_screen.dart';
 import 'package:green_market/screens/chat_screen.dart';
 import 'package:green_market/screens/payment_screen.dart';
@@ -268,16 +268,17 @@ class MyApp extends StatelessWidget {
                     );
 
                   case '/orders':
-                    final userId = settings.arguments as String?;
-                    if (userId != null) {
-                      return MaterialPageRoute(
-                        builder: (_) => OrderScreen(userId: userId),
-                      );
-                    }
+                    // Use OrdersScreen instead (consolidated version)
+                    return MaterialPageRoute(
+                      builder: (_) => const OrdersScreen(),
+                    );
+                  
+                  case '/orders-old':
+                    // Kept for backward compatibility
                     return MaterialPageRoute(
                       builder: (_) => const Scaffold(
                         body: Center(
-                          child: Text('ข้อมูลผู้ใช้ไม่ถูกต้อง'),
+                          child: Text('กรุณาใช้หน้า "คำสั่งซื้อของฉัน" แทน'),
                         ),
                       ),
                     );

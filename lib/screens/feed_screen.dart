@@ -7,7 +7,7 @@ import 'package:green_market/utils/constants.dart';
 import 'package:green_market/screens/create_community_post_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
-import 'package:green_market/screens/comment_screen.dart';
+import 'package:green_market/screens/post_comments_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -334,9 +334,8 @@ class _FeedScreenState extends State<FeedScreen>
                                                       context,
                                                       MaterialPageRoute(
                                                         builder: (context) =>
-                                                            CommentScreen(
-                                                                postId:
-                                                                    post.id),
+                                                            PostCommentsScreen(
+                                                                post: post),
                                                       ),
                                                     );
                                                   },
