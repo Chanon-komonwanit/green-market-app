@@ -119,7 +119,8 @@ class _FeedScreenState extends State<FeedScreen>
       _isLoading = false;
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลดโพสต์: ${e.toString()}')),
+        SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการโหลดโพสต์: ${e.toString()}')),
       );
     }
   }

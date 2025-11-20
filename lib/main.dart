@@ -272,7 +272,7 @@ class MyApp extends StatelessWidget {
                     return MaterialPageRoute(
                       builder: (_) => const OrdersScreen(),
                     );
-                  
+
                   case '/orders-old':
                     // Kept for backward compatibility
                     return MaterialPageRoute(
