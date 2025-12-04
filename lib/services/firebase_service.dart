@@ -1,5 +1,28 @@
-// ...existing code...
-// d:/Development/green_market/lib/services/firebase_service.dart
+// lib/services/firebase_service.dart
+//
+// 🔥 FirebaseService - SERVICE หลักที่สำคัญที่สุด
+//
+// หน้าที่:
+// - จัดการทุก CRUD operations กับ Firestore
+// - Query ข้อมูลจาก Collections ต่างๆ
+// - จัดการ Real-time listeners
+// - Upload/Download files จาก Firebase Storage
+// - จัดการ Authentication operations
+//
+// Collections ที่จัดการ:
+// - users, products, orders, categories, sellers, reviews
+// - coupons, promotions, flashSales, ecoCoins
+// - investments, activities, stories, chats, notifications
+//
+// ใช้โดย: เกือบทุก Provider และ Service ในแอป
+//
+// วิธีใช้:
+// ```dart
+// final service = FirebaseService();
+// final data = await service.getCollection('users');
+// await service.addDocument('products', productData);
+// ```
+
 import 'dart:io';
 import 'dart:math';
 import 'dart:async';
@@ -47,6 +70,15 @@ class ProductSearchResult {
   ProductSearchResult(this.product, this.score);
 }
 
+/// FirebaseService - Service หลักสำหรับจัดการ Firestore, Storage, และ Auth
+///
+/// Features:
+/// - ✅ CRUD operations (Create, Read, Update, Delete)
+/// - ✅ Real-time data listeners
+/// - ✅ File upload/download
+/// - ✅ Query builder
+/// - ✅ Retry mechanism with exponential backoff
+/// - ✅ Error handling
 class FirebaseService {
   // === ENHANCED ERROR HANDLING AND RETRY SYSTEM ===
 
@@ -1820,6 +1852,26 @@ class FirebaseService {
     });
   }
 
+  /// Instance method for updating order status (for testing/mocking)
+  Future<void> updateOrderStatusInstance(String orderId, String status) async {
+    return await updateOrderStatus(orderId, status);
+  }
+
+  /// Instance method for getting seller data (for testing/mocking)
+  Future<Map<String, dynamic>?> getSellerData(String sellerId) async {
+    try {
+      final sellerDoc =
+          await _firestore.collection('sellers').doc(sellerId).get();
+      if (!sellerDoc.exists) {
+        return null;
+      }
+      return sellerDoc.data();
+    } catch (e) {
+      logger.e('Error getting seller data: $e');
+      return null;
+    }
+  }
+
   // --- Investment Projects Management ---
   static Future<void> addInvestmentProject(InvestmentProject project) async {
     return await _withRetryStatic('addInvestmentProject', () async {
@@ -2701,8 +2753,6 @@ class FirebaseService {
 
     return words.where((word) => !stopWords.contains(word)).toList();
   }
-
-  // --- Investment Methods ---
 
   // --- Investment Methods ---
   Future<InvestmentSummary> getInvestmentProjectSummary() async {

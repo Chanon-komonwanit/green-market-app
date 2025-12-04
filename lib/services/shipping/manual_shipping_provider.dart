@@ -100,19 +100,15 @@ class ManualShippingProvider extends ShippingProvider {
   @override
   Future<TrackingInfo> getTrackingInfo(String trackingNumber) async {
     try {
-      // Get tracking events from Firestore
-      final eventsSnapshot = await FirebaseFirestore.instance
-          .collection('tracking_events')
-          .where('trackingNumber', isEqualTo: trackingNumber)
-          .orderBy('timestamp', descending: false)
-          .get();
+      // Get tracking events from Firebase service
+      final eventsData =
+          await _firebaseService.getTrackingEvents(trackingNumber);
 
-      if (eventsSnapshot.docs.isEmpty) {
+      if (eventsData.isEmpty) {
         throw Exception('ไม่พบข้อมูลการติดตามสำหรับหมายเลข $trackingNumber');
       }
 
-      final events = eventsSnapshot.docs.map((doc) {
-        final data = doc.data();
+      final events = eventsData.map((data) {
         return TrackingEvent(
           status: data['status'] ?? '',
           description: data['description'] ?? '',
@@ -378,7 +374,7 @@ class ManualShippingProvider extends ShippingProvider {
     String description,
     LocationInfo? location,
   ) async {
-    await FirebaseFirestore.instance.collection('tracking_events').add({
+    await _firebaseService.addTrackingEvent(trackingNumber, {
       'trackingNumber': trackingNumber,
       'status': status,
       'description': description,
@@ -392,11 +388,8 @@ class ManualShippingProvider extends ShippingProvider {
   Future<String?> _getTrackingNumberFromShipmentId(String shipmentId) async {
     try {
       final orderId = shipmentId.replaceAll('manual_', '');
-      final orderDoc = await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(orderId)
-          .get();
-      return orderDoc.data()?['trackingNumber'];
+      final orderData = await _firebaseService.getOrderById(orderId);
+      return orderData?['trackingNumber'];
     } catch (e) {
       return null;
     }

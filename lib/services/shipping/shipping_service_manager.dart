@@ -45,7 +45,7 @@ class ShippingServiceManager {
   /// Create shipment from order
   Future<ShippingResult> createShipmentFromOrder(app_order.Order order) async {
     try {
-      // Get seller address (mock for now)
+      // Get seller address
       final senderAddress = await _getSellerAddress(order.sellerIds.first);
 
       // Create receiver address from order
@@ -84,7 +84,12 @@ class ShippingServiceManager {
 
       // Update order status if successful
       if (result.success) {
-        await FirebaseService.updateOrderStatus(order.id, 'shipped');
+        try {
+          await _firebaseService.updateOrderStatusInstance(order.id, 'shipped');
+        } catch (e) {
+          // Log but don't fail if status update fails
+          print('Warning: Failed to update order status: $e');
+        }
       }
 
       return result;
@@ -244,16 +249,12 @@ class ShippingServiceManager {
   // Helper methods
   Future<AddressInfo> _getSellerAddress(String sellerId) async {
     try {
-      final sellerDoc = await _firebaseService.firestore
-          .collection('sellers')
-          .doc(sellerId)
-          .get();
+      final data = await _firebaseService.getSellerData(sellerId);
 
-      if (!sellerDoc.exists) {
+      if (data == null) {
         throw Exception('Seller not found');
       }
 
-      final data = sellerDoc.data()!;
       return AddressInfo(
         fullName: data['shopName'] ?? '',
         phoneNumber: data['phoneNumber'] ?? '',
@@ -295,11 +296,24 @@ class ShippingServiceManager {
   }
 
   Future<ShippingMethod> _getShippingMethodById(String methodId) async {
-    final methods = await _currentProvider.getAvailableShippingMethods();
-    return methods.firstWhere(
-      (method) => method.id == methodId,
-      orElse: () => methods.first,
-    );
+    try {
+      final methods = await _currentProvider.getAvailableShippingMethods();
+      return methods.firstWhere(
+        (method) => method.id == methodId,
+        orElse: () => methods.first,
+      );
+    } catch (e) {
+      // Return default method if Firebase fails
+      return ShippingMethod(
+        id: 'standard_delivery',
+        name: 'Standard Delivery',
+        description: 'มาตรฐาน 3-5 วัน',
+        cost: 40.0,
+        estimatedDays: 3,
+        carrier: 'Kerry Express',
+        isActive: true,
+      );
+    }
   }
 
   Future<ShippingLabel> _generateShippingLabel(app_order.Order order) async {

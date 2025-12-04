@@ -34,15 +34,23 @@ class ShopCustomization {
         (e) => e.toString().split('.').last == map['theme'],
         orElse: () => ScreenShopTheme.greenEco,
       ),
-      banner: map['banner'] != null ? ShopBanner.fromMap(map['banner']) : null,
+      banner: map['banner'] != null
+          ? ShopBanner.fromMap(Map<String, dynamic>.from(map['banner'] as Map))
+          : null,
       sections: List<ShopSection>.from(
-        map['sections']?.map((x) => ShopSection.fromMap(x)) ?? [],
+        map['sections']?.map((x) =>
+                ShopSection.fromMap(Map<String, dynamic>.from(x as Map))) ??
+            [],
       ),
-      colors: ShopColors.fromMap(map['colors'] ?? {}),
-      layout: ShopLayout.fromMap(map['layout'] ?? {}),
+      colors: ShopColors.fromMap(
+          Map<String, dynamic>.from((map['colors'] ?? {}) as Map)),
+      layout: ShopLayout.fromMap(
+          Map<String, dynamic>.from((map['layout'] ?? {}) as Map)),
       featuredProductIds: List<String>.from(map['featuredProductIds'] ?? []),
       promotions: List<ShopPromotion>.from(
-        map['promotions']?.map((x) => ShopPromotion.fromMap(x)) ?? [],
+        map['promotions']?.map((x) =>
+                ShopPromotion.fromMap(Map<String, dynamic>.from(x as Map))) ??
+            [],
       ),
       updatedAt: map['updatedAt'] is Timestamp ? map['updatedAt'] : null,
       createdAt: map['createdAt'] is Timestamp ? map['createdAt'] : null,

@@ -146,7 +146,9 @@ class ValidationUtils {
     final profanityWords = [
       'damn', 'hell', 'shit', 'fuck', 'bitch', 'ass',
       // Thai profanity words (using transliteration for safety)
-      'ai', 'hia', 'kwai', 'sat', 'mon'
+      'ai', 'hia', 'kwai', 'sat', 'mon',
+      // Spam/scam related words
+      'spam', 'scam', 'fake', 'fraud'
     ];
 
     final lowerContent = content.toLowerCase();
@@ -205,7 +207,7 @@ class ValidationUtils {
   }
 
   /// Enhanced eco score validation
-  static ValidationResult validateEcoScore(dynamic score) {
+  static ValidationResult validateEcoScoreAdvanced(dynamic score) {
     final errors = <String>[];
     final warnings = <String>[];
 
@@ -218,10 +220,12 @@ class ValidationUtils {
 
     if (parsed < 0) {
       errors.add('คะแนนความยั่งยืนต้องมากกว่าหรือเท่ากับ 0');
+      return ValidationResult(isValid: false, errors: errors);
     }
 
     if (parsed > 100) {
       errors.add('คะแนนความยั่งยืนต้องไม่เกิน 100');
+      return ValidationResult(isValid: false, errors: errors);
     }
 
     // Add warnings based on score ranges
@@ -392,7 +396,7 @@ class ValidationUtils {
   }
 
   /// Enhanced email validation with domain checking
-  static ValidationResult validateEmail(String email) {
+  static ValidationResult validateEmailAdvanced(String email) {
     final errors = <String>[];
     final warnings = <String>[];
 
@@ -403,12 +407,28 @@ class ValidationUtils {
 
     final cleanEmail = email.trim().toLowerCase();
 
-    // Basic format validation
+    // Enhanced format validation - more strict
     final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$',
     );
 
     if (!emailRegex.hasMatch(cleanEmail)) {
+      errors.add('รูปแบบอีเมลไม่ถูกต้อง');
+      return ValidationResult(isValid: false, errors: errors);
+    }
+
+    // Check that domain has proper structure
+    final parts = cleanEmail.split('@');
+    if (parts.length != 2 || parts[0].isEmpty || parts[1].isEmpty) {
+      errors.add('รูปแบบอีเมลไม่ถูกต้อง');
+      return ValidationResult(isValid: false, errors: errors);
+    }
+
+    // Validate domain has at least one dot
+    final domain = parts[1];
+    if (!domain.contains('.') ||
+        domain.startsWith('.') ||
+        domain.endsWith('.')) {
       errors.add('รูปแบบอีเมลไม่ถูกต้อง');
       return ValidationResult(isValid: false, errors: errors);
     }
@@ -418,8 +438,7 @@ class ValidationUtils {
       errors.add('อีเมลมีเนื้อหาที่ไม่เหมาะสม');
     }
 
-    // Domain checks
-    final domain = cleanEmail.split('@').last;
+    // Domain checks (domain already declared above at line 426)
     final suspiciousDomains = ['tempmail', 'guerrillamail', '10minutemail'];
 
     if (suspiciousDomains.any((suspicious) => domain.contains(suspicious))) {
@@ -492,7 +511,7 @@ class ValidationUtils {
   }
 
   /// Enhanced password validation with comprehensive security checks
-  static ValidationResult validatePassword(String password) {
+  static ValidationResult validatePasswordAdvanced(String password) {
     final errors = <String>[];
     final warnings = <String>[];
     final suggestions = <String>[];
@@ -505,7 +524,7 @@ class ValidationUtils {
       return ValidationResult(isValid: false, errors: errors);
     }
 
-    // Length checks
+    // Length checks - MUST be at least 8 characters
     if (password.length < 8) {
       errors.add('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       suggestions.add('เพิ่มความยาวรหัสผ่านให้มากกว่า 8 ตัวอักษร');
@@ -515,25 +534,28 @@ class ValidationUtils {
       if (password.length >= 16) score += 1;
     }
 
-    // Character type checks
+    // Character type checks - MUST have uppercase, lowercase, and number
     bool hasUpper = password.contains(RegExp(r'[A-Z]'));
     bool hasLower = password.contains(RegExp(r'[a-z]'));
     bool hasNumber = password.contains(RegExp(r'[0-9]'));
     bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
     if (!hasUpper) {
+      errors.add('รหัสผ่านต้องมีตัวอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว');
       suggestions.add('เพิ่มตัวอักษรพิมพ์ใหญ่ (A-Z)');
     } else {
       score += 1;
     }
 
     if (!hasLower) {
+      errors.add('รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว');
       suggestions.add('เพิ่มตัวอักษรพิมพ์เล็ก (a-z)');
     } else {
       score += 1;
     }
 
     if (!hasNumber) {
+      errors.add('รหัสผ่านต้องมีตัวเลค (0-9) อย่างน้อย 1 ตัว');
       suggestions.add('เพิ่มตัวเลข (0-9)');
     } else {
       score += 1;
@@ -653,13 +675,13 @@ class ValidationUtils {
 
   /// Legacy isValidEcoScore method
   static bool isValidEcoScore(dynamic score) {
-    final result = validateEcoScore(score);
+    final result = validateEcoScoreAdvanced(score);
     return result.isValid;
   }
 
   /// Legacy password validation that returns Map for compatibility
   static Map<String, dynamic> validatePasswordLegacy(String password) {
-    final result = validatePassword(password);
+    final result = validatePasswordAdvanced(password);
 
     return {
       'isValid': result.isValid,
@@ -864,8 +886,8 @@ class ValidationUtils {
     }
 
     final sanitized = sanitizeInput(name);
-    if (sanitized.length < 2) {
-      return 'ชื่อสินค้าต้องมีอย่างน้อย 2 ตัวอักษร';
+    if (sanitized.length < 3) {
+      return 'ชื่อสินค้าต้องมีอย่างน้อย 3 ตัวอักษร';
     }
 
     if (sanitized.length > 100) {
@@ -873,6 +895,10 @@ class ValidationUtils {
     }
 
     if (ValidationUtils.containsInappropriateContent(sanitized)) {
+      return 'ชื่อสินค้าประกอบด้วยเนื้อหาไม่เหมาะสม';
+    }
+
+    if (ValidationUtils.containsProfanity(sanitized)) {
       return 'ชื่อสินค้าประกอบด้วยเนื้อหาไม่เหมาะสม';
     }
 
@@ -894,6 +920,10 @@ class ValidationUtils {
     }
 
     if (ValidationUtils.containsInappropriateContent(sanitized)) {
+      return 'รายละเอียดสินค้าประกอบด้วยเนื้อหาไม่เหมาะสม';
+    }
+
+    if (ValidationUtils.containsProfanity(sanitized)) {
       return 'รายละเอียดสินค้าประกอบด้วยเนื้อหาไม่เหมาะสม';
     }
 
@@ -922,8 +952,65 @@ class ValidationUtils {
       return 'จำนวนสต็อกต้องเป็นตัวเลข';
     }
 
-    if (!ValidationUtils.isValidQuantity(stockNum)) {
-      return 'จำนวนสต็อกต้องอยู่ระหว่าง 0 - 10,000';
+    // Stock must be >= 0 (allow 0 for out of stock) and <= 10000
+    if (stockNum < 0) {
+      return 'จำนวนสต็อกต้องไม่ติดลบ';
+    }
+
+    if (stockNum > 10000) {
+      return 'จำนวนสต็อกต้องไม่เกิน 10,000';
+    }
+
+    return null;
+  }
+
+  // Wrapper methods for backward compatibility (return String? instead of ValidationResult)
+
+  static String? validateEcoScore(String? score) {
+    if (score == null || score.trim().isEmpty) {
+      return 'กรุณาระบุคะแนนความยั่งยืน';
+    }
+
+    final scoreNum = int.tryParse(score.trim());
+    if (scoreNum == null) {
+      return 'คะแนนความยั่งยืนต้องเป็นตัวเลข';
+    }
+
+    // Eco score must be > 0 and <= 100
+    if (scoreNum <= 0) {
+      return 'คะแนนความยั่งยืนต้องมากกว่า 0';
+    }
+
+    if (scoreNum > 100) {
+      return 'คะแนนความยั่งยืนต้องไม่เกิน 100';
+    }
+
+    return null;
+  }
+
+  static String? validateEmail(String? email) {
+    if (email == null || email.trim().isEmpty) {
+      return 'กรุณาระบุอีเมล';
+    }
+
+    // Use advanced validation method
+    final result = ValidationUtils.validateEmailAdvanced(email.trim());
+    if (!result.isValid && result.errors.isNotEmpty) {
+      return result.errors.first;
+    }
+
+    return null;
+  }
+
+  static String? validatePassword(String? password) {
+    if (password == null || password.isEmpty) {
+      return 'กรุณาระบุรหัสผ่าน';
+    }
+
+    // Use advanced validation method
+    final result = ValidationUtils.validatePasswordAdvanced(password);
+    if (!result.isValid && result.errors.isNotEmpty) {
+      return result.errors.first;
     }
 
     return null;

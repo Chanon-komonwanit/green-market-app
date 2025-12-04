@@ -1,16 +1,48 @@
 // lib/providers/cart_provider_enhanced.dart
+//
+// 🛒 CartProviderEnhanced - จัดการตะกร้าสินค้า
+//
+// หน้าที่:
+// - เพิ่ม/ลดสินค้าในตะกร้า
+// - คำนวณราคารวม
+// - ใช้คูปอง/โค้ดส่วนลด
+// - คำนวณค่าจัดส่ง
+// - จัดการจำนวนสินค้า
+//
+// ใช้งานที่:
+// - Product Detail Screen (เพิ่มสินค้า)
+// - Cart Screen (แสดงตะกร้า)
+// - Checkout Screen (ชำระเงิน)
+//
+// วิธีใช้:
+// ```dart
+// // เพิ่มสินค้าในตะกร้า
+// cartProvider.addToCart(product);
+//
+// // ลบสินค้า
+// cartProvider.removeFromCart(productId);
+//
+// // ดูจำนวนสินค้า
+// int count = cartProvider.itemCount;
+//
+// // คำนวณราคารวม
+// double total = cartProvider.totalAmount;
+// ```
+
 import 'package:flutter/foundation.dart';
 import 'package:green_market/models/product.dart';
 import 'package:green_market/utils/enhanced_error_handler.dart';
 
+/// CartItem - สินค้าในตะกร้า
 class CartItem {
-  final Product product;
-  int quantity;
+  final Product product; // สินค้า
+  int quantity; // จำนวน
 
   CartItem({required this.product, this.quantity = 1}) {
-    if (quantity < 0) quantity = 1; // Prevent negative quantities
+    if (quantity < 0) quantity = 1; // ป้องกันจำนวนติดลบ
   }
 
+  /// ราคารวมของสินค้านี้ (ราคา × จำนวน)
   double get totalPrice => product.price * quantity;
 
   Map<String, dynamic> toJson() {
@@ -29,6 +61,14 @@ class CartItem {
   }
 }
 
+/// CartProviderEnhanced - Provider จัดการตะกร้าสินค้า
+///
+/// Features:
+/// - ✅ Add/Remove items
+/// - ✅ Update quantity
+/// - ✅ Calculate totals (product + shipping + discount)
+/// - ✅ Apply coupons
+/// - ✅ Validate stock availability
 class CartProviderEnhanced extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
   bool _isLoading = false;

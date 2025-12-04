@@ -1,4 +1,30 @@
 // lib/providers/auth_provider.dart
+//
+// 🔐 AuthProvider - จัดการสถานะการเข้าสู่ระบบ
+//
+// หน้าที่:
+// - จัดการ Login/Logout/Register
+// - ตรวจสอบสถานะการเข้าสู่ระบบ (Authentication State)
+// - จัดการ User Session
+// - รองรับ Multiple login methods (Email, Google, Facebook, Phone)
+// - ตรวจสอบ Network connectivity
+//
+// ใช้งานที่: ทุกหน้าที่ต้องตรวจสอบการเข้าสู่ระบบ
+//
+// วิธีใช้:
+// ```dart
+// // Login
+// await authProvider.signInWithEmailAndPassword(email, password);
+//
+// // Check login status
+// if (authProvider.isAuthenticated) {
+//   // User is logged in
+// }
+//
+// // Logout
+// await authProvider.signOut();
+// ```
+
 import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,29 +37,38 @@ import 'package:green_market/utils/enhanced_error_handler.dart';
 import 'package:logger/logger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+/// สถานะการเข้าสู่ระบบ
 enum AuthState {
-  unknown,
-  authenticated,
-  unauthenticated,
-  maintenance, // For maintenance mode
+  unknown, // ยังไม่ทราบสถานะ (กำลังตรวจสอบ)
+  authenticated, // เข้าสู่ระบบแล้ว
+  unauthenticated, // ยังไม่ได้เข้าสู่ระบบ
+  maintenance, // อยู่ในโหมดปรับปรุง
 }
 
+/// ประเภทของ Error ที่เกิดขึ้นจากการเข้าสู่ระบบ
 enum AuthError {
-  userDisabled,
-  userNotFound,
-  wrongPassword,
-  emailAlreadyInUse,
-  invalidEmail,
-  operationNotAllowed,
-  weakPassword,
-  networkError,
-  tooManyRequests,
-  maintenanceMode,
-  sessionExpired,
-  deviceNotSupported,
-  unknown,
+  userDisabled, // บัญชีถูกปิดการใช้งาน
+  userNotFound, // ไม่พบผู้ใช้
+  wrongPassword, // รหัสผ่านผิด
+  emailAlreadyInUse, // Email ถูกใช้งานแล้ว
+  invalidEmail, // Email ไม่ถูกต้อง
+  operationNotAllowed, // ไม่อนุญาตให้ทำงานนี้
+  weakPassword, // รหัสผ่านไม่ปลอดภัย
+  networkError, // ปัญหาเครือข่าย
+  tooManyRequests, // พยายามเข้าสู่ระบบบ่อยเกินไป
+  maintenanceMode, // อยู่ในโหมดปรับปรุง
+  sessionExpired, // Session หมดอายุ
+  deviceNotSupported, // อุปกรณ์ไม่รองรับ
+  unknown, // ข้อผิดพลาดที่ไม่ทราบสาเหตุ
 }
 
+/// AuthProvider - Provider สำหรับจัดการ Authentication
+///
+/// Features:
+/// - ✅ Multiple login methods (Email, Google, Facebook, Phone)
+/// - ✅ Auto reconnection on network recovery
+/// - ✅ Session management
+/// - ✅ Error handling with localized messages
 class AuthProvider with ChangeNotifier {
   final FirebaseService _firebaseService;
   final Logger _logger = Logger();

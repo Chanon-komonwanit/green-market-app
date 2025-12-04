@@ -62,12 +62,20 @@ void main() {
 
   testWidgets('ModernButton is accessible', (WidgetTester tester) async {
     await tester.pumpWidget(MaterialApp(
-      home: ModernButton(
-        label: 'Accessible',
-        semanticLabel: 'Accessible Button',
-        onPressed: () {},
+      home: Scaffold(
+        body: ModernButton(
+          label: 'Accessible',
+          semanticLabel: 'Accessible Button',
+          onPressed: () {},
+        ),
       ),
     ));
-    expect(find.bySemanticsLabel('Accessible Button'), findsOneWidget);
+
+    // Find by semantic label using semantics
+    final semanticsFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics && widget.properties.label == 'Accessible Button',
+    );
+    expect(semanticsFinder, findsOneWidget);
   });
 }

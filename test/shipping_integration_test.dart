@@ -10,28 +10,70 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ใช้วิธี stub แทน Mock เพื่อหลีกเลี่ยงปัญหา sealed classes
 class TestFirebaseService implements FirebaseService {
+  final Map<String, Map<String, dynamic>> _mockData = {};
+  final Map<String, List<Map<String, dynamic>>> _trackingEvents = {};
+
+  TestFirebaseService() {
+    // Initialize with test data
+    _mockData['sellers/seller-123'] = {
+      'shopName': 'Test Shop',
+      'phoneNumber': '0812345678',
+      'address': '123 Test St',
+      'subDistrict': 'Test',
+      'district': 'Test',
+      'province': 'Bangkok',
+      'zipCode': '10100',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getSellerData(String sellerId) async {
+    return _mockData['sellers/$sellerId'];
+  }
+
   @override
   Future<Map<String, dynamic>?> getOrderById(String orderId) async {
-    // Return test order data or null based on test scenario
-    return null;
+    return _mockData['orders/$orderId'];
+  }
+
+  @override
+  Future<void> updateOrderShippingInfo(
+      String orderId, Map<String, dynamic> shippingInfo) async {
+    if (_mockData['orders/$orderId'] == null) {
+      _mockData['orders/$orderId'] = {};
+    }
+    _mockData['orders/$orderId']!['shippingInfo'] = shippingInfo;
   }
 
   @override
   Future<bool> addTrackingEvent(
-      String orderId, Map<String, dynamic> eventData) async {
-    // Mock successful tracking event
+      String trackingNumber, Map<String, dynamic> eventData) async {
+    if (_trackingEvents[trackingNumber] == null) {
+      _trackingEvents[trackingNumber] = [];
+    }
+    _trackingEvents[trackingNumber]!.add(eventData);
     return true;
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getTrackingEvents(String orderId) async {
-    // Return empty list for test
-    return [];
+  Future<List<Map<String, dynamic>>> getTrackingEvents(
+      String trackingNumber) async {
+    return _trackingEvents[trackingNumber] ?? [];
   }
 
-  // เพิ่ม method สำหรับการทดสอบอื่นๆ
   @override
-  dynamic noSuchMethod(Invocation invocation) => null;
+  Future<void> updateOrderStatusInstance(String orderId, String status) async {
+    if (_mockData['orders/$orderId'] == null) {
+      _mockData['orders/$orderId'] = {};
+    }
+    _mockData['orders/$orderId']!['status'] = status;
+  }
+
+  Map<String, dynamic>? getData(String path) => _mockData[path];
+
+  // Implement other methods
+  @override
+  dynamic noSuchMethod(Invocation invocation) => Future.value();
 }
 
 void main() {
@@ -52,6 +94,7 @@ void main() {
         orderDate: Timestamp.now(),
         status: 'processing',
         paymentMethod: 'qr_code',
+        shippingMethod: 'standard_delivery',
         totalAmount: 150.0,
         shippingFee: 40.0,
         subTotal: 110.0,
@@ -83,7 +126,11 @@ void main() {
       final shipmentResult =
           await shippingManager.createShipmentFromOrder(order);
 
-      expect(shipmentResult.success, true);
+      print(
+          'Shipment result: success=${shipmentResult.success}, trackingNumber=${shipmentResult.trackingNumber}, error=${shipmentResult.errorMessage}');
+
+      expect(shipmentResult.success, true,
+          reason: 'Failed: ${shipmentResult.errorMessage}');
       expect(shipmentResult.trackingNumber, isNotNull);
       expect(shipmentResult.trackingNumber!.length, greaterThan(5));
 
@@ -136,6 +183,7 @@ void main() {
                 orderDate: Timestamp.now(),
                 status: 'processing',
                 paymentMethod: 'qr_code',
+                shippingMethod: 'standard_delivery',
                 totalAmount: 100.0 + (index * 10),
                 shippingFee: 40.0,
                 subTotal: 60.0 + (index * 10),
@@ -166,8 +214,13 @@ void main() {
       // Test bulk shipment creation
       final bulkResults = await shippingManager.createBulkShipments(orders);
 
+      print(
+          'Bulk results: ${bulkResults.map((r) => 'success=${r.success}, error=${r.errorMessage}').toList()}');
+
       expect(bulkResults.length, equals(3));
-      expect(bulkResults.every((result) => result.success), true);
+      expect(bulkResults.every((result) => result.success), true,
+          reason:
+              'Failed: ${bulkResults.where((r) => !r.success).map((r) => r.errorMessage).join(", ")}');
       expect(
           bulkResults.every((result) => result.trackingNumber != null), true);
     });

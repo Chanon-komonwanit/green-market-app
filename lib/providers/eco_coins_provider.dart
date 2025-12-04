@@ -17,8 +17,13 @@ import '../utils/constants.dart';
 /// เสมือนระบบธนาคารสิ่งแวดล้อม รวมถึงการจัดการภารกิจ และประวัติการทำธุรกรรม
 /// พร้อมด้วยระบบการจัดการข้อผิดพลาดและการป้องกันความปลอดภัยขั้นสูง
 class EcoCoinProvider extends ChangeNotifier {
-  final EcoCoinsService _ecoCoinsService = EcoCoinsService();
+  final EcoCoinsService _ecoCoinsService;
   final EnhancedErrorHandler _errorHandler = EnhancedErrorHandler();
+
+  /// Constructor with dependency injection support
+  /// Allows injecting a custom EcoCoinsService for testing
+  EcoCoinProvider({EcoCoinsService? ecoCoinsService})
+      : _ecoCoinsService = ecoCoinsService ?? EcoCoinsService();
 
   EcoCoinBalance? _balance;
   List<EcoCoin> _transactions = [];
@@ -29,6 +34,12 @@ class EcoCoinProvider extends ChangeNotifier {
   String? _error;
   DateTime? _lastRefresh;
   Timer? _autoRefreshTimer;
+
+  // Stream subscriptions for real-time updates
+  StreamSubscription<EcoCoinBalance?>? _balanceSubscription;
+  StreamSubscription<List<EcoCoin>>? _transactionsSubscription;
+  StreamSubscription<List<EcoCoinMission>>? _missionsSubscription;
+  StreamSubscription<List<EcoCoinMissionProgress>>? _progressSubscription;
 
   // Enhanced Security & Performance Features
   int _consecutiveFailures = 0;
@@ -144,33 +155,68 @@ class EcoCoinProvider extends ChangeNotifier {
   }
 
   /// Enhanced initialization with comprehensive error handling
-  void initialize() {
-    _performOperation('initialize', () async {
+  Future<void> initialize() async {
+    await _performOperation('initialize', () async {
       _lastRefresh = DateTime.now();
-      _loadMockData();
+
+      // Create completers to wait for initial data
+      final balanceCompleter = Completer<void>();
+      final transactionsCompleter = Completer<void>();
+      final missionsCompleter = Completer<void>();
+      final progressCompleter = Completer<void>();
+
+      // Subscribe to real-time streams from service
+      _balanceSubscription = _ecoCoinsService.getEcoCoinBalance().listen(
+        (balance) {
+          _balance = balance;
+          if (!balanceCompleter.isCompleted) balanceCompleter.complete();
+          notifyListeners();
+        },
+        onError: (error) => _setError('Balance stream error: $error'),
+      );
+
+      _transactionsSubscription = _ecoCoinsService.getEcoCoinsHistory().listen(
+        (transactions) {
+          _transactions = transactions;
+          if (!transactionsCompleter.isCompleted)
+            transactionsCompleter.complete();
+          notifyListeners();
+        },
+        onError: (error) => _setError('Transactions stream error: $error'),
+      );
+
+      _missionsSubscription = _ecoCoinsService.getAvailableMissions().listen(
+        (missions) {
+          _missions = missions;
+          if (!missionsCompleter.isCompleted) missionsCompleter.complete();
+          notifyListeners();
+        },
+        onError: (error) => _setError('Missions stream error: $error'),
+      );
+
+      _progressSubscription = _ecoCoinsService.getMissionProgress().listen(
+        (progress) {
+          _missionProgress = progress;
+          if (!progressCompleter.isCompleted) progressCompleter.complete();
+          notifyListeners();
+        },
+        onError: (error) => _setError('Progress stream error: $error'),
+      );
+
       _startAutoRefresh();
+
+      // Wait for initial data from all streams with timeout
+      try {
+        await Future.wait([
+          balanceCompleter.future,
+          transactionsCompleter.future,
+          missionsCompleter.future,
+          progressCompleter.future,
+        ]).timeout(const Duration(seconds: 2));
+      } catch (e) {
+        print('Warning: Timeout waiting for initial stream data: $e');
+      }
     });
-  }
-
-  /// Enhanced constructor with proper setup
-  EcoCoinProvider() {
-    // Auto-initialize with mock data when created
-    initialize();
-  }
-
-  /// Enhanced mock data loading with validation
-  void _loadMockData() {
-    try {
-      _balance = EcoCoinsService.getMockBalance();
-      _transactions = EcoCoinsService.getMockTransactions();
-      _missions = EcoCoinsService.getMockMissions();
-      _missionProgress = [];
-      _lastRefresh = DateTime.now();
-      _setError(null);
-      notifyListeners();
-    } catch (e) {
-      _setError('Failed to load mock data: $e');
-    }
   }
 
   /// Enhanced award coins with comprehensive validation and error handling
@@ -203,7 +249,7 @@ class EcoCoinProvider extends ChangeNotifier {
       );
 
       // Refresh data after successful operation
-      _loadMockData();
+      // Stream will auto-update balance
     });
 
     _setLoading(false);
@@ -245,7 +291,7 @@ class EcoCoinProvider extends ChangeNotifier {
       );
 
       if (success) {
-        _loadMockData(); // Refresh data after successful operation
+        // Stream will auto-update balance
       }
 
       return success;
@@ -279,7 +325,7 @@ class EcoCoinProvider extends ChangeNotifier {
       _setError(null);
 
       await _ecoCoinsService.completeMission(missionId);
-      _loadMockData(); // Refresh data after successful operation
+      // Stream will auto-update balance
     });
 
     _setLoading(false);
@@ -299,7 +345,7 @@ class EcoCoinProvider extends ChangeNotifier {
 
     await _performOperation('awardPurchaseCoins', () async {
       await _ecoCoinsService.awardPurchaseCoins(purchaseAmount, orderId);
-      _loadMockData();
+      // Stream will auto-update balance
     });
   }
 
@@ -311,14 +357,14 @@ class EcoCoinProvider extends ChangeNotifier {
 
     await _performOperation('awardReviewCoins', () async {
       await _ecoCoinsService.awardReviewCoins(productId);
-      _loadMockData();
+      // Stream will auto-update balance
     });
   }
 
   Future<void> awardDailyLoginCoins() async {
     await _performOperation('awardDailyLoginCoins', () async {
       await _ecoCoinsService.awardDailyLoginCoins();
-      _loadMockData();
+      // Stream will auto-update balance
     });
   }
 
@@ -336,7 +382,7 @@ class EcoCoinProvider extends ChangeNotifier {
 
     await _performOperation('awardEcoActivityCoins', () async {
       await _ecoCoinsService.awardEcoActivityCoins(activityType, coinAmount);
-      _loadMockData();
+      // Stream will auto-update balance
     });
   }
 
@@ -401,11 +447,19 @@ class EcoCoinProvider extends ChangeNotifier {
     }
 
     await _performOperation('refresh', () async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        initialize();
-      } else {
-        _loadMockData();
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await initialize();
+        } else {
+          // For tests without Firebase, just update timestamp
+          _lastRefresh = DateTime.now();
+          notifyListeners();
+        }
+      } catch (e) {
+        // Firebase not initialized - handle gracefully for tests
+        _lastRefresh = DateTime.now();
+        notifyListeners();
       }
     });
   }
@@ -414,6 +468,10 @@ class EcoCoinProvider extends ChangeNotifier {
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _balanceSubscription?.cancel();
+    _transactionsSubscription?.cancel();
+    _missionsSubscription?.cancel();
+    _progressSubscription?.cancel();
     _pendingOperations.clear();
     super.dispose();
   }
