@@ -61,6 +61,7 @@ import 'package:green_market/models/theme_settings.dart';
 import 'package:green_market/models/user_investment.dart';
 import 'package:green_market/models/report.dart';
 import 'package:green_market/models/community_post.dart';
+import 'package:green_market/models/post_location.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
@@ -3792,6 +3793,9 @@ class FirebaseService {
     String? videoUrl,
     List<String> tags = const [],
     Map<String, dynamic>? pollData,
+    List<String> taggedUserIds = const [],
+    Map<String, String> taggedUserNames = const {},
+    PostLocation? location,
   }) async {
     try {
       // ดึงข้อมูลผู้ใช้
@@ -3824,6 +3828,9 @@ class FirebaseService {
         'tags': tags,
         'savedBy': <String>[],
         'pollData': pollData,
+        'taggedUserIds': taggedUserIds,
+        'taggedUserNames': taggedUserNames,
+        if (location != null) 'location': location.toMap(),
       };
 
       await postRef.set(post);
@@ -3844,6 +3851,9 @@ class FirebaseService {
     String? videoUrl,
     List<String>? tags,
     Map<String, dynamic>? pollData,
+    List<String>? taggedUserIds,
+    Map<String, String>? taggedUserNames,
+    PostLocation? location,
   }) async {
     try {
       final postRef = _firestore.collection('community_posts').doc(postId);
@@ -3864,6 +3874,15 @@ class FirebaseService {
       }
       if (pollData != null) {
         updateData['pollData'] = pollData;
+      }
+      if (taggedUserIds != null) {
+        updateData['taggedUserIds'] = taggedUserIds;
+      }
+      if (taggedUserNames != null) {
+        updateData['taggedUserNames'] = taggedUserNames;
+      }
+      if (location != null) {
+        updateData['location'] = location.toMap();
       }
 
       await postRef.update(updateData);
@@ -4278,7 +4297,7 @@ class FirebaseService {
     }
   }
 
-  /// ลบโพสต์ (Soft delete)
+  /// ลบโพสต์ (Soft delete + Delete media files from Storage)
   Future<void> deleteCommunityPost(String postId, String userId) async {
     try {
       final postRef = _firestore.collection('community_posts').doc(postId);
@@ -4300,14 +4319,57 @@ class FirebaseService {
         }
       }
 
-      // Soft delete
+      // ลบรูปภาพจาก Firebase Storage (ถ้ามี)
+      final imageUrls = List<String>.from(postData['imageUrls'] ?? []);
+      for (final imageUrl in imageUrls) {
+        try {
+          final ref = _storage.refFromURL(imageUrl);
+          await ref.delete();
+          logger.i('Deleted image from Storage: $imageUrl');
+        } catch (e) {
+          logger.w('Failed to delete image $imageUrl: $e');
+          // ไม่ throw error เพื่อให้ลบโพสต์ต่อไปได้
+        }
+      }
+
+      // ลบวิดีโอจาก Firebase Storage (ถ้ามี)
+      final videoUrl = postData['videoUrl'] as String?;
+      if (videoUrl != null && videoUrl.isNotEmpty) {
+        try {
+          final ref = _storage.refFromURL(videoUrl);
+          await ref.delete();
+          logger.i('Deleted video from Storage: $videoUrl');
+        } catch (e) {
+          logger.w('Failed to delete video $videoUrl: $e');
+          // ไม่ throw error เพื่อให้ลบโพสต์ต่อไปได้
+        }
+      }
+
+      // Soft delete post
       await postRef.update({
         'isActive': false,
         'deletedAt': FieldValue.serverTimestamp(),
         'deletedBy': userId,
       });
 
-      logger.i("Post $postId deleted by user $userId");
+      // ลบคอมเมนต์ทั้งหมดที่เกี่ยวข้อง (Batch delete)
+      final commentsSnapshot = await _firestore
+          .collection('community_comments')
+          .where('postId', isEqualTo: postId)
+          .limit(500) // จำกัด batch delete ไม่เกิน 500
+          .get();
+
+      if (commentsSnapshot.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (final doc in commentsSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        logger.i(
+            'Deleted ${commentsSnapshot.docs.length} comments for post $postId');
+      }
+
+      logger.i("Post $postId deleted by user $userId (with media cleanup)");
     } catch (e) {
       logger.e("Error deleting post $postId: $e");
       rethrow;

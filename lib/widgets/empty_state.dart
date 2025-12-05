@@ -24,67 +24,70 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.elasticOut,
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: value,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color:
-                          (iconColor ?? AppColors.primaryTeal).withOpacity(0.1),
-                      shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: (iconColor ?? AppColors.primaryTeal)
+                            .withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 60,
+                        color: iconColor ?? AppColors.primaryTeal,
+                      ),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 60,
-                      color: iconColor ?? AppColors.primaryTeal,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: AppTextStyles.headline.copyWith(fontSize: 22),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.graySecondary,
+                  );
+                },
               ),
-              textAlign: TextAlign.center,
-            ),
-            if (actionText != null && onAction != null) ...[
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add_circle_outline),
-                label: Text(actionText!),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: iconColor ?? AppColors.primaryTeal,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+              Text(
+                title,
+                style: AppTextStyles.headline.copyWith(fontSize: 22),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.graySecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (actionText != null && onAction != null) ...[
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: onAction,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: Text(actionText!),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: iconColor ?? AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

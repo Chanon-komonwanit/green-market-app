@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'post_type.dart';
+import 'post_location.dart';
 
 class CommunityPost {
   final String id;
@@ -33,6 +34,11 @@ class CommunityPost {
   final String? originalUserName; // Original post author name
   final String? repostComment; // Comment added when reposting
 
+  // NEW: Friend tagging and location features
+  final List<String> taggedUserIds; // IDs of users tagged in this post
+  final Map<String, String> taggedUserNames; // {userId: displayName}
+  final PostLocation? location; // Location/check-in data
+
   const CommunityPost({
     required this.id,
     required this.userId,
@@ -61,6 +67,9 @@ class CommunityPost {
     this.originalUserId,
     this.originalUserName,
     this.repostComment,
+    this.taggedUserIds = const [],
+    this.taggedUserNames = const {},
+    this.location,
   });
 
   // Helper getters
@@ -141,6 +150,13 @@ class CommunityPost {
         originalUserId: map['originalUserId']?.toString(),
         originalUserName: map['originalUserName']?.toString(),
         repostComment: map['repostComment']?.toString(),
+        taggedUserIds: safeStringList(map['taggedUserIds'], 'taggedUserIds'),
+        taggedUserNames: map['taggedUserNames'] is Map
+            ? Map<String, String>.from(map['taggedUserNames'])
+            : {},
+        location: map['location'] != null
+            ? PostLocation.fromMap(Map<String, dynamic>.from(map['location']))
+            : null,
       );
     } catch (e, stack) {
       // log รายละเอียด error พร้อมข้อมูล map
@@ -154,8 +170,6 @@ class CommunityPost {
     if (value is PostType) return value;
     final str = value.toString().toLowerCase();
     switch (str) {
-      case 'product':
-        return PostType.product;
       case 'activity':
         return PostType.activity;
       case 'announcement':
@@ -164,8 +178,6 @@ class CommunityPost {
         return PostType.poll;
       case 'marketplace':
         return PostType.marketplace;
-      case 'live':
-        return PostType.live;
       default:
         return PostType.normal;
     }
@@ -201,6 +213,9 @@ class CommunityPost {
       'originalUserId': originalUserId,
       'originalUserName': originalUserName,
       'repostComment': repostComment,
+      'taggedUserIds': taggedUserIds,
+      'taggedUserNames': taggedUserNames,
+      if (location != null) 'location': location!.toMap(),
     };
   }
 
@@ -227,6 +242,9 @@ class CommunityPost {
     bool? isPinned,
     List<String>? mentions,
     int? viewCount,
+    List<String>? taggedUserIds,
+    Map<String, String>? taggedUserNames,
+    PostLocation? location,
   }) {
     return CommunityPost(
       id: id ?? this.id,
@@ -250,6 +268,9 @@ class CommunityPost {
       isPinned: isPinned ?? this.isPinned,
       mentions: mentions ?? this.mentions,
       viewCount: viewCount ?? this.viewCount,
+      taggedUserIds: taggedUserIds ?? this.taggedUserIds,
+      taggedUserNames: taggedUserNames ?? this.taggedUserNames,
+      location: location ?? this.location,
     );
   }
 

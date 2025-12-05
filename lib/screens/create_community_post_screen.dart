@@ -9,12 +9,19 @@ import 'package:image/image.dart' as img;
 import 'dart:io';
 import '../models/community_post.dart';
 import '../models/post_type.dart';
+import '../models/post_location.dart';
 import '../services/firebase_service.dart';
 import '../services/content_moderation_service.dart';
 import '../services/image_compression_service.dart';
 import '../providers/user_provider.dart';
 import '../utils/constants.dart';
+import '../utils/hashtag_detector.dart';
+import '../services/post_auto_categorizer.dart';
 import '../widgets/post_type_selector.dart';
+import '../widgets/post_category_selector.dart';
+import '../widgets/hashtag_suggestions_widget.dart';
+import '../widgets/user_picker_dialog.dart';
+import '../widgets/location_picker_dialog.dart';
 
 class CreateCommunityPostScreen extends StatefulWidget {
   final CommunityPost? postToEdit;
@@ -39,6 +46,9 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
   bool _isLoading = false;
   bool _mediaChanged = false;
   PostType _selectedPostType = PostType.normal;
+  PostCategory? _selectedCategory; // NEW: Selected category
+  PostCategorizationResult? _autoCategorizationResult; // NEW: AI suggestion
+  bool _showAutoSuggestion = true; // NEW: Show AI suggestion banner
   String? _selectedProductId;
   String? _selectedActivityId;
 
@@ -49,17 +59,48 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
   ];
   int _pollDuration = 1; // days
 
+  // NEW: Friend tagging and location fields
+  List<String> _taggedUserIds = [];
+  Map<String, String> _taggedUserNames = {};
+  PostLocation? _selectedLocation;
+
   bool get _isEditing => widget.postToEdit != null;
 
   @override
   void initState() {
     super.initState();
+
+    // Listen to content changes for auto-categorization
+    _contentController.addListener(_onContentChanged);
+
     if (_isEditing) {
       _contentController.text = widget.postToEdit!.content;
       _tagsController.text = widget.postToEdit!.tags.join(', ');
       _selectedPostType = widget.postToEdit!.postType;
       _selectedProductId = widget.postToEdit!.productId;
       _selectedActivityId = widget.postToEdit!.activityId;
+      _taggedUserIds = List.from(widget.postToEdit!.taggedUserIds);
+      _taggedUserNames = Map.from(widget.postToEdit!.taggedUserNames);
+      _selectedLocation = widget.postToEdit!.location;
+    }
+  }
+
+  /// Auto-categorize when content changes
+  void _onContentChanged() {
+    if (_contentController.text.length > 20 && !_isEditing) {
+      // Debounce: only categorize after user stops typing
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          final result =
+              PostAutoCategorizer.categorize(_contentController.text);
+          if (result.isHighConfidence || result.isMediumConfidence) {
+            setState(() {
+              _autoCategorizationResult = result;
+              _showAutoSuggestion = true;
+            });
+          }
+        }
+      });
     }
   }
 
@@ -150,6 +191,10 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
 
                   const SizedBox(height: 20),
 
+                  // AI Auto-Categorization Suggestion
+                  if (_autoCategorizationResult != null && _showAutoSuggestion)
+                    _buildAutoCategorizationBanner(),
+
                   // Post Type Selector
                   PostTypeSelector(
                     selectedType: _selectedPostType,
@@ -162,8 +207,8 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Product/Activity Selector (if applicable)
-                  if (_selectedPostType == PostType.product)
+                  // Activity Selector (if applicable)
+                  if (_selectedPostType == PostType.marketplace)
                     _buildProductSelector(),
                   if (_selectedPostType == PostType.activity)
                     _buildActivitySelector(),
@@ -204,12 +249,37 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
                           ),
                           const SizedBox(height: 12),
                           _buildMediaButtons(),
+                          const SizedBox(height: 12),
+                          _buildTagUsersButton(),
+                          const SizedBox(height: 8),
+                          _buildLocationButton(),
                         ],
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 16),
+
+                  // Hashtag Suggestions (แบบ Instagram)
+                  HashtagSuggestionsWidget(
+                    contentController: _contentController,
+                    onHashtagTapped: (tag) {
+                      final currentText = _contentController.text;
+                      if (!currentText.contains('#$tag')) {
+                        setState(() {
+                          _contentController.text = '$currentText #$tag';
+                        });
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Tagged Users Display
+                  if (_taggedUserIds.isNotEmpty) _buildTaggedUsersDisplay(),
+
+                  // Location Display
+                  if (_selectedLocation != null) _buildLocationDisplay(),
 
                   // Selected Images Preview
                   if (_selectedImages.isNotEmpty) _buildImagesPreview(),
@@ -221,6 +291,147 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  /// AI Auto-Categorization Suggestion Banner (Facebook/Instagram style)
+  Widget _buildAutoCategorizationBanner() {
+    final result = _autoCategorizationResult!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryTeal.withOpacity(0.1),
+            AppColors.accentGreen.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: result.isHighConfidence
+              ? AppColors.primaryTeal
+              : AppColors.accentGreen,
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'คำแนะนำจาก AI',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      result.isHighConfidence
+                          ? 'ความมั่นใจสูง (${(result.confidence * 100).toInt()}%)'
+                          : 'ความมั่นใจปานกลาง (${(result.confidence * 100).toInt()}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() => _showAutoSuggestion = false);
+                },
+                icon: const Icon(Icons.close, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'เราคิดว่าโพสต์นี้เกี่ยวกับ "${result.suggestedType.description}"',
+            style: AppTextStyles.body,
+          ),
+          if (result.detectedKeywords.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: result.detectedKeywords.take(5).map((keyword) {
+                return Chip(
+                  label: Text(
+                    keyword,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  backgroundColor: AppColors.grayBorder,
+                  padding: EdgeInsets.zero,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedPostType = result.suggestedType;
+                      if (result.suggestedCategoryId != null) {
+                        _selectedCategory =
+                            HashtagDetector.getStandardCategories().firstWhere(
+                                (cat) => cat.id == result.suggestedCategoryId);
+                      }
+                      // Auto-add suggested tags
+                      final currentTags = _tagsController.text
+                          .split(',')
+                          .map((t) => t.trim())
+                          .where((t) => t.isNotEmpty)
+                          .toList();
+                      final newTags =
+                          {...currentTags, ...result.suggestedTags}.toList();
+                      _tagsController.text = newTags.join(', ');
+                      _showAutoSuggestion = false;
+                    });
+                  },
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('ใช้คำแนะนำนี้'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryTeal,
+                    side: const BorderSide(color: AppColors.primaryTeal),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () {
+                  setState(() => _showAutoSuggestion = false);
+                },
+                child: const Text('ข้าม'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -430,142 +641,451 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
   }
 
   Widget _buildImagesPreview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'รูปภาพที่เลือก (${_selectedImages.length})',
-              style: AppTextStyles.bodyBold,
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _selectedImages.clear();
-                  _mediaChanged = true;
-                });
-              },
-              child: Text('ลบทั้งหมด',
-                  style:
-                      AppTextStyles.body.copyWith(color: AppColors.errorRed)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTheme.smallPadding),
-        SizedBox(
-          height: 100,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _selectedImages.length,
-            itemBuilder: (context, index) {
-              return Container(
-                margin: const EdgeInsets.only(right: AppTheme.smallPadding),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.borderRadius),
-                      child: Image.file(
-                        File(_selectedImages[index].path),
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedImages.removeAt(index);
-                          });
-                        },
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: AppColors.errorRed,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: AppTheme.padding),
-      ],
-    );
-  }
-
-  Widget _buildVideoPreview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'วิดีโอที่เลือก',
-              style: AppTextStyles.bodyBold,
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _selectedVideo = null;
-                  _mediaChanged = true;
-                });
-              },
-              child: Text('ลบ',
-                  style:
-                      AppTextStyles.body.copyWith(color: AppColors.errorRed)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTheme.smallPadding),
-        Container(
-          width: double.infinity,
-          height: 200,
-          decoration: BoxDecoration(
-            color: AppColors.grayPrimary,
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-          ),
-          child: Stack(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.play_circle_fill,
-                      color: AppColors.white,
-                      size: 64,
+              Row(
+                children: [
+                  Icon(Icons.image, color: AppColors.primaryTeal, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'รูปภาพที่เลือก (${_selectedImages.length}/5)',
+                    style: AppTextStyles.bodyBold.copyWith(
+                      color: AppColors.primaryTeal,
                     ),
-                    const SizedBox(height: AppTheme.smallPadding),
-                    Text(
-                      _selectedVideo!.name,
-                      style:
-                          AppTextStyles.body.copyWith(color: AppColors.white),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedImages.clear();
+                    _mediaChanged = true;
+                  });
+                },
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('ลบทั้งหมด'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.errorRed,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: AppTheme.padding),
-      ],
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 160,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              itemBuilder: (context, index) {
+                return FutureBuilder<Uint8List>(
+                  future: _selectedImages[index].readAsBytes(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.grayBorder,
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+
+                    final bytes = snapshot.data!;
+                    final fileSize = bytes.length;
+                    final fileSizeMB =
+                        (fileSize / (1024 * 1024)).toStringAsFixed(2);
+
+                    return Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  bytes,
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              // Badge แสดงลำดับ
+                              Positioned(
+                                top: 6,
+                                left: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryTeal,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: AppTextStyles.captionBold.copyWith(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // ปุ่มลบ
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedImages.removeAt(index);
+                                      _mediaChanged = true;
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('ลบรูปที่ ${index + 1} แล้ว'),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.errorRed,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: AppColors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          // แสดงขนาดไฟล์
+                          SizedBox(
+                            width: 120,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.insert_drive_file,
+                                  size: 12,
+                                  color: bytes.length > 10 * 1024 * 1024
+                                      ? AppColors.errorRed
+                                      : AppColors.graySecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$fileSizeMB MB',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: bytes.length > 10 * 1024 * 1024
+                                        ? AppColors.errorRed
+                                        : AppColors.graySecondary,
+                                    fontWeight: bytes.length > 10 * 1024 * 1024
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (bytes.length > 10 * 1024 * 1024)
+                            Container(
+                              width: 120,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorRed.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '⚠️ ใหญ่เกิน',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.errorRed,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.videocam, color: AppColors.primaryTeal, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'วิดีโอที่เลือก',
+                    style: AppTextStyles.bodyBold.copyWith(
+                      color: AppColors.primaryTeal,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedVideo = null;
+                    _mediaChanged = true;
+                  });
+                },
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('ลบวิดีโอ'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.errorRed,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<int>(
+            future: _selectedVideo!.length(),
+            builder: (context, snapshot) {
+              final fileSize = snapshot.data ?? 0;
+              final fileSizeMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
+              final isTooBig = fileSize > 50 * 1024 * 1024; // 50 MB limit
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.grayPrimary,
+                          AppColors.grayPrimary.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isTooBig
+                            ? AppColors.errorRed
+                            : AppColors.primaryTeal.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.play_circle_fill,
+                                color: isTooBig
+                                    ? AppColors.errorRed.withOpacity(0.8)
+                                    : AppColors.white,
+                                size: 72,
+                              ),
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      _selectedVideo!.name,
+                                      style: AppTextStyles.bodyBold
+                                          .copyWith(color: AppColors.white),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isTooBig
+                                            ? AppColors.errorRed
+                                            : AppColors.primaryTeal,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isTooBig
+                                                ? Icons.error_outline
+                                                : Icons.videocam,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '$fileSizeMB MB',
+                                            style: AppTextStyles.captionBold
+                                                .copyWith(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isTooBig)
+                          Positioned(
+                            top: 12,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.errorRed,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'ไฟล์ใหญ่เกิน 50 MB',
+                                      style: AppTextStyles.bodyBold.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.insert_drive_file,
+                            size: 16,
+                            color: isTooBig
+                                ? AppColors.errorRed
+                                : AppColors.graySecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'ขนาด: $fileSizeMB MB',
+                            style: AppTextStyles.caption.copyWith(
+                              color: isTooBig
+                                  ? AppColors.errorRed
+                                  : AppColors.graySecondary,
+                              fontWeight: isTooBig
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isTooBig)
+                        Text(
+                          'ใหญ่เกินไป!',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.errorRed,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (isTooBig)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '⚠️ แนะนำ: บีบอัดวิดีโอก่อนอัปโหลด หรือเลือกวิดีโอที่สั้นกว่า',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.errorRed,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -694,52 +1214,141 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
-        setState(() {
-          _selectedImages.addAll(images);
-          // Remove video if images are selected (one media type at a time)
-          _selectedVideo = null;
-          _mediaChanged = true;
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e')),
-      );
-    }
-  }
+        // จำกัดจำนวนรูปสูงสุด 5 รูป
+        const maxImages = 5;
+        final remainingSlots = maxImages - _selectedImages.length;
 
-  Future<void> _pickVideo() async {
-    try {
-      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-      if (video != null) {
-        // ตรวจสอบขนาดไฟล์ (จำกัด 100MB)
-        final fileSize = await video.length();
-        const maxSize = 100 * 1024 * 1024; // 100 MB
-
-        if (fileSize > maxSize) {
+        if (remainingSlots <= 0) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'วิดีโอใหญ่เกินไป (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB) จำกัดไม่เกิน 100 MB'),
+              const SnackBar(
+                content: Text('❌ เลือกได้สูงสุด 5 รูปเท่านั้น'),
                 backgroundColor: AppColors.errorRed,
-                duration: const Duration(seconds: 4),
+                duration: Duration(seconds: 3),
               ),
             );
           }
           return;
         }
 
-        // แสดงการโหลด
+        final imagesToAdd = images.take(remainingSlots).toList();
+
+        if (images.length > remainingSlots) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    '⚠️ เลือกได้เพิ่มอีกเพียง $remainingSlots รูป (เพิ่ม ${imagesToAdd.length} รูป)'),
+                backgroundColor: AppColors.warningAmber,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+
+        // ตรวจสอบขนาดไฟล์แต่ละรูป (จำกัด 10MB)
+        const maxFileSize = 10 * 1024 * 1024; // 10 MB
+        final validImages = <XFile>[];
+
+        for (final image in imagesToAdd) {
+          final fileSize = await image.length();
+          if (fileSize > maxFileSize) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      '❌ รูป "${image.name}" ใหญ่เกินไป (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB)\nจำกัดไม่เกิน 10 MB'),
+                  backgroundColor: AppColors.errorRed,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          } else {
+            validImages.add(image);
+          }
+        }
+
+        if (validImages.isNotEmpty) {
+          setState(() {
+            _selectedImages.addAll(validImages);
+            // Remove video if images are selected (one media type at a time)
+            _selectedVideo = null;
+            _mediaChanged = true;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    '✅ เพิ่มรูปภาพ ${validImages.length} รูป (รวม ${_selectedImages.length}/$maxImages)'),
+                backgroundColor: AppColors.successGreen,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'ไม่สามารถเลือกรูปภาพได้';
+
+        if (e.toString().contains('permission')) {
+          errorMessage = 'กรุณาอนุญาตให้แอปเข้าถึงคลังรูปภาพ';
+        } else if (e.toString().contains('camera')) {
+          errorMessage = 'ไม่สามารถเข้าถึงกล้องหรือคลังรูปภาพได้';
+        } else if (e.toString().contains('format')) {
+          errorMessage = 'รูปภาพมีรูปแบบไฟล์ที่ไม่รองรับ';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '❌ $errorMessage\n\nหมายเหตุ: รองรับไฟล์ JPG, PNG เท่านั้น'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 1), // จำกัด 60 วินาที
+      );
+
+      if (video != null) {
+        // ตรวจสอบขนาดไฟล์ (จำกัด 50MB)
+        final fileSize = await video.length();
+        const maxSize =
+            50 * 1024 * 1024; // 50 MB (ลดลงจาก 100MB เพื่อประสิทธิภาพ)
+
+        if (fileSize > maxSize) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ วิดีโอใหญ่เกินไป\n'
+                    'ขนาด: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB\n'
+                    'จำกัดไม่เกิน: 50 MB'),
+                backgroundColor: AppColors.errorRed,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
+        }
+
+        // แสดง loading indicator
         if (mounted) {
           setState(() {
             _isLoading = true;
           });
         }
 
-        // บน Web/Mobile ตรวจสอบความยาววิดีโอ (จำกัด 60 วินาที)
+        // บน Mobile: ตรวจสอบความยาววิดีโอ (จำกัด 60 วินาที)
         if (!kIsWeb) {
-          // Mobile: ใช้ video_player ตรวจสอบ
           try {
             final videoFile = File(video.path);
             final controller = VideoPlayerController.file(videoFile);
@@ -754,26 +1363,41 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                        'วิดีโอยาวเกินไป (${duration.inSeconds} วินาที) จำกัดไม่เกิน 60 วินาที'),
+                    content: Text('❌ วิดีโอยาวเกินไป\n'
+                        'ความยาว: ${duration.inSeconds} วินาที\n'
+                        'จำกัดไม่เกิน: 60 วินาที'),
                     backgroundColor: AppColors.errorRed,
-                    duration: const Duration(seconds: 4),
+                    duration: const Duration(seconds: 5),
                   ),
                 );
               }
               return;
             }
           } catch (e) {
-            debugPrint('Cannot check video duration: $e');
+            debugPrint('⚠️ Cannot verify video duration: $e');
+            // ดำเนินการต่อ แม้ไม่สามารถตรวจสอบความยาวได้
           }
         }
 
         setState(() {
           _selectedVideo = video;
-          _selectedImages.clear();
+          _selectedImages.clear(); // ลบรูปทั้งหมด (1 ประเภทมีเดียต่อครั้ง)
           _mediaChanged = true;
           _isLoading = false;
         });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '✅ เลือกวิดีโอสำเร็จ\n'
+                'ขนาด: ${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB',
+              ),
+              backgroundColor: AppColors.successGreen,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -781,7 +1405,11 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการเลือกวิดีโอ: $e')),
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาดในการเลือกวิดีโอ:\n$e'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }
@@ -843,15 +1471,30 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
     });
 
     try {
-      // Parse tags
+      // Parse tags - Auto-extract hashtags from content (Instagram style)
       final tagsInput = _tagsController.text.trim();
-      final tags = tagsInput.isNotEmpty
+      final manualTags = tagsInput.isNotEmpty
           ? tagsInput
               .split(',')
               .map((tag) => tag.trim())
               .where((tag) => tag.isNotEmpty)
               .toList()
           : <String>[];
+
+      // Auto-extract hashtags from content
+      final autoTags = HashtagDetector.extractHashtags(content);
+
+      // Combine manual tags and auto-extracted hashtags (remove duplicates)
+      final allTags = <String>{...manualTags, ...autoTags}.toList();
+
+      // Extract mentions (@username)
+      final mentions = HashtagDetector.extractMentions(content);
+
+      // Add category tags if selected
+      if (_selectedCategory != null) {
+        allTags.addAll(
+            _selectedCategory!.tags.where((tag) => !allTags.contains(tag)));
+      }
 
       // Validate and create poll data if poll type
       Map<String, dynamic>? pollData;
@@ -973,20 +1616,36 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
         await _firebaseService.updateCommunityPost(
           postId: widget.postToEdit!.id,
           content: content,
-          tags: tags,
+          tags: allTags, // Use auto-extracted tags
           imageUrls: _mediaChanged ? imageUrls : null,
           videoUrl: _mediaChanged ? videoUrl : null,
           pollData: pollData,
+          taggedUserIds: _taggedUserIds,
+          taggedUserNames: _taggedUserNames,
+          location: _selectedLocation,
         );
       } else {
-        await _firebaseService.createCommunityPost(
+        final newPostId = await _firebaseService.createCommunityPost(
           userId: currentUser.id,
           content: content,
           imageUrls: imageUrls,
           videoUrl: videoUrl,
-          tags: tags,
+          tags: allTags, // Use auto-extracted tags
           pollData: pollData,
+          taggedUserIds: _taggedUserIds,
+          taggedUserNames: _taggedUserNames,
+          location: _selectedLocation,
         );
+
+        // Send notifications to tagged users
+        if (_taggedUserIds.isNotEmpty) {
+          await _sendTagNotifications(newPostId, currentUser);
+        }
+
+        // Send notifications to mentioned users
+        if (mentions.isNotEmpty) {
+          await _sendMentionNotifications(newPostId, currentUser, mentions);
+        }
       }
 
       if (mounted) {
@@ -1002,10 +1661,32 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'ไม่สามารถโพสต์ได้';
+
+        if (e.toString().contains('network')) {
+          errorMessage =
+              'เกิดข้อผิดพลาดเกี่ยวกับการเชื่อมต่อเครือข่าย กรุณาตรวจสอบอินเทอร์เน็ต';
+        } else if (e.toString().contains('storage')) {
+          errorMessage =
+              'ไม่สามารถอัพโหลดรูปภาพหรือวีดีโอได้ กรุณาลองใหม่อีกครั้ง';
+        } else if (e.toString().contains('permission')) {
+          errorMessage = 'ไม่มีสิทธิ์ในการดำเนินการ กรุณาตรวจสอบการเข้าสู่ระบบ';
+        } else if (e.toString().contains('timeout')) {
+          errorMessage = 'หมดเวลาในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('เกิดข้อผิดพลาด: $e'),
-              backgroundColor: AppColors.errorRed),
+            content: Text(
+                '❌ $errorMessage\n\nรายละเอียด: ${e.toString().length > 100 ? "${e.toString().substring(0, 100)}..." : e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'ลองอีกครั้ง',
+              textColor: Colors.white,
+              onPressed: () => _submitPost(),
+            ),
+          ),
         );
       }
     } finally {
@@ -1308,5 +1989,320 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
         _selectedActivityId = selected;
       });
     }
+  }
+
+  // ============================================================================
+  // NEW METHODS: Friend Tagging Feature
+  // ============================================================================
+
+  Widget _buildTagUsersButton() {
+    return OutlinedButton.icon(
+      onPressed: _showUserPicker,
+      icon: const Icon(Icons.person_add, size: 20),
+      label: Text(
+        _taggedUserIds.isEmpty
+            ? 'แท็กเพื่อน'
+            : 'แท็กเพื่อน (${_taggedUserIds.length})',
+        style: AppTextStyles.body,
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _taggedUserIds.isEmpty
+            ? AppColors.grayPrimary
+            : AppColors.primaryTeal,
+        side: BorderSide(
+          color: _taggedUserIds.isEmpty
+              ? AppColors.grayBorder
+              : AppColors.primaryTeal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        minimumSize: const Size(double.infinity, 48),
+      ),
+    );
+  }
+
+  Future<void> _showUserPicker() async {
+    final currentUser = context.read<UserProvider>().currentUser;
+    if (currentUser == null) {
+      _showErrorSnackBar('กรุณาเข้าสู่ระบบก่อน');
+      return;
+    }
+
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => UserPickerDialog(
+        alreadySelectedIds: _taggedUserIds,
+        currentUserId: currentUser.id,
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _taggedUserIds = result;
+      });
+
+      // Fetch user names
+      await _fetchTaggedUserNames();
+    }
+  }
+
+  Future<void> _fetchTaggedUserNames() async {
+    final names = <String, String>{};
+
+    for (final userId in _taggedUserIds) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          names[userId] = data?['displayName'] ?? 'Unknown';
+        }
+      } catch (e) {
+        debugPrint('Error fetching user $userId: $e');
+        names[userId] = 'Unknown';
+      }
+    }
+
+    setState(() {
+      _taggedUserNames = names;
+    });
+  }
+
+  Widget _buildTaggedUsersDisplay() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.person_add,
+                size: 16,
+                color: AppColors.primaryTeal,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'แท็กเพื่อน (${_taggedUserIds.length})',
+                style: AppTextStyles.captionBold.copyWith(
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _taggedUserIds.map((userId) {
+              final displayName = _taggedUserNames[userId] ?? 'Loading...';
+              return Chip(
+                label: Text(displayName),
+                deleteIcon: const Icon(Icons.close, size: 16),
+                onDeleted: () {
+                  setState(() {
+                    _taggedUserIds.remove(userId);
+                    _taggedUserNames.remove(userId);
+                  });
+                },
+                backgroundColor: Colors.white,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================================
+  // NEW METHODS: Location/Check-in Feature
+  // ============================================================================
+
+  Widget _buildLocationButton() {
+    return OutlinedButton.icon(
+      onPressed: _showLocationPicker,
+      icon: Icon(
+        _selectedLocation?.typeIcon ?? Icons.add_location,
+        size: 20,
+      ),
+      label: Text(
+        _selectedLocation?.name ?? 'เพิ่มสถานที่',
+        style: AppTextStyles.body,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _selectedLocation != null
+            ? AppColors.primaryTeal
+            : AppColors.grayPrimary,
+        side: BorderSide(
+          color: _selectedLocation != null
+              ? AppColors.primaryTeal
+              : AppColors.grayBorder,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        minimumSize: const Size(double.infinity, 48),
+      ),
+    );
+  }
+
+  Future<void> _showLocationPicker() async {
+    final result = await showDialog<PostLocation>(
+      context: context,
+      builder: (context) => const LocationPickerDialog(),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedLocation = result;
+      });
+    }
+  }
+
+  Widget _buildLocationDisplay() {
+    if (_selectedLocation == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.accentGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.accentGreen.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _selectedLocation!.typeIcon,
+              color: _selectedLocation!.typeColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selectedLocation!.name,
+                  style: AppTextStyles.bodyBold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (_selectedLocation!.address != null)
+                  Text(
+                    _selectedLocation!.displayAddress,
+                    style: AppTextStyles.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () {
+              setState(() {
+                _selectedLocation = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================================
+  // Helper Methods
+  // ============================================================================
+
+  Future<void> _sendTagNotifications(String postId, dynamic currentUser) async {
+    for (final userId in _taggedUserIds) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('notifications')
+            .add({
+          'type': 'tag',
+          'fromUserId': currentUser.id,
+          'fromUserName': currentUser.displayName ?? 'ผู้ใช้',
+          'fromUserPhoto': currentUser.photoUrl,
+          'postId': postId,
+          'message': '${currentUser.displayName ?? 'ผู้ใช้'} แท็กคุณในโพสต์',
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      } catch (e) {
+        debugPrint('Error sending notification to $userId: $e');
+      }
+    }
+  }
+
+  Future<void> _sendMentionNotifications(
+      String postId, dynamic currentUser, List<String> mentions) async {
+    // Search for users by displayName matching mentions
+    for (final mention in mentions) {
+      try {
+        final userQuery = await FirebaseFirestore.instance
+            .collection('users')
+            .where('displayName', isEqualTo: mention)
+            .limit(1)
+            .get();
+
+        if (userQuery.docs.isNotEmpty) {
+          final userId = userQuery.docs.first.id;
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('notifications')
+              .add({
+            'type': 'mention',
+            'fromUserId': currentUser.id,
+            'fromUserName': currentUser.displayName ?? 'ผู้ใช้',
+            'fromUserPhoto': currentUser.photoUrl,
+            'postId': postId,
+            'message':
+                '${currentUser.displayName ?? 'ผู้ใช้'} กล่าวถึงคุณในโพสต์',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+      } catch (e) {
+        debugPrint('Error sending mention notification for @$mention: $e');
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.errorRed,
+      ),
+    );
   }
 }

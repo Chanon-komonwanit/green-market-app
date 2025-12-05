@@ -53,6 +53,7 @@ import 'package:green_market/screens/eco_challenges_screen.dart';
 import 'package:green_market/screens/story_viewer_screen.dart';
 import 'package:green_market/screens/group_detail_screen.dart';
 import 'package:green_market/screens/hashtag_feed_screen.dart';
+import 'package:green_market/screens/saved_posts_screen.dart';
 
 // Models
 import 'package:green_market/models/order.dart';
@@ -340,6 +341,12 @@ class MyApp extends StatelessWidget {
                   case '/wishlist':
                     return MaterialPageRoute(
                       builder: (_) => const WishlistScreen(),
+                    );
+
+                  case '/saved_posts':
+                  case '/saved-posts':
+                    return MaterialPageRoute(
+                      builder: (_) => const SavedPostsScreen(),
                     );
 
                   case '/reorder':

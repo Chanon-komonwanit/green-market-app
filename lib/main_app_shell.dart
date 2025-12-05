@@ -159,7 +159,7 @@ class _MainAppShellState extends State<MainAppShell> {
       const BottomNavigationBarItem(
           icon: Icon(Icons.groups_3_rounded, size: 28),
           activeIcon: Icon(Icons.groups_3_rounded, size: 32),
-          label: 'ชุมชนสีเขียว'),
+          label: 'ชุมชน'),
       const BottomNavigationBarItem(
           icon: Icon(Icons.public, color: Colors.green, size: 28),
           activeIcon: Icon(Icons.public, color: Colors.green, size: 32),

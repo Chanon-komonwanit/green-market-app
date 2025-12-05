@@ -1,5 +1,7 @@
 // lib/screens/create_story_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,10 +70,20 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
           // Media Preview
           if (_selectedMedia != null)
             Positioned.fill(
-              child: Image.file(
-                File(_selectedMedia!.path),
-                fit: BoxFit.cover,
-              ),
+              child: kIsWeb
+                  ? FutureBuilder<Uint8List>(
+                      future: _selectedMedia!.readAsBytes(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const CircularProgressIndicator();
+                        }
+                        return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                      },
+                    )
+                  : Image.file(
+                      File(_selectedMedia!.path),
+                      fit: BoxFit.cover,
+                    ),
             )
           else
             Container(
@@ -465,7 +477,8 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         message: 'Story ของคุณถูกเผยแพร่แล้ว',
       );
 
-      Navigator.pop(context);
+      // Return true to indicate success
+      Navigator.pop(context, true);
     } catch (e) {
       ModernDialog.showError(
         context: context,

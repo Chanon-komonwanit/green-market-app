@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/utils/constants.dart';
 
@@ -85,24 +86,41 @@ class _EnhancedEditProfileScreenState extends State<EnhancedEditProfileScreen> {
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
+        _imageBytes = null;
       });
+      // Load bytes for web
+      _imageBytes = await image.readAsBytes();
+      setState(() {}); // Trigger rebuild
     }
   }
 
+  Uint8List? _imageBytes;
+
   Future<String?> _uploadImage() async {
-    if (_selectedImage == null) return _currentPhotoUrl;
+    if (_selectedImage == null && _imageBytes == null) return _currentPhotoUrl;
 
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final userId = userProvider.currentUser?.id;
       if (userId == null) return null;
 
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = FirebaseStorage.instance
           .ref()
-          .child('user_profiles')
-          .child('$userId.jpg');
+          .child('profile_images/$userId/$fileName');
 
-      await ref.putFile(_selectedImage!);
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploadedAt': DateTime.now().toIso8601String()},
+      );
+
+      // Use bytes if available (web), otherwise file
+      if (_imageBytes != null) {
+        await ref.putData(_imageBytes!, metadata);
+      } else if (_selectedImage != null) {
+        await ref.putFile(_selectedImage!, metadata);
+      }
+
       return await ref.getDownloadURL();
     } catch (e) {
       print('Error uploading image: $e');

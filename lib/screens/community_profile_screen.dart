@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 import '../models/app_user.dart';
 import '../models/community_post.dart';
 import '../models/story.dart';
@@ -20,7 +22,10 @@ import '../widgets/qr_profile_share_widget.dart';
 import '../screens/community_chat_screen.dart';
 import '../screens/create_community_post_screen.dart';
 import '../screens/saved_posts_screen.dart';
+import '../screens/create_story_screen.dart';
+import '../screens/story_viewer_screen.dart';
 import '../utils/constants.dart';
+import '../utils/thai_messages.dart';
 import 'dart:io';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -83,7 +88,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           await _friendService.isFollowing(currentUserId, _targetUserId);
       if (mounted) setState(() => _isFollowing = isFollowing);
     } catch (e) {
-      debugPrint('Error checking following status: $e');
+      debugPrint('${ThaiMessages.followError}: $e');
     }
   }
 
@@ -371,12 +376,30 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: _profileUser?.photoUrl != null
+                child: _profileUser?.coverPhotoUrl != null
                     ? CachedNetworkImage(
-                        imageUrl: _profileUser!.photoUrl!,
+                        imageUrl: _profileUser!.coverPhotoUrl!,
                         fit: BoxFit.cover,
-                        color: Colors.black.withOpacity(0.3),
-                        colorBlendMode: BlendMode.darken,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.grayBorder,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primaryTeal,
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primaryTeal.withOpacity(0.3),
+                                AppColors.emeraldPrimary.withOpacity(0.3),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
                       )
                     : Container(),
               ),
@@ -386,7 +409,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                   bottom: 12,
                   right: 12,
                   child: InkWell(
-                    onTap: () => _showComingSoonSnackBar('เปลี่ยนภาพปก'),
+                    onTap: _changeCoverImage,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
@@ -909,11 +932,11 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   Future<void> _changeProfilePicture() async {
     try {
       final ImagePicker picker = ImagePicker();
+      // ไม่จำกัดขนาดรูป - รับทุกขนาด (เหมือน Instagram/Facebook)
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        // ไม่ระบุ maxWidth/maxHeight ให้ ImagePicker
+        // จะบีบอัดเองภายหลัง
       );
 
       if (image == null) return;
@@ -923,13 +946,90 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
       final currentUser = context.read<UserProvider>().currentUser;
       if (currentUser == null) return;
 
-      // Upload image
-      final storageRef = FirebaseStorage.instance.ref().child(
-          'profile_images/${currentUser.id}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+      // แสดงข้อความกำลังประมวลผล
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text('กำลังบีบอัดและอัพโหลดรูปภาพ...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+            backgroundColor: AppColors.primaryTeal,
+          ),
+        );
+      }
 
-      final bytes = await image.readAsBytes();
-      await storageRef.putData(bytes);
+      // บีบอัดรูปภาพด้วย image package (รองรับทั้ง Web และ Mobile)
+      final originalBytes = await image.readAsBytes();
+      final originalSize = originalBytes.length;
+
+      debugPrint(
+          '📸 รูปต้นฉบับ: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+
+      // Decode และบีบอัดรูปภาพ
+      img.Image? originalImage = img.decodeImage(originalBytes);
+      if (originalImage == null) {
+        throw Exception('ไม่สามารถอ่านรูปภาพได้');
+      }
+
+      // Resize เป็น 512x512 (มาตรฐานรูปโปรไฟล์)
+      img.Image resizedImage = img.copyResize(
+        originalImage,
+        width: 512,
+        height: 512,
+        interpolation: img.Interpolation.cubic, // คุณภาพสูง
+      );
+
+      // บีบอัดเป็น JPEG คุณภาพ 85%
+      final compressedBytes = Uint8List.fromList(
+        img.encodeJpg(resizedImage, quality: 85),
+      );
+
+      final compressedSize = compressedBytes.length;
+      final savedPercent =
+          ((originalSize - compressedSize) / originalSize * 100)
+              .toStringAsFixed(1);
+
+      debugPrint(
+          '✅ รูปหลังบีบอัด: ${(compressedSize / 1024).toStringAsFixed(2)} KB');
+      debugPrint('💾 ประหยัดพื้นที่: $savedPercent%');
+
+      // Upload image with proper metadata
+      final fileName =
+          '${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images/${currentUser.id}/$fileName');
+
+      final bytes = compressedBytes;
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=3600',
+      );
+
+      debugPrint('Starting upload: profile_images/${currentUser.id}/$fileName');
+      final uploadTask = storageRef.putData(bytes, metadata);
+
+      final taskSnapshot = await uploadTask.whenComplete(() {});
+      debugPrint('Upload state: ${taskSnapshot.state}');
+
+      if (taskSnapshot.state != TaskState.success) {
+        throw Exception('Upload failed with state: ${taskSnapshot.state}');
+      }
+
       final photoUrl = await storageRef.getDownloadURL();
+      debugPrint('Got download URL: $photoUrl');
 
       // Update Firestore
       await FirebaseFirestore.instance
@@ -942,14 +1042,208 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว')),
+          SnackBar(content: Text(ThaiMessages.profilePictureChangeSuccess)),
         );
       }
     } catch (e) {
-      debugPrint('Error changing profile picture: $e');
+      debugPrint('ข้อผิดพลาดในการเปลี่ยนรูปโปรไฟล์: $e');
+      if (mounted) {
+        String errorMessage = 'ไม่สามารถเปลี่ยนรูปโปรไฟล์ได้';
+        String suggestion = '';
+
+        if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage = 'เกิดปัญหาการเชื่อมต่ออินเทอร์เน็ต';
+          suggestion = 'กรุณาตรวจสอบสัญญาณและลองใหม่อีกครั้ง';
+        } else if (e.toString().contains('storage') ||
+            e.toString().contains('upload')) {
+          errorMessage = 'ไม่สามารถอัพโหลดรูปภาพได้';
+          suggestion = 'กรุณาลองเลือกรูปภาพใหม่อีกครั้ง';
+        } else if (e.toString().contains('permission') ||
+            e.toString().contains('unauthorized')) {
+          errorMessage = 'ไม่มีสิทธิ์ในการเปลี่ยนรูปโปรไฟล์';
+          suggestion = 'กรุณาเข้าสู่ระบบใหม่';
+        } else if (e.toString().contains('format') ||
+            e.toString().contains('invalid')) {
+          errorMessage = 'รูปภาพมีรูปแบบที่ไม่รองรับ';
+          suggestion = 'กรุณาเลือกไฟล์ JPG หรือ PNG เท่านั้น';
+        } else if (e.toString().contains('decode') ||
+            e.toString().contains('read')) {
+          errorMessage = 'ไม่สามารถประมวลผลรูปภาพได้';
+          suggestion = 'ไฟล์รูปภาพอาจเสียหาย กรุณาเลือกรูปอื่น';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ $errorMessage\n💡 $suggestion'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'ลองอีกครั้ง',
+              textColor: Colors.white,
+              onPressed: () => _changeProfilePicture(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _changeCoverImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      // ไม่จำกัดขนาดรูป - รับทุกขนาด
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isLoading = true);
+
+      final currentUser = context.read<UserProvider>().currentUser;
+      if (currentUser == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(ThaiMessages.authLoginRequired)),
+          );
+        }
+        return;
+      }
+
+      // แสดงข้อความกำลังประมวลผล
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text('กำลังบีบอัดและอัพโหลดภาพปก...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+            backgroundColor: AppColors.primaryTeal,
+          ),
+        );
+      }
+
+      // บีบอัดรูปภาพปก
+      final originalBytes = await image.readAsBytes();
+      final originalSize = originalBytes.length;
+
+      debugPrint(
+          '📸 ภาพปกต้นฉบับ: ${(originalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+
+      img.Image? originalImage = img.decodeImage(originalBytes);
+      if (originalImage == null) {
+        throw Exception('ไม่สามารถอ่านรูปภาพได้');
+      }
+
+      // Resize เป็น 1920x1080 (มาตรฐานภาพปก 16:9)
+      img.Image resizedImage = img.copyResize(
+        originalImage,
+        width: 1920,
+        height: 1080,
+        interpolation: img.Interpolation.cubic,
+      );
+
+      // บีบอัดเป็น JPEG คุณภาพ 80%
+      final compressedBytes = Uint8List.fromList(
+        img.encodeJpg(resizedImage, quality: 80),
+      );
+
+      final compressedSize = compressedBytes.length;
+      final savedPercent =
+          ((originalSize - compressedSize) / originalSize * 100)
+              .toStringAsFixed(1);
+
+      debugPrint(
+          '✅ ภาพปกหลังบีบอัด: ${(compressedSize / 1024).toStringAsFixed(2)} KB');
+      debugPrint('💾 ประหยัดพื้นที่: $savedPercent%');
+
+      // Upload image to Firebase Storage with proper metadata
+      final fileName =
+          '${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('cover_images/${currentUser.id}/$fileName');
+
+      final bytes = compressedBytes;
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=3600',
+      );
+
+      debugPrint('Starting upload: cover_images/${currentUser.id}/$fileName');
+      final uploadTask = storageRef.putData(bytes, metadata);
+
+      final taskSnapshot = await uploadTask.whenComplete(() {});
+      debugPrint('Upload state: ${taskSnapshot.state}');
+
+      if (taskSnapshot.state != TaskState.success) {
+        throw Exception('Upload failed with state: ${taskSnapshot.state}');
+      }
+
+      final coverPhotoUrl = await storageRef.getDownloadURL();
+      debugPrint('Got download URL: $coverPhotoUrl');
+
+      // Update Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.id)
+          .update({'coverPhotoUrl': coverPhotoUrl});
+
+      // Reload profile
+      await _loadUserProfile();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ThaiMessages.coverPhotoChangeSuccess),
+            backgroundColor: AppColors.accentGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('ข้อผิดพลาดในการเปลี่ยนภาพปก: $e');
+      if (mounted) {
+        String errorMessage = 'ไม่สามารถเปลี่ยนภาพปกได้';
+        String suggestion = '';
+
+        if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage = 'เกิดปัญหาการเชื่อมต่ออินเทอร์เน็ต';
+          suggestion = 'กรุณาตรวจสอบสัญญาณและลองใหม่อีกครั้ง';
+        } else if (e.toString().contains('storage') ||
+            e.toString().contains('upload')) {
+          errorMessage = 'ไม่สามารถอัพโหลดภาพปกได้';
+          suggestion = 'กรุณาเลือกรูปภาพใหม่ขนาดไม่เกิน 10 MB';
+        } else if (e.toString().contains('permission')) {
+          errorMessage = 'ไม่มีสิทธิ์ในการเปลี่ยนภาพปก';
+          suggestion = 'กรุณาเข้าสู่ระบบใหม่';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ $errorMessage\n💡 $suggestion'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'ลองอีกครั้ง',
+              textColor: Colors.white,
+              onPressed: () => _changeCoverImage(),
+            ),
+          ),
         );
       }
     } finally {
@@ -1363,130 +1657,66 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
       final pickedFile =
           await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
       if (pickedFile == null || _profileUser == null) return;
-      final file = pickedFile;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('กำลังอัปโหลดรูปโปรไฟล์...')),
+        );
+      }
+
+      final bytes = await pickedFile.readAsBytes();
+      final fileName =
+          '${_profileUser!.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_images/${_profileUser!.id}.jpg');
-      await storageRef.putData(await file.readAsBytes());
+          .child('profile_images/${_profileUser!.id}/$fileName');
+
+      // Upload with metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploaded': DateTime.now().toIso8601String()},
+      );
+
+      await storageRef.putData(bytes, metadata);
       final imageUrl = await storageRef.getDownloadURL();
+
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_profileUser!.id)
           .update({
         'photoUrl': imageUrl,
+        'profileImageUrl': imageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('อัปโหลดรูปโปรไฟล์สำเร็จ!')),
+        );
         _loadUserProfile();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาดในการอัปโหลดรูปโปรไฟล์: $e')),
+          SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
         );
       }
     }
   }
 
   void _showAddStoryDialog() {
-    final captionController = TextEditingController();
-    bool isHighlight = false;
-    final highlightTitleController = TextEditingController();
-    XFile? selectedImage;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('เพิ่มสตอรี่'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.photo),
-                      label: const Text('เลือกภาพ'),
-                      onPressed: () async {
-                        final picker = ImagePicker();
-                        final picked = await picker.pickImage(
-                            source: ImageSource.gallery, imageQuality: 70);
-                        if (picked != null) {
-                          setState(() => selectedImage = picked);
-                        }
-                      },
-                    ),
-                    if (selectedImage != null)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child:
-                            Image.file(File(selectedImage!.path), height: 120),
-                      ),
-                    TextField(
-                      controller: captionController,
-                      decoration: const InputDecoration(
-                          labelText: 'คำอธิบาย (caption)'),
-                    ),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: isHighlight,
-                          onChanged: (val) =>
-                              setState(() => isHighlight = val ?? false),
-                        ),
-                        const Text('บันทึกเป็น Highlight'),
-                      ],
-                    ),
-                    if (isHighlight)
-                      TextField(
-                        controller: highlightTitleController,
-                        decoration:
-                            const InputDecoration(labelText: 'ชื่อ Highlight'),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (selectedImage == null || _profileUser == null) return;
-                    final file = File(selectedImage!.path);
-                    final storageRef = FirebaseStorage.instance.ref().child(
-                        'stories/${_profileUser!.id}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-                    await storageRef.putData(await file.readAsBytes());
-                    final imageUrl = await storageRef.getDownloadURL();
-
-                    final story = Story(
-                      id: '',
-                      userId: _profileUser!.id,
-                      userName: _profileUser!.displayName ?? 'ไม่ระบุชื่อ',
-                      userPhotoUrl: _profileUser!.photoUrl,
-                      mediaUrl: imageUrl,
-                      mediaType: 'image',
-                      caption: captionController.text.trim(),
-                      createdAt: Timestamp.now(),
-                      expiresAt: Timestamp.fromDate(
-                        DateTime.now().add(const Duration(hours: 24)),
-                      ),
-                      isHighlight: isHighlight,
-                      highlightTitle: isHighlight
-                          ? highlightTitleController.text.trim()
-                          : null,
-                    );
-                    await _storyService.addStory(story);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('บันทึก'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    // Navigate to CreateStoryScreen instead of showing dialog
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateStoryScreen(),
+      ),
+    ).then((result) {
+      // Reload stories after creating
+      if (result == true) {
+        _loadStories();
+      }
+    });
   }
 
   void _showFriendSearchDialog() {
@@ -1598,23 +1828,27 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   }
 
   void _showStoryViewer(Story story) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.network(story.imageUrl),
-              if (story.caption != null && story.caption!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(story.caption!),
-                ),
-            ],
-          ),
-        );
-      },
+    // Navigate to full-screen StoryViewerScreen
+    final currentUserId = context.read<UserProvider>().currentUser?.id;
+    if (currentUserId == null) return;
+
+    // Get all stories for this user (for swipe navigation)
+    final allUserStories = [..._stories, ..._highlights]
+        .where((s) => s.userId == story.userId)
+        .toList();
+
+    // Find initial index
+    final initialIndex = allUserStories.indexWhere((s) => s.id == story.id);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StoryViewerScreen(
+          stories: allUserStories,
+          initialIndex: initialIndex >= 0 ? initialIndex : 0,
+          currentUserId: currentUserId,
+        ),
+      ),
     );
   }
 }

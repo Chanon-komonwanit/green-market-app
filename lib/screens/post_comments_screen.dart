@@ -475,60 +475,66 @@ class _PostCommentsScreenState extends State<PostCommentsScreen> {
 
   Future<void> _toggleCommentLike(CommunityComment comment) async {
     final user = context.read<UserProvider>().currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('กรุณาเข้าสู่ระบบก่อน'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+      return;
+    }
 
     try {
-      // Enhanced: Implement comment like toggle with Firebase
       final commentRef = FirebaseFirestore.instance
-          .collection('post_comments')
+          .collection('community_posts')
+          .doc(widget.post.id)
+          .collection('comments')
           .doc(comment.id);
 
-      final likesCollection = commentRef.collection('likes');
-      final userLikeDoc = likesCollection.doc(user.id);
+      final isLiked = comment.likes.contains(user.id);
 
-      // Check if user already liked this comment
-      final userLikeSnapshot = await userLikeDoc.get();
+      if (isLiked) {
+        // Unlike
+        await commentRef.update({
+          'likes': FieldValue.arrayRemove([user.id]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Like
+        await commentRef.update({
+          'likes': FieldValue.arrayUnion([user.id]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final commentSnapshot = await transaction.get(commentRef);
-        final currentLikes = commentSnapshot.data()?['likesCount'] ?? 0;
-
-        if (userLikeSnapshot.exists) {
-          // Unlike: remove like and decrement count
-          transaction.delete(userLikeDoc);
-          transaction.update(commentRef, {
-            'likesCount': currentLikes - 1,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        } else {
-          // Like: add like and increment count
-          transaction.set(userLikeDoc, {
-            'userId': user.id,
-            'userName': user.displayName ?? 'ผู้ใช้',
-            'likedAt': FieldValue.serverTimestamp(),
-          });
-          transaction.update(commentRef, {
-            'likesCount': currentLikes + 1,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text(userLikeSnapshot.exists ? 'เลิกถูกใจแล้ว' : 'ถูกใจแล้ว'),
-          backgroundColor: AppColors.successGreen,
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isLiked ? '❤️ เลิกถูกใจแล้ว' : '❤️ ถูกใจแล้ว'),
+            backgroundColor: AppColors.successGreen,
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
     } catch (e) {
-      print('Error toggling comment like: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: AppColors.errorRed),
-      );
+      debugPrint('❌ Error toggling comment like: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('ไม่สามารถถูกใจได้\nกรุณาลองใหม่อีกครั้ง'),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'ลองอีกครั้ง',
+              textColor: Colors.white,
+              onPressed: () => _toggleCommentLike(comment),
+            ),
+          ),
+        );
+      }
     }
   }
 }

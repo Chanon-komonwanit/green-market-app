@@ -36,6 +36,7 @@ class AppUser {
   final String email;
   final String? displayName;
   final String? photoUrl;
+  final String? coverPhotoUrl; // เพิ่ม field สำหรับรูปภาพปก
   final bool isSuspended;
   final bool isAdmin;
   final bool isSeller;
@@ -82,6 +83,7 @@ class AppUser {
     required this.email,
     this.displayName,
     this.photoUrl,
+    this.coverPhotoUrl, // เพิ่มพารามิเตอร์
     this.isAdmin = false,
     this.isSeller = false,
     this.isSuspended = false,
@@ -184,6 +186,7 @@ class AppUser {
         email: _validateAndParseEmail(map['email']),
         displayName: map['displayName'] as String?,
         photoUrl: map['photoUrl'] as String?,
+        coverPhotoUrl: map['coverPhotoUrl'] as String?, // เพิ่ม field
         isAdmin: map['isAdmin'] as bool? ?? false,
         isSeller: map['isSeller'] as bool? ?? false,
         isSuspended: map['isSuspended'] as bool? ?? false,
@@ -238,6 +241,7 @@ class AppUser {
       'email': email,
       'displayName': displayName,
       'photoUrl': photoUrl,
+      'coverPhotoUrl': coverPhotoUrl, // เพิ่ม field
       'isAdmin': isAdmin,
       'isSeller': isSeller,
       'isSuspended': isSuspended,
@@ -278,6 +282,7 @@ class AppUser {
   AppUser copyWith({
     String? displayName,
     String? photoUrl,
+    String? coverPhotoUrl, // เพิ่มพารามิเตอร์
     bool? isSuspended,
     bool? isAdmin,
     bool? isSeller,
@@ -314,6 +319,7 @@ class AppUser {
       email: email,
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
+      coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl, // เพิ่ม field
       isAdmin: isAdmin ?? this.isAdmin,
       isSeller: isSeller ?? this.isSeller,
       isSuspended: isSuspended ?? this.isSuspended,

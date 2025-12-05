@@ -62,30 +62,15 @@ class _MyHomeScreenState extends State<MyHomeScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // ส่วนหัวโปรไฟล์ (Modern Header พร้อมการแจ้งเตือน)
-            _buildModernHeader(),
-
-            const SizedBox(height: 10),
-
-            // Eco Coins Section (ปรับปรุงใหม่ครบถ้วน)
-            _buildEcoCoinsSection(),
-
-            const SizedBox(height: 10),
-
-            // Quick Actions (ปรับปรุงใหม่ครบถ้วน)
-            _buildQuickActionsSection(),
-
-            const SizedBox(height: 10),
-
-            // TabBar Section (4 แท็บ)
+            // TabBar Section (4 แท็บ) - ย้ายขึ้นมาด้านบน
             _buildTabBarSection(),
 
-            // TabBarView Content (4 แท็บ)
+            // TabBarView Content (4 แท็บ) พร้อม Header ข้างใน
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildCartTab(),
+                  _buildCartTabWithHeader(),
                   _buildEcoHeroTab(),
                   _buildChatTab(),
                   _buildNotificationsTab(),
@@ -470,6 +455,39 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   }
 
   // === Tab Content Methods ===
+
+  // ============================================================
+  // 4️⃣ Cart Tab with Header (ตะกร้าพร้อม Header)
+  // ============================================================
+
+  Widget _buildCartTabWithHeader() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // ส่วนหัวโปรไฟล์ (Modern Header พร้อมการแจ้งเตือน)
+          _buildModernHeader(),
+
+          const SizedBox(height: 10),
+
+          // Eco Coins Section (ปรับปรุงใหม่ครบถ้วน)
+          _buildEcoCoinsSection(),
+
+          const SizedBox(height: 10),
+
+          // Quick Actions (ปรับปรุงใหม่ครบถ้วน)
+          _buildQuickActionsSection(),
+
+          const SizedBox(height: 10),
+
+          // Cart Content
+          SizedBox(
+            height: 600,
+            child: _buildCartTab(),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCartTab() {
     return Consumer<CartProviderEnhanced>(

@@ -6,43 +6,63 @@ service firebase.storage {
     // ====== รูปโปรไฟล์ - อัปโหลดได้เฉพาะเจ้าของ ======
     match /profile_images/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 50 * 1024 * 1024;
     }
     
     // ====== รูปสินค้า - อัปโหลดได้เฉพาะ seller เจ้าของ ======
     match /product_images/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 50 * 1024 * 1024;
     }
     
     // ====== โพสต์ชุมชน (รูปภาพ + วิดีโอ) ======
     match /community_posts/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 100 * 1024 * 1024;
     }
     
     // ====== Stories (รูปภาพ + วิดีโอ) ======
     match /stories/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 100 * 1024 * 1024;
     }
     
     // ====== ภาพปก (Cover Images) ======
     match /cover_images/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 50 * 1024 * 1024;
     }
     
     // ====== แชท (Chat Media) ======
     match /chat_media/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 50 * 1024 * 1024;
+    }
+    
+    // ====== Videos ======
+    match /videos/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 100 * 1024 * 1024;
     }
     
     // ====== Fallback: อัปโหลดได้เฉพาะคนที่ login ======
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 100 * 1024 * 1024;
     }
   }
 }

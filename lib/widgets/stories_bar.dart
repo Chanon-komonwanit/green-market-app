@@ -8,7 +8,7 @@ import 'dart:io';
 import '../models/story.dart';
 import '../utils/constants.dart';
 import '../providers/user_provider.dart';
-import 'story_viewer.dart';
+import '../screens/story_viewer_screen.dart';
 
 class StoriesBar extends StatelessWidget {
   final String currentUserId;
@@ -275,26 +275,13 @@ class StoriesBar extends StatelessWidget {
   void _viewStories(BuildContext context, List<Story> stories) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StoryViewer(
+        builder: (context) => StoryViewerScreen(
           stories: stories,
-          onStoryViewed: (storyId) => _markStoryAsViewed(storyId),
-          onComplete: () => Navigator.of(context).pop(),
+          initialIndex: 0,
+          currentUserId: currentUserId,
         ),
       ),
     );
-  }
-
-  Future<void> _markStoryAsViewed(String storyId) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .update({
-        'viewedBy': FieldValue.arrayUnion([currentUserId]),
-      });
-    } catch (e) {
-      debugPrint('Error marking story as viewed: $e');
-    }
   }
 }
 

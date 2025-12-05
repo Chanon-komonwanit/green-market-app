@@ -53,6 +53,8 @@ dependencies:
   package_info_plus: ^9.0.0       # App version and package info
   shared_preferences: ^2.2.2      # Local storage
   path_provider: ^2.1.4           # File paths
+  geolocator: ^13.0.2             # NEW - GPS location services
+  geocoding: ^3.0.0               # NEW - Convert coordinates to addresses
 
   # === Data & Utilities ===
   intl: ^0.20.2                   # Internationalization
@@ -69,6 +71,11 @@ dependencies:
   # === Reactive Programming ===
   rxdart: ^0.28.0                 # Reactive extensions (updated for compatibility)
   logger: ^2.3.0                  # Logging utilities
+  
+  # === Live Streaming ===
+  agora_rtc_engine: ^6.3.2        # Live streaming SDK
+  permission_handler: ^11.0.1     # Camera/Mic permissions
+  wakelock_plus: ^1.2.8           # Keep screen on during live
 dev_dependencies:
   # === Testing Framework ===
   flutter_test:

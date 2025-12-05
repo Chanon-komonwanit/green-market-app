@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/utils/constants.dart';
 import 'community_leaderboard_screen.dart';
-import 'enhanced_search_screen.dart';
 
 class CommunityForumScreen extends StatefulWidget {
   const CommunityForumScreen({super.key});
@@ -75,18 +74,6 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'ค้นหา',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EnhancedSearchScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.emoji_events),
             tooltip: 'กระดานผู้นำ',
             onPressed: () {
@@ -123,23 +110,6 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
           _buildMyPosts(),
         ],
       ),
-      floatingActionButton: _buildModernFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
-
-  // Modern FAB แบบ TikTok/Instagram
-  Widget _buildModernFAB() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FloatingActionButton(
-          heroTag: 'create_post',
-          onPressed: () => _showCreatePostDialog(context),
-          backgroundColor: AppColors.primaryTeal,
-          child: const Icon(Icons.add, size: 30),
-        ),
-      ],
     );
   }
 

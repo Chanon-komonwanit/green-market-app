@@ -57,11 +57,8 @@ class TrendingPostsWidget extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('community_posts')
-                .where('createdAt',
-                    isGreaterThan:
-                        DateTime.now().subtract(const Duration(days: 7)))
                 .orderBy('createdAt', descending: true)
-                .limit(10)
+                .limit(50)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -72,8 +69,14 @@ class TrendingPostsWidget extends StatelessWidget {
                 return _buildEmptyState();
               }
 
-              // Sort by engagement
-              final posts = snapshot.data!.docs.toList();
+              // Filter posts from last 7 days and sort by engagement
+              final sevenDaysAgo =
+                  DateTime.now().subtract(const Duration(days: 7));
+              final posts = snapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                return createdAt != null && createdAt.isAfter(sevenDaysAgo);
+              }).toList();
               posts.sort((a, b) {
                 final aData = a.data() as Map<String, dynamic>;
                 final bData = b.data() as Map<String, dynamic>;

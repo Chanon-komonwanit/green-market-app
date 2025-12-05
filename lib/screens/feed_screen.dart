@@ -17,7 +17,6 @@ import '../widgets/empty_state.dart';
 import '../models/post_type.dart';
 import '../widgets/smart_feed_algorithm.dart';
 import '../widgets/trending_topics_section.dart';
-import '../widgets/enhanced_stories_widget.dart';
 
 class FeedScreen extends StatefulWidget {
   final String searchKeyword;
@@ -32,7 +31,6 @@ class _FeedScreenState extends State<FeedScreen>
   final List<Map<String, dynamic>> _posts = [];
   String _selectedFilter = 'all'; // all, following, popular
   PostType? _selectedPostType;
-  String _sortBy = 'latest'; // latest, popular, trending
 
   List<Map<String, dynamic>> get _filteredPosts {
     var filtered = _posts;
@@ -124,20 +122,9 @@ class _FeedScreenState extends State<FeedScreen>
       _isLoading = true;
       const limit = 20;
       Query query = FirebaseFirestore.instance.collection('community_posts');
-      // ตรวจสอบ field ก่อน query
-      bool hasCreatedAt = true;
-      bool hasIsActive = true;
-      // ลอง query แบบปลอดภัย
-      try {
-        query = query.where('isActive', isEqualTo: true);
-      } catch (_) {
-        hasIsActive = false;
-      }
-      try {
-        query = query.orderBy('createdAt', descending: true);
-      } catch (_) {
-        hasCreatedAt = false;
-      }
+
+      // เรียงตาม createdAt อย่างเดียว (ไม่ต้องการ composite index)
+      query = query.orderBy('createdAt', descending: true);
       query = query.limit(limit);
       if (_lastPostId != null && _posts.isNotEmpty) {
         final lastPost = await FirebaseFirestore.instance
@@ -151,18 +138,15 @@ class _FeedScreenState extends State<FeedScreen>
           .map((doc) {
             final data = doc.data();
             if (data is Map<String, dynamic>) {
-              // fallback หากไม่มี field
               return {
                 'id': doc.id,
                 ...data,
-                if (!hasCreatedAt) 'createdAt': Timestamp.now(),
-                if (!hasIsActive) 'isActive': true,
               };
             } else {
               return <String, dynamic>{'id': doc.id};
             }
           })
-          .whereType<Map<String, dynamic>>()
+          .where((post) => post['isActive'] != false) // กรองฝั่ง client
           .toList();
       if (newPosts.length < limit) _hasMore = false;
       if (newPosts.isNotEmpty) {
@@ -174,9 +158,28 @@ class _FeedScreenState extends State<FeedScreen>
     } catch (e) {
       _isLoading = false;
       setState(() {});
+
+      String errorMessage = 'ไม่สามารถโหลดโพสต์ได้';
+
+      if (e.toString().contains('network')) {
+        errorMessage = 'ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+      } else if (e.toString().contains('permission')) {
+        errorMessage = 'ไม่มีสิทธิ์เข้าถึงข้อมูล';
+      } else if (e.toString().contains('firebase')) {
+        errorMessage = 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการโหลดโพสต์: ${e.toString()}')),
+          content: Text('❌ $errorMessage\nกรุณาลองใหม่อีกครั้ง'),
+          backgroundColor: AppColors.errorRed,
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: 'รีเฟรช',
+            textColor: Colors.white,
+            onPressed: () => _loadInitialPosts(),
+          ),
+        ),
       );
     }
   }
@@ -217,48 +220,6 @@ class _FeedScreenState extends State<FeedScreen>
         _scrollController.position.maxScrollExtent * 0.8) {
       _loadMorePosts();
     }
-  }
-
-  Widget _buildSortOption(String value, String label, IconData icon) {
-    final isSelected = _sortBy == value;
-    return InkWell(
-      onTap: () => setState(() => _sortBy = value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryTeal.withOpacity(0.1)
-              : AppColors.surfaceGray,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryTeal : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color:
-                  isSelected ? AppColors.primaryTeal : AppColors.graySecondary,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: AppTextStyles.bodyBold.copyWith(
-                color:
-                    isSelected ? AppColors.primaryTeal : AppColors.grayPrimary,
-              ),
-            ),
-            const Spacer(),
-            if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primaryTeal),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

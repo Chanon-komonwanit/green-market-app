@@ -2,31 +2,25 @@
 
 enum PostType {
   normal, // Regular post
-  product, // Product listing
-  activity, // Event/Activity
-  announcement, // News/Announcement from admin
-  poll, // Poll
+  poll, // Poll (เหมือน Twitter/Facebook)
   marketplace, // Marketplace item
-  live, // Live stream
+  activity, // Event/Activity
+  announcement, // News/Announcement
 }
 
 extension PostTypeExtension on PostType {
   String get name {
     switch (this) {
       case PostType.normal:
-        return 'โพสต์ทั่วไป';
-      case PostType.product:
-        return 'ขายสินค้า';
-      case PostType.activity:
-        return 'กิจกรรม';
-      case PostType.announcement:
-        return 'ประกาศ';
+        return 'โพสต์';
       case PostType.poll:
         return 'โพล';
       case PostType.marketplace:
         return 'ตลาดซื้อขาย';
-      case PostType.live:
-        return 'ไลฟ์สด';
+      case PostType.activity:
+        return 'กิจกรรม';
+      case PostType.announcement:
+        return 'ประกาศ';
     }
   }
 
@@ -34,18 +28,29 @@ extension PostTypeExtension on PostType {
     switch (this) {
       case PostType.normal:
         return '✍️';
-      case PostType.product:
-        return '🛒';
-      case PostType.activity:
-        return '🌱';
-      case PostType.announcement:
-        return '📢';
       case PostType.poll:
         return '📊';
       case PostType.marketplace:
-        return '🏪';
-      case PostType.live:
-        return '🔴';
+        return '🛒';
+      case PostType.activity:
+        return '🎯';
+      case PostType.announcement:
+        return '📢';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PostType.normal:
+        return 'แชร์ความคิด รูปภาพ วิดีโอ';
+      case PostType.poll:
+        return 'สำรวจความคิดเห็นจากเพื่อนๆ';
+      case PostType.marketplace:
+        return 'ซื้อขายสินค้ามือสอง';
+      case PostType.activity:
+        return 'สร้างกิจกรรม/อีเวนต์';
+      case PostType.announcement:
+        return 'ประกาศสำคัญจากแอดมิน';
     }
   }
 }
