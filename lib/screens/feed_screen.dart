@@ -10,6 +10,14 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/screens/post_comments_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
+import '../widgets/stories_bar.dart';
+import '../widgets/shimmer_loading.dart';
+import '../widgets/pull_to_refresh.dart';
+import '../widgets/empty_state.dart';
+import '../models/post_type.dart';
+import '../widgets/smart_feed_algorithm.dart';
+import '../widgets/trending_topics_section.dart';
+import '../widgets/enhanced_stories_widget.dart';
 
 class FeedScreen extends StatefulWidget {
   final String searchKeyword;
@@ -22,15 +30,33 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen>
     with AutomaticKeepAliveClientMixin {
   final List<Map<String, dynamic>> _posts = [];
+  String _selectedFilter = 'all'; // all, following, popular
+  PostType? _selectedPostType;
+  String _sortBy = 'latest'; // latest, popular, trending
+
   List<Map<String, dynamic>> get _filteredPosts {
-    if (widget.searchKeyword.isEmpty) return _posts;
-    final keyword = widget.searchKeyword.toLowerCase();
-    return _posts.where((post) {
-      final content = post['content']?.toString().toLowerCase() ?? '';
-      final displayName =
-          post['userDisplayName']?.toString().toLowerCase() ?? '';
-      return content.contains(keyword) || displayName.contains(keyword);
-    }).toList();
+    var filtered = _posts;
+
+    // Filter by search keyword
+    if (widget.searchKeyword.isNotEmpty) {
+      final keyword = widget.searchKeyword.toLowerCase();
+      filtered = filtered.where((post) {
+        final content = post['content']?.toString().toLowerCase() ?? '';
+        final displayName =
+            post['userDisplayName']?.toString().toLowerCase() ?? '';
+        return content.contains(keyword) || displayName.contains(keyword);
+      }).toList();
+    }
+
+    // Filter by post type
+    if (_selectedPostType != null) {
+      filtered = filtered.where((post) {
+        final postType = post['postType']?.toString() ?? 'normal';
+        return postType == _selectedPostType.toString().split('.').last;
+      }).toList();
+    }
+
+    return filtered;
   }
 
   bool _isLoading = false;
@@ -44,8 +70,38 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   void initState() {
     super.initState();
+    _loadUserPreferences();
     _loadInitialPosts();
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadUserPreferences() async {
+    final userProvider = context.read<UserProvider>();
+    final currentUser = userProvider.currentUser;
+
+    if (currentUser != null) {
+      // Load user interests and following (used internally)
+      final List<String> userInterests = [
+        'eco',
+        'organic',
+        'sustainable',
+        'green'
+      ];
+
+      // Load following users
+      final followingSnapshot = await FirebaseFirestore.instance
+          .collection('user_follows')
+          .where('followerId', isEqualTo: currentUser.id)
+          .get();
+
+      final List<String> followingUserIds = followingSnapshot.docs
+          .map((doc) => doc.data()['followingId'] as String)
+          .toList();
+
+      // Use these variables for smart feed algorithm if needed
+      debugPrint('User interests: $userInterests');
+      debugPrint('Following count: ${followingUserIds.length}');
+    }
   }
 
   @override
@@ -125,6 +181,8 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  // Unused - Keeping for potential future use
+  // ignore: unused_element
   Future<void> _toggleLike(CommunityPost post, String userId, int index) async {
     final docRef =
         FirebaseFirestore.instance.collection('community_posts').doc(post.id);
@@ -156,366 +214,365 @@ class _FeedScreenState extends State<FeedScreen>
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+        _scrollController.position.maxScrollExtent * 0.8) {
       _loadMorePosts();
     }
+  }
+
+  Widget _buildSortOption(String value, String label, IconData icon) {
+    final isSelected = _sortBy == value;
+    return InkWell(
+      onTap: () => setState(() => _sortBy = value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryTeal.withOpacity(0.1)
+              : AppColors.surfaceGray,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryTeal : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color:
+                  isSelected ? AppColors.primaryTeal : AppColors.graySecondary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: AppTextStyles.bodyBold.copyWith(
+                color:
+                    isSelected ? AppColors.primaryTeal : AppColors.grayPrimary,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              const Icon(Icons.check_circle_rounded,
+                  color: AppColors.primaryTeal),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Stack(
-      children: [
-        RefreshIndicator(
-          onRefresh: () async {
-            await _loadInitialPosts();
-          },
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _filteredPosts.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 0),
-                      itemCount: _hasMore
-                          ? _filteredPosts.length + 1
-                          : _filteredPosts.length,
-                      itemBuilder: (context, index) {
-                        if (index >= _filteredPosts.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.primaryTeal),
-                            ),
-                          );
-                        }
-                        final post = CommunityPost.fromMap(
-                            _filteredPosts[index], _filteredPosts[index]['id']);
-                        final userProvider = context.read<UserProvider>();
-                        final currentUserId =
-                            userProvider.currentUser?.id ?? '';
-                        final isLiked = post.isLikedBy(currentUserId);
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: 1),
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeOut,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, (1 - value) * 40),
-                              child: Opacity(
-                                opacity: value,
-                                child: Card(
-                                  elevation: 8,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(22)),
-                                  color: Colors.white.withOpacity(0.97),
-                                  shadowColor: Colors.greenAccent,
-                                  child: Stack(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(18),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 24,
-                                                  backgroundColor:
-                                                      Colors.green[50],
-                                                  backgroundImage:
-                                                      post.userProfileImage !=
-                                                                  null &&
-                                                              post.userProfileImage!
-                                                                  .isNotEmpty
-                                                          ? NetworkImage(post
-                                                              .userProfileImage!)
-                                                          : null,
-                                                  child: post.userProfileImage ==
-                                                              null ||
-                                                          post.userProfileImage!
-                                                              .isEmpty
-                                                      ? const Icon(Icons.person,
-                                                          color: Colors.green,
-                                                          size: 24)
-                                                      : null,
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(post.userDisplayName,
-                                                          style:
-                                                              const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize:
-                                                                      16)),
-                                                      Text(
-                                                          _formatTime(post
-                                                              .createdAt
-                                                              .toDate()),
-                                                          style:
-                                                              const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Colors
-                                                                      .grey)),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            if (post.hasImages &&
-                                                post.imageUrls.length > 1) ...[
-                                              const SizedBox(height: 14),
-                                              SizedBox(
-                                                height: 180,
-                                                child: PageView.builder(
-                                                  itemCount:
-                                                      post.imageUrls.length,
-                                                  controller: PageController(
-                                                      viewportFraction: 0.92),
-                                                  itemBuilder:
-                                                      (context, imgIdx) =>
-                                                          ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            16),
-                                                    child: Image.network(
-                                                        post.imageUrls[imgIdx],
-                                                        fit: BoxFit.cover,
-                                                        width: double.infinity),
-                                                  ),
-                                                ),
-                                              ),
-                                            ] else if (post.hasImages) ...[
-                                              const SizedBox(height: 14),
-                                              ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                child: Image.network(
-                                                    post.imageUrls.first,
-                                                    fit: BoxFit.cover,
-                                                    height: 180,
-                                                    width: double.infinity),
-                                              ),
-                                            ],
-                                            const SizedBox(height: 12),
-                                            Text(post.content,
-                                                style: const TextStyle(
-                                                    fontSize: 17)),
-                                            const SizedBox(height: 16),
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(Icons.favorite,
-                                                      color: isLiked
-                                                          ? Colors.pink
-                                                          : Colors.grey[400]),
-                                                  onPressed: () {
-                                                    _toggleLike(post,
-                                                        currentUserId, index);
-                                                  },
-                                                ),
-                                                Text('${post.likeCount}'),
-                                                const SizedBox(width: 18),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Icons.comment,
-                                                      color: Colors.blueGrey),
-                                                  onPressed: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            PostCommentsScreen(
-                                                                post: post),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                                Text('${post.commentCount}'),
-                                                const SizedBox(width: 18),
-                                                IconButton(
-                                                  icon: const Icon(Icons.share,
-                                                      color: Colors.green),
-                                                  onPressed: () {
-                                                    final shareText =
-                                                        '${post.userDisplayName} แชร์โพสต์ในชุมชนสีเขียว:\n${post.content}';
-                                                    if (post.hasImages &&
-                                                        post.imageUrls
-                                                            .isNotEmpty) {
-                                                      Share.share(shareText,
-                                                          subject:
-                                                              'Green Community',
-                                                          sharePositionOrigin:
-                                                              Rect.fromLTWH(
-                                                                  0, 0, 1, 1));
-                                                    } else {
-                                                      Share.share(shareText,
-                                                          subject:
-                                                              'Green Community');
-                                                    }
-                                                  },
-                                                ),
-                                                const Spacer(),
-                                                Icon(Icons.more_horiz,
-                                                    color: Colors.grey[400]),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 16,
-                                        right: 16,
-                                        child: Row(
-                                          children: [
-                                            if (DateTime.now()
-                                                    .difference(
-                                                        post.createdAt.toDate())
-                                                    .inHours <
-                                                24)
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 5),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.lightGreen[600],
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                        color: Colors.green
-                                                            .withOpacity(0.18),
-                                                        blurRadius: 6)
-                                                  ],
-                                                ),
-                                                child: Row(
-                                                  children: const [
-                                                    Icon(Icons.fiber_new,
-                                                        color: Colors.white,
-                                                        size: 16),
-                                                    SizedBox(width: 4),
-                                                    Text('ใหม่',
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 13)),
-                                                  ],
-                                                ),
-                                              ),
-                                            if (post.likeCount > 10)
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                    left: 8),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 5),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.orange[700],
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                        color: Colors.orange
-                                                            .withOpacity(0.18),
-                                                        blurRadius: 6)
-                                                  ],
-                                                ),
-                                                child: Row(
-                                                  children: const [
-                                                    Icon(
-                                                        Icons
-                                                            .local_fire_department,
-                                                        color: Colors.white,
-                                                        size: 16),
-                                                    SizedBox(width: 4),
-                                                    Text('ฮิต',
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 13)),
-                                                  ],
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-        ),
-        // ...ไม่มีปุ่ม FloatingActionButton ใน FeedScreen...
-      ],
+    final userProvider = context.watch<UserProvider>();
+    final currentUserId = userProvider.currentUser?.id ?? '';
+
+    return CustomPullToRefresh(
+      onRefresh: _loadInitialPosts,
+      color: AppColors.accentGreen,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // Stories Bar (Sticky)
+          if (currentUserId.isNotEmpty)
+            SliverToBoxAdapter(
+              child: StoriesBar(currentUserId: currentUserId),
+            ),
+
+          // Filter Pills (แบบ TikTok)
+          SliverToBoxAdapter(
+            child: _buildModernFilterPills(),
+          ),
+
+          // Post Type Chips (แบบ Shopee)
+          if (_selectedFilter == 'all')
+            SliverToBoxAdapter(
+              child: _buildPostTypeChips(),
+            ),
+
+          // Posts List
+          _buildPostsList(currentUserId),
+
+          // Loading More Indicator
+          if (_isLoading && _posts.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _buildLoadingMoreIndicator(),
+            ),
+
+          // Bottom Padding
+          SliverToBoxAdapter(
+            child: SizedBox(height: 80),
+          ),
+        ],
+      ),
     );
   }
 
-  String _formatTime(DateTime dateTime) {
+  // Modern Filter Pills แบบ TikTok
+  Widget _buildModernFilterPills() {
+    return Container(
+      height: 50,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _buildFilterPill(
+            label: 'ทั้งหมด',
+            value: 'all',
+            icon: Icons.public,
+            gradient: LinearGradient(
+              colors: [AppColors.primaryTeal, AppColors.accentGreen],
+            ),
+          ),
+          _buildFilterPill(
+            label: 'กำลังติดตาม',
+            value: 'following',
+            icon: Icons.people,
+            gradient: LinearGradient(
+              colors: [Colors.purple, Colors.purpleAccent],
+            ),
+          ),
+          _buildFilterPill(
+            label: 'ยอดนิยม',
+            value: 'popular',
+            icon: Icons.local_fire_department,
+            gradient: LinearGradient(
+              colors: [Colors.orange, Colors.deepOrange],
+            ),
+          ),
+          _buildFilterPill(
+            label: 'ใกล้ฉัน',
+            value: 'nearby',
+            icon: Icons.location_on,
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.lightBlue],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterPill({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Gradient gradient,
+  }) {
+    final isSelected = _selectedFilter == value;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedFilter = value);
+        _loadInitialPosts();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: isSelected ? gradient : null,
+          color: isSelected ? null : AppColors.surfaceGray,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryTeal.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : AppColors.graySecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : AppColors.grayPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Post Type Chips แบบ Shopee
+  Widget _buildPostTypeChips() {
+    return Container(
+      height: 45,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _buildTypeChip(
+            label: 'ทั้งหมด',
+            icon: '🌍',
+            type: null,
+          ),
+          ...PostType.values.map((type) => _buildTypeChip(
+                label: type.name,
+                icon: type.icon,
+                type: type,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeChip({
+    required String label,
+    required String icon,
+    required PostType? type,
+  }) {
+    final isSelected = _selectedPostType == type;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedPostType = type);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryTeal : AppColors.surfaceGray,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryTeal
+                : AppColors.grayBorder.withOpacity(0.3),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : AppColors.grayPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostsList(String currentUserId) {
+    if (_posts.isEmpty && !_isLoading) {
+      return SliverFillRemaining(
+        child: EmptyPostState(
+          onCreatePost: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CreateCommunityPostScreen(),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    if (_posts.isEmpty && _isLoading) {
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => const PostCardShimmer(),
+          childCount: 3,
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final postData = _filteredPosts[index];
+          final post = CommunityPost.fromMap(postData, postData['id']);
+
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Duration(milliseconds: 300 + (index * 100)),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, (1 - value) * 20),
+                child: Opacity(
+                  opacity: value,
+                  child: PostCardWidget(
+                    post: post,
+                    onLike: () => _loadInitialPosts(),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+        childCount: _filteredPosts.length,
+      ),
+    );
+  }
+
+  Widget _buildLoadingMoreIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentGreen),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'กำลังโหลดเพิ่มเติม...',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.graySecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  String _formatTime(dynamic timestamp) {
+    if (timestamp == null) return '';
+    DateTime dateTime;
+    if (timestamp is Timestamp) {
+      dateTime = timestamp.toDate();
+    } else {
+      return '';
+    }
     final now = DateTime.now();
     final diff = now.difference(dateTime);
     if (diff.inMinutes < 1) return 'เมื่อสักครู่';
     if (diff.inHours < 1) return '${diff.inMinutes} นาทีที่แล้ว';
     if (diff.inDays < 1) return '${diff.inHours} ชั่วโมงที่แล้ว';
     return '${diff.inDays} วันที่แล้ว';
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.eco,
-              size: 80,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'ยังไม่มีโพสต์ในชุมชน',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'เป็นคนแรกที่แบ่งปันเรื่องราวดีๆ กันเลย!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[500],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'หากข้อมูลไม่แสดงหรือโหลดนาน กรุณาลองดึงเพื่อรีเฟรชหน้าจอ',
-              style: TextStyle(fontSize: 14, color: Colors.redAccent),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

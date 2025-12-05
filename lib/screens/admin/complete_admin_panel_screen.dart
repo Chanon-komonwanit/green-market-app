@@ -9,6 +9,7 @@ import 'package:green_market/screens/admin/admin_manage_investment_projects_scre
 import 'package:green_market/screens/admin/admin_manage_sustainable_activities_screen.dart';
 import 'package:green_market/screens/admin/admin_product_approval_screen.dart';
 import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
+import 'package:green_market/screens/admin/content_moderation_admin_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:green_market/services/firebase_service.dart';
@@ -123,8 +124,8 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
         _userRegistrationEnabled = data['userRegistrationEnabled'] ?? true;
         _sellerApplicationEnabled = data['sellerApplicationEnabled'] ?? true;
         _shippingFee = (data['shippingFee'] ?? 50.0).toDouble();
-        _freeShippingThreshold = (data['freeShippingThreshold'] ?? 500.0)
-            .toDouble();
+        _freeShippingThreshold =
+            (data['freeShippingThreshold'] ?? 500.0).toDouble();
       }
     } catch (e) {
       print('Error loading settings: $e');
@@ -640,11 +641,11 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           .collection('app_settings')
           .doc('app_config')
           .set({
-            'primaryColor': _primaryColor.value,
-            'accentColor': _accentColor.value,
-            'backgroundColor': _backgroundColor.value,
-            'lastUpdated': Timestamp.now(),
-          }, SetOptions(merge: true));
+        'primaryColor': _primaryColor.value,
+        'accentColor': _accentColor.value,
+        'backgroundColor': _backgroundColor.value,
+        'lastUpdated': Timestamp.now(),
+      }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -849,6 +850,13 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
             title: 'กลั่นกรองเนื้อหา',
             icon: Icons.report,
             children: [
+              ListTile(
+                leading: Icon(Icons.shield, color: _primaryColor),
+                title: const Text('จัดการเนื้อหา (Content Moderation)'),
+                subtitle: const Text('รายงาน, ผู้ใช้ถูกระงับ, และตั้งค่า'),
+                onTap: _openContentModerationPanel,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              ),
               ListTile(
                 leading: Icon(Icons.report, color: _primaryColor),
                 title: const Text('รายงานที่รอตรวจสอบ'),
@@ -1097,6 +1105,15 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
     );
   }
 
+  Future<void> _openContentModerationPanel() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ContentModerationAdminScreen(),
+      ),
+    );
+  }
+
   Future<void> _reviewReports() async {
     Navigator.push(
       context,
@@ -1299,11 +1316,11 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Container(
-                                      width: 60,
-                                      height: 40,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.error),
-                                    ),
+                                  width: 60,
+                                  height: 40,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.error),
+                                ),
                               ),
                             ),
                             title: Text('แบนเนอร์ ${index + 1}'),
@@ -1494,12 +1511,12 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                             const Center(
-                              child: Icon(
-                                Icons.error,
-                                size: 48,
-                                color: Colors.grey,
-                              ),
-                            ),
+                          child: Icon(
+                            Icons.error,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
                     )
                   : Center(
@@ -1704,9 +1721,9 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
         .collection('app_settings')
         .doc('app_config')
         .set({
-          field: value,
-          'lastUpdated': Timestamp.now(),
-        }, SetOptions(merge: true));
+      field: value,
+      'lastUpdated': Timestamp.now(),
+    }, SetOptions(merge: true));
   }
 
   String _getImageTypeText(String type) {
@@ -1729,13 +1746,13 @@ class _CompleteAdminPanelScreenState extends State<CompleteAdminPanelScreen>
           .collection('app_settings')
           .doc('app_config')
           .set({
-            'maintenanceMode': _maintenanceMode,
-            'userRegistrationEnabled': _userRegistrationEnabled,
-            'sellerApplicationEnabled': _sellerApplicationEnabled,
-            'shippingFee': _shippingFee,
-            'freeShippingThreshold': _freeShippingThreshold,
-            'lastUpdated': Timestamp.now(),
-          }, SetOptions(merge: true));
+        'maintenanceMode': _maintenanceMode,
+        'userRegistrationEnabled': _userRegistrationEnabled,
+        'sellerApplicationEnabled': _sellerApplicationEnabled,
+        'shippingFee': _shippingFee,
+        'freeShippingThreshold': _freeShippingThreshold,
+        'lastUpdated': Timestamp.now(),
+      }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

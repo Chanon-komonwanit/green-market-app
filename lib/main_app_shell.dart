@@ -321,15 +321,43 @@ class _MainAppShellState extends State<MainAppShell> {
         ),
       ),
       body: pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: navItems,
-        currentIndex: _selectedIndex,
-        selectedItemColor: colors.AppColors.navBarSelectedColor,
-        unselectedItemColor: colors.AppColors.navBarUnselectedColor,
-        backgroundColor: colors.AppColors.navBarBackgroundColor,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          child: BottomNavigationBar(
+            items: navItems,
+            currentIndex: _selectedIndex,
+            selectedItemColor: colors.AppColors.primary,
+            unselectedItemColor: colors.AppColors.grayMedium,
+            backgroundColor: Colors.white,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            showUnselectedLabels: true,
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
+            elevation: 0,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -13,7 +13,6 @@ import 'package:green_market/models/green_investment.dart';
 import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 import 'package:green_market/screens/community_forum_screen.dart';
-import 'package:green_market/screens/feed_screen.dart';
 import 'package:green_market/screens/eco_challenges_screen.dart';
 import 'package:green_market/widgets/debug_panel.dart';
 // -------------------- END IMPORTS --------------------

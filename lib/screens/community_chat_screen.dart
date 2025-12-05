@@ -2,11 +2,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:green_market/widgets/chat_media_picker.dart';
+import 'package:green_market/widgets/message_read_receipt.dart';
+import 'package:green_market/services/content_moderation_service.dart';
+import 'dart:io';
 
 class CommunityChatScreen extends StatefulWidget {
   final String otherUserId;
@@ -173,11 +178,44 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
   final ScrollController _scrollController = ScrollController();
   late String _chatId;
   bool _isLoading = false;
+  bool _isTyping = false;
+  final ContentModerationService _moderationService =
+      ContentModerationService();
 
   @override
   void initState() {
     super.initState();
     _initializeChatId();
+    _messageController.addListener(_onTextChanged);
+    _updateOnlineStatus(true);
+  }
+
+  void _onTextChanged() {
+    final isTyping = _messageController.text.trim().isNotEmpty;
+    if (isTyping != _isTyping) {
+      setState(() {
+        _isTyping = isTyping;
+      });
+      _updateTypingStatus(isTyping);
+    }
+  }
+
+  Future<void> _updateOnlineStatus(bool isOnline) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      await updateUserOnlineStatus(currentUser.uid, isOnline);
+    }
+  }
+
+  Future<void> _updateTypingStatus(bool isTyping) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      await updateTypingStatus(
+        chatId: _chatId,
+        userId: currentUser.uid,
+        isTyping: isTyping,
+      );
+    }
   }
 
   void _initializeChatId() {
@@ -192,6 +230,9 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
 
   @override
   void dispose() {
+    _updateTypingStatus(false);
+    _updateOnlineStatus(false);
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -236,9 +277,28 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
             ),
             SizedBox(width: 12),
             Expanded(
-              child: Text(
-                widget.otherUserName,
-                style: AppTextStyles.headline,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.otherUserName,
+                          style: AppTextStyles.headline,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      OnlineStatusIndicator(userId: widget.otherUserId),
+                    ],
+                  ),
+                  TypingIndicator(
+                    chatId: _chatId,
+                    currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                  ),
+                ],
               ),
             ),
             IconButton(
@@ -320,6 +380,18 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
             ),
             child: Row(
               children: [
+                IconButton(
+                  icon: Icon(Icons.add_photo_alternate,
+                      color: AppColors.primaryTeal),
+                  onPressed: () async {
+                    await ChatMediaPicker.show(
+                      context: context,
+                      onMediaSelected: (mediaType, filePath) async {
+                        await _sendMediaMessage(mediaType, filePath);
+                      },
+                    );
+                  },
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -379,6 +451,7 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
     final type = data['type'] ?? 'text';
     final senderName = data['senderName'] ?? 'ผู้ใช้';
     final message = data['message'] ?? '';
+    final isRead = data['isRead'] ?? false;
 
     Widget bubbleContent;
     if (type == 'activity') {
@@ -433,6 +506,100 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                   height: 100,
                   width: 160,
                   fit: BoxFit.cover,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else if (type == 'image') {
+      // Image message
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isMe)
+            Text(senderName,
+                style: AppTextStyles.caption
+                    .copyWith(fontWeight: FontWeight.bold)),
+          if (!isMe) const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              data['mediaUrl'] ?? '',
+              fit: BoxFit.cover,
+              width: 250,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 250,
+                  height: 150,
+                  color: AppColors.grayBorder,
+                  child:
+                      Icon(Icons.broken_image, color: AppColors.graySecondary),
+                );
+              },
+            ),
+          ),
+          if (message.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isMe ? AppColors.white : AppColors.grayPrimary,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else if (type == 'video') {
+      // Video message
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isMe)
+            Text(senderName,
+                style: AppTextStyles.caption
+                    .copyWith(fontWeight: FontWeight.bold)),
+          if (!isMe) const SizedBox(height: 4),
+          Container(
+            width: 250,
+            height: 150,
+            decoration: BoxDecoration(
+              color: AppColors.grayBorder,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(Icons.play_circle_outline,
+                    size: 64, color: AppColors.white),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'วิดีโอ',
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (message.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isMe ? AppColors.white : AppColors.grayPrimary,
                 ),
               ),
             ),
@@ -507,14 +674,29 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                 children: [
                   bubbleContent,
                   const SizedBox(height: 4),
-                  Text(
-                    _formatTimestamp(timestamp),
-                    style: AppTextStyles.caption.copyWith(
-                      fontSize: 11,
-                      color: isMe
-                          ? AppColors.white.withOpacity(0.8)
-                          : AppColors.graySecondary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatTimestamp(timestamp),
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          color: isMe
+                              ? AppColors.white.withOpacity(0.8)
+                              : AppColors.graySecondary,
+                        ),
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        MessageReadReceipt(
+                          messageId: data['messageId'] ?? '',
+                          senderId: data['senderId'] ?? '',
+                          sentAt: timestamp,
+                          isRead: isRead,
+                          readAt: data['readAt'] as Timestamp?,
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -549,6 +731,19 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
+    // Content moderation check
+    final moderationResult = await _moderationService.moderateContent(message);
+
+    if (moderationResult.severity == ModerationSeverity.high) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ข้อความของคุณมีเนื้อหาไม่เหมาะสม กรุณาแก้ไขก่อนส่ง'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -562,20 +757,23 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
         throw Exception('ไม่พบข้อมูลผู้ใช้');
       }
 
-      final messageData = {
-        'senderId': currentUser.uid,
-        'senderName': userData.displayName ?? 'ผู้ใช้',
-        'message': message,
-        'timestamp': FieldValue.serverTimestamp(),
-        'type': 'text',
-      };
+      final cleanedMessage = moderationResult.cleanedContent;
 
-      // Add message to chat
-      await FirebaseFirestore.instance
+      final messageRef = await FirebaseFirestore.instance
           .collection('community_chats')
           .doc(_chatId)
           .collection('messages')
-          .add(messageData);
+          .add({
+        'senderId': currentUser.uid,
+        'senderName': userData.displayName ?? 'ผู้ใช้',
+        'message': cleanedMessage,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'text',
+        'isRead': false,
+      });
+
+      // Update message with its ID for read receipts
+      await messageRef.update({'messageId': messageRef.id});
 
       // Update chat metadata
       await FirebaseFirestore.instance
@@ -616,6 +814,96 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendMediaMessage(MediaType mediaType, String filePath) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userData = userProvider.currentUser;
+
+      if (currentUser == null || userData == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      // Upload media to Firebase Storage
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${filePath.split('/').last}';
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('chat_media')
+          .child(_chatId)
+          .child(fileName);
+
+      final uploadTask = await storageRef.putFile(File(filePath));
+      final mediaUrl = await uploadTask.ref.getDownloadURL();
+
+      // Send media message
+      final messageRef = await FirebaseFirestore.instance
+          .collection('community_chats')
+          .doc(_chatId)
+          .collection('messages')
+          .add({
+        'senderId': currentUser.uid,
+        'senderName': userData.displayName ?? 'ผู้ใช้',
+        'message': '',
+        'mediaUrl': mediaUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': mediaType == MediaType.image ? 'image' : 'video',
+        'isRead': false,
+      });
+
+      await messageRef.update({'messageId': messageRef.id});
+
+      // Update chat metadata
+      await FirebaseFirestore.instance
+          .collection('community_chats')
+          .doc(_chatId)
+          .set({
+        'participants': [currentUser.uid, widget.otherUserId],
+        'lastMessage': mediaType == MediaType.image ? '📷 รูปภาพ' : '🎥 วิดีโอ',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSender': currentUser.uid,
+        'participantInfo': {
+          currentUser.uid: {
+            'displayName': userData.displayName ?? 'ผู้ใช้',
+            'photoUrl': userData.photoUrl,
+          },
+          widget.otherUserId: {
+            'displayName': widget.otherUserName,
+            'photoUrl': widget.otherUserPhoto,
+          },
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Scroll to bottom
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+
+      // Send notification
+      await _sendNotification(
+        mediaType == MediaType.image ? '📷 ส่งรูปภาพ' : '🎥 ส่งวิดีโอ',
+        userData.displayName ?? 'ผู้ใช้',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาดในการส่งไฟล์: $e')),
       );
     } finally {
       setState(() {

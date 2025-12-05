@@ -46,6 +46,13 @@ import 'package:green_market/screens/seller/edit_product_screen.dart';
 import 'package:green_market/screens/seller/seller_dashboard_screen.dart';
 import 'package:green_market/screens/seller/world_class_seller_dashboard.dart';
 import 'package:green_market/screens/wishlist_screen.dart';
+import 'package:green_market/screens/trending_topics_screen.dart';
+import 'package:green_market/screens/create_story_screen.dart';
+import 'package:green_market/screens/community_groups_screen.dart';
+import 'package:green_market/screens/eco_challenges_screen.dart';
+import 'package:green_market/screens/story_viewer_screen.dart';
+import 'package:green_market/screens/group_detail_screen.dart';
+import 'package:green_market/screens/hashtag_feed_screen.dart';
 
 // Models
 import 'package:green_market/models/order.dart';
@@ -338,6 +345,78 @@ class MyApp extends StatelessWidget {
                   case '/reorder':
                     return MaterialPageRoute(
                       builder: (_) => const OrdersScreen(),
+                    );
+
+                  case '/trending-topics':
+                    return MaterialPageRoute(
+                      builder: (_) => const TrendingTopicsScreen(),
+                    );
+
+                  case '/create-story':
+                    return MaterialPageRoute(
+                      builder: (_) => const CreateStoryScreen(),
+                    );
+
+                  case '/community-groups':
+                    return MaterialPageRoute(
+                      builder: (_) => const CommunityGroupsScreen(),
+                    );
+
+                  case '/eco-challenges':
+                    return MaterialPageRoute(
+                      builder: (_) => const EcoChallengesScreen(),
+                    );
+
+                  case '/story-viewer':
+                    final args = settings.arguments as Map<String, dynamic>?;
+                    if (args != null &&
+                        args['stories'] != null &&
+                        args['currentUserId'] != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => StoryViewerScreen(
+                          stories: args['stories'],
+                          initialIndex: args['initialIndex'] ?? 0,
+                          currentUserId: args['currentUserId'],
+                        ),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ข้อมูลสตอรี่ไม่ถูกต้อง'),
+                        ),
+                      ),
+                    );
+
+                  case '/group-detail':
+                  case '/group_detail':
+                    final groupId = settings.arguments as String?;
+                    if (groupId != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => GroupDetailScreen(groupId: groupId),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ไม่พบข้อมูลกลุ่ม'),
+                        ),
+                      ),
+                    );
+
+                  case '/hashtag-feed':
+                    final hashtag = settings.arguments as String?;
+                    if (hashtag != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => HashtagFeedScreen(hashtag: hashtag),
+                      );
+                    }
+                    return MaterialPageRoute(
+                      builder: (_) => const Scaffold(
+                        body: Center(
+                          child: Text('ไม่พบแฮชแท็ก'),
+                        ),
+                      ),
                     );
 
                   default:

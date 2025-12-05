@@ -85,7 +85,7 @@ class AuthProvider with ChangeNotifier {
 
   // Enhanced Security & Performance Features
   int _consecutiveFailures = 0;
-  static const int maxConsecutiveFailures = 5;
+  static const int maxConsecutiveFailures = 15; // เพิ่มจาก 5 → 15 ครั้ง
   bool _isNetworkAvailable = true;
   Timer? _sessionTimer;
   Timer? _retryTimer;
@@ -134,6 +134,15 @@ class AuthProvider with ChangeNotifier {
   bool get isRateLimited => _isRateLimitReached('general');
   int get failureCount => _consecutiveFailures;
   DateTime? get lastActivity => _lastActivity;
+
+  // Public method to reset circuit breaker (for recovery)
+  void resetFailureCount() {
+    _consecutiveFailures = 0;
+    _errorMessage = null;
+    _lastError = null;
+    notifyListeners();
+    _logger.i('Circuit breaker reset - operations enabled');
+  }
 
   // Enhanced error parsing with additional error types
   AuthError _parseAuthError(dynamic error) {

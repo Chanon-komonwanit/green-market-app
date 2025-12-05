@@ -1,6 +1,7 @@
 // lib/widgets/post_card_widget.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../models/community_post.dart';
 import '../models/app_user.dart';
@@ -8,6 +9,8 @@ import '../services/firebase_service.dart';
 import '../providers/user_provider.dart';
 import '../screens/post_comments_screen.dart';
 import '../widgets/share_dialog.dart';
+import '../widgets/video_player_widget.dart';
+import '../widgets/hashtag_text_widget.dart';
 import '../utils/constants.dart';
 import '../screens/create_community_post_screen.dart';
 import 'package:provider/provider.dart';
@@ -37,12 +40,15 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   AppUser? _postUser;
   bool _isLiked = false;
   int _likesCount = 0;
+  bool _isSaved = false;
+  bool _saveLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadPostUser();
     _initializeLikeStatus();
+    _checkSavedStatus();
   }
 
   Future<void> _loadPostUser() async {
@@ -150,8 +156,8 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
               // Post Content
               if (widget.post.content.isNotEmpty) ...[
-                Text(
-                  widget.post.content,
+                HashtagTextWidget(
+                  text: widget.post.content,
                   style: AppTextStyles.body,
                 ),
                 const SizedBox(height: 12),
@@ -283,17 +289,18 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Widget _buildVideoThumbnail() {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.play_circle_fill,
-          color: Colors.white,
-          size: 64,
+    if (widget.post.videoUrl == null) return const SizedBox.shrink();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+      child: Container(
+        constraints: const BoxConstraints(
+          maxHeight: 400,
+        ),
+        child: VideoPlayerWidget(
+          videoUrl: widget.post.videoUrl!,
+          autoPlay: false, // ไม่เล่นอัตโนมัติในฟีด (ประหยัดแบต)
+          showControls: true,
         ),
       ),
     );
@@ -324,93 +331,146 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Widget _buildActionButtons() {
-    return Row(
-      children: [
-        // Like Button
-        InkWell(
-          onTap: _toggleLike,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                Icon(
-                  _isLiked
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  color:
-                      _isLiked ? AppColors.errorRed : AppColors.graySecondary,
-                  size: 20,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Row(
+        children: [
+          // Like Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _toggleLike,
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isLiked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: _isLiked
+                          ? AppColors.errorRed
+                          : AppColors.graySecondary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _likesCount.toString(),
+                      style: AppTextStyles.captionBold.copyWith(
+                        color: _isLiked
+                            ? AppColors.errorRed
+                            : AppColors.grayPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(_likesCount.toString(), style: AppTextStyles.caption),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
-        // Comment Button
-        InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PostCommentsScreen(post: widget.post),
               ),
-            );
-            widget.onComment?.call();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: AppColors.graySecondary,
-                  size: 20,
-                ),
-                const SizedBox(width: 4),
-                Text(widget.post.commentCount.toString(),
-                    style: AppTextStyles.caption),
-              ],
             ),
           ),
-        ),
 
-        const SizedBox(width: 16),
+          const SizedBox(width: 8),
 
-        // Share Button
-        InkWell(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (context) => ShareDialog(post: widget.post),
-            );
-            widget.onShare?.call();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.ios_share_rounded,
-                  color: AppColors.graySecondary,
-                  size: 20,
+          // Comment Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PostCommentsScreen(post: widget.post),
+                  ),
+                );
+                widget.onComment?.call();
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: AppColors.graySecondary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.post.commentCount.toString(),
+                      style: AppTextStyles.captionBold.copyWith(
+                        color: AppColors.grayPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(widget.post.shareCount.toString(),
-                    style: AppTextStyles.caption),
-              ],
+              ),
             ),
           ),
-        ),
 
-        const Spacer(),
-      ],
+          const SizedBox(width: 8),
+
+          // Share Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => ShareDialog(post: widget.post),
+                );
+                widget.onShare?.call();
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.ios_share_rounded,
+                      color: AppColors.graySecondary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.post.shareCount.toString(),
+                      style: AppTextStyles.captionBold.copyWith(
+                        color: AppColors.grayPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // Save Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _saveLoading ? null : _toggleSave,
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Icon(
+                  _isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  color: _isSaved
+                      ? AppColors.primaryTeal
+                      : AppColors.graySecondary,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -529,5 +589,86 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('คัดลอกลิงก์เรียบร้อยแล้ว')),
     );
+  }
+
+  Future<void> _toggleSave() async {
+    final currentUserId = context.read<UserProvider>().currentUser?.id;
+    if (currentUserId == null) return;
+
+    setState(() => _saveLoading = true);
+
+    try {
+      if (_isSaved) {
+        // Unsave
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .collection('saved_posts')
+            .doc(widget.post.id)
+            .delete();
+
+        if (mounted) {
+          setState(() => _isSaved = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('เลิกบันทึกโพสต์แล้ว')),
+          );
+        }
+      } else {
+        // Save
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .collection('saved_posts')
+            .doc(widget.post.id)
+            .set({
+          'postId': widget.post.id,
+          'savedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          setState(() => _isSaved = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('บันทึกโพสต์แล้ว'),
+              action: SnackBarAction(
+                label: 'ดู',
+                onPressed: () {
+                  Navigator.pushNamed(context, '/saved_posts');
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error saving post: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saveLoading = false);
+    }
+  }
+
+  Future<void> _checkSavedStatus() async {
+    final currentUserId = context.read<UserProvider>().currentUser?.id;
+    if (currentUserId == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('saved_posts')
+          .doc(widget.post.id)
+          .get();
+
+      if (mounted) {
+        setState(() => _isSaved = doc.exists);
+      }
+    } catch (e) {
+      debugPrint('Error checking saved status: $e');
+    }
   }
 }

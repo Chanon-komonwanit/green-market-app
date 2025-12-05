@@ -12,10 +12,14 @@ import '../models/friend.dart';
 import '../services/firebase_service.dart';
 import '../services/story_service.dart';
 import '../services/friend_service.dart';
+import '../services/achievement_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/post_card_widget.dart';
+import '../widgets/achievement_badge_widget.dart';
+import '../widgets/qr_profile_share_widget.dart';
 import '../screens/community_chat_screen.dart';
 import '../screens/create_community_post_screen.dart';
+import '../screens/saved_posts_screen.dart';
 import '../utils/constants.dart';
 import 'dart:io';
 import 'package:timeago/timeago.dart' as timeago;
@@ -40,6 +44,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   final FirebaseService _firebaseService = FirebaseService();
   final StoryService _storyService = StoryService();
   final FriendService _friendService = FriendService();
+  final AchievementService _achievementService = AchievementService();
 
   AppUser? _profileUser;
   List<CommunityPost> _userPosts = [];
@@ -49,6 +54,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   List<Story> _stories = [];
   List<Story> _highlights = [];
   List<Friend> _friends = [];
+  List<Achievement> _userBadges = [];
 
   // สถานะติดตาม/เลิกติดตาม
   bool _isFollowing = false;
@@ -64,6 +70,7 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     _loadStories();
     _loadHighlights();
     _loadFriends();
+    _loadUserBadges();
     _checkFollowingStatus();
   }
 
@@ -214,10 +221,24 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
     });
   }
 
+  Future<void> _loadUserBadges() async {
+    try {
+      final badges = await _achievementService.getUserBadges(_targetUserId);
+      if (mounted) {
+        setState(() {
+          _userBadges = badges;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading badges: $e');
+    }
+  }
+
   Future<void> _refreshData() async {
     await Future.wait([
       _loadUserPosts(),
       _loadUserStats(),
+      _loadUserBadges(),
     ]);
   }
 
@@ -240,11 +261,37 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                       pinned: true,
                       floating: true,
                       actions: [
-                        if (_isMyProfile)
+                        if (_isMyProfile) ...[
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SavedPostsScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.bookmark_border),
+                            tooltip: 'โพสต์ที่บันทึก',
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              QRProfileShareWidget.show(
+                                context: context,
+                                userId: _targetUserId,
+                                userName: _profileUser?.displayName ?? 'ผู้ใช้',
+                                userPhotoUrl: _profileUser?.photoUrl,
+                              );
+                            },
+                            icon: const Icon(Icons.qr_code),
+                            tooltip: 'แชร์ QR Code',
+                          ),
                           IconButton(
                             onPressed: _showEditProfileDialog,
                             icon: const Icon(Icons.edit_outlined),
                           ),
+                        ],
                         IconButton(
                           icon: const Icon(Icons.search),
                           tooltip: 'ค้นหาเพื่อน',
@@ -299,208 +346,615 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
   }
 
   Widget _buildProfileHeader() {
+    final postsCount = _userStats?['totalPosts'] ?? 0;
+    final followersCount = _userStats?['followersCount'] ?? 0;
+    final followingCount = _userStats?['followingCount'] ?? 0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       color: AppColors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // รูปโปรไฟล์ (กดเปลี่ยนได้ถ้าเป็นของตัวเอง)
-          Center(
-            child: GestureDetector(
-              onTap: _isMyProfile ? _showAddStoryDialog : null,
-              child: CircleAvatar(
-                radius: 54,
-                backgroundColor: AppColors.grayBorder,
-                backgroundImage: _profileUser?.photoUrl != null
-                    ? CachedNetworkImageProvider(_profileUser!.photoUrl!)
-                    : null,
-                child: _profileUser?.photoUrl == null
-                    ? const Icon(Icons.person,
-                        size: 54, color: AppColors.graySecondary)
-                    : null,
+          // Cover Photo (like Facebook/TikTok)
+          Stack(
+            children: [
+              Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryTeal.withOpacity(0.3),
+                      AppColors.emeraldPrimary.withOpacity(0.3),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: _profileUser?.photoUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: _profileUser!.photoUrl!,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withOpacity(0.3),
+                        colorBlendMode: BlendMode.darken,
+                      )
+                    : Container(),
               ),
-            ),
+              // Edit Cover Button (for own profile)
+              if (_isMyProfile)
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: InkWell(
+                    onTap: () => _showComingSoonSnackBar('เปลี่ยนภาพปก'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.camera_alt,
+                              size: 16, color: AppColors.grayPrimary),
+                          const SizedBox(width: 4),
+                          Text('แก้ไขภาพปก',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.grayPrimary)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 16),
-          // สตอรี่และ highlights
-          if (_stories.isNotEmpty || _highlights.isNotEmpty)
-            SizedBox(
-              height: 90,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
+
+          // Profile Picture & Info Section
+          Transform.translate(
+            offset: const Offset(0, -40),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ..._highlights.map((highlight) => GestureDetector(
-                        onTap: () => _showStoryViewer(highlight),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Profile Picture
+                      GestureDetector(
+                        onTap: _isMyProfile ? _changeProfilePicture : null,
                         child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 32,
-                                backgroundImage:
-                                    NetworkImage(highlight.imageUrl),
-                                backgroundColor: AppColors.primaryTeal,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                highlight.highlightTitle ?? 'Highlight',
-                                style: AppTextStyles.caption,
-                                overflow: TextOverflow.ellipsis,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                        ),
-                      )),
-                  ..._stories.map((story) => GestureDetector(
-                        onTap: () => _showStoryViewer(story),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Column(
+                          child: Stack(
                             children: [
                               CircleAvatar(
-                                radius: 32,
-                                backgroundImage: NetworkImage(story.imageUrl),
+                                radius: 60,
                                 backgroundColor: AppColors.grayBorder,
+                                backgroundImage: _profileUser?.photoUrl != null
+                                    ? CachedNetworkImageProvider(
+                                        _profileUser!.photoUrl!)
+                                    : null,
+                                child: _profileUser?.photoUrl == null
+                                    ? const Icon(Icons.person,
+                                        size: 60,
+                                        color: AppColors.graySecondary)
+                                    : null,
                               ),
-                              const SizedBox(height: 4),
+                              if (_isMyProfile)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Material(
+                                    color: AppColors.primaryTeal,
+                                    shape: const CircleBorder(),
+                                    child: InkWell(
+                                      onTap: _changeProfilePicture,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 16,
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+
+                      // Action Buttons
+                      if (_isMyProfile)
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text('แก้ไขโปรไฟล์'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.surfaceGray,
+                            foregroundColor: AppColors.grayPrimary,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: _showEditProfileDialog,
+                        )
+                      else ...[
+                        ElevatedButton.icon(
+                          icon: Icon(
+                              _isFollowing
+                                  ? Icons.person_remove
+                                  : Icons.person_add,
+                              size: 16),
+                          label: Text(_isFollowing ? 'เลิกติดตาม' : 'ติดตาม'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isFollowing
+                                ? AppColors.surfaceGray
+                                : AppColors.primaryTeal,
+                            foregroundColor: _isFollowing
+                                ? AppColors.grayPrimary
+                                : Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: _followLoading ? null : _toggleFollow,
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                          label: const Text('ส่งข้อความ'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.surfaceGray,
+                            foregroundColor: AppColors.grayPrimary,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () => _navigateToChat(_profileUser!),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Name & Badge
+                  Row(
+                    children: [
+                      Text(
+                        _profileUser?.displayName ?? 'ผู้ใช้',
+                        style: AppTextStyles.headline.copyWith(fontSize: 24),
+                      ),
+                      if (_profileUser?.isSeller ?? false) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified,
+                                  size: 14, color: AppColors.primaryTeal),
+                              const SizedBox(width: 4),
                               Text(
-                                story.caption ?? 'Story',
-                                style: AppTextStyles.caption,
-                                overflow: TextOverflow.ellipsis,
+                                'ผู้ขาย',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primaryTeal,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      )),
+                      ],
+                      if (_profileUser?.isAdmin ?? false) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.warningAmber.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.admin_panel_settings,
+                                  size: 14, color: AppColors.warningAmber),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Admin',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.warningAmber,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // Bio
+                  if (_profileUser?.bio?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _profileUser!.bio!,
+                      style: AppTextStyles.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+
+                  // Eco Coins Display
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.accentGreen.withOpacity(0.1),
+                          AppColors.primaryTeal.withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.accentGreen.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.eco, size: 20, color: AppColors.accentGreen),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_profileUser?.ecoCoins.toStringAsFixed(0) ?? '0'} Eco Coins',
+                          style: AppTextStyles.bodyBold.copyWith(
+                            color: AppColors.accentGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Stats Row (Posts, Followers, Following)
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'โพสต์',
+                          postsCount.toString(),
+                          Icons.article_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'ผู้ติดตาม',
+                          followersCount.toString(),
+                          Icons.people_outline,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'กำลังติดตาม',
+                          followingCount.toString(),
+                          Icons.person_add_alt_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Achievement Badges Section
+                  if (_userBadges.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'ความสำเร็จ (${_userBadges.length})',
+                          style: AppTextStyles.subtitle.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 500,
+                                    maxHeight: 600,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'ความสำเร็จทั้งหมด',
+                                            style: AppTextStyles.headline,
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.close),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(),
+                                      Expanded(
+                                        child: BadgeGridView(
+                                          allAchievements: _achievementService
+                                              .allAchievements,
+                                          earnedAchievements: _userBadges,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('ดูทั้งหมด'),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount:
+                            _userBadges.length > 5 ? 5 : _userBadges.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: AchievementBadgeWidget(
+                              achievement: _userBadges[index],
+                              isEarned: true,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  // Stories / Highlights Row
+                  if (_stories.isNotEmpty || _highlights.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 110,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          // Add Story Button (own profile only)
+                          if (_isMyProfile) _buildAddStoryButton(),
+
+                          // Highlights
+                          ..._highlights.map((highlight) => _buildStoryCircle(
+                                highlight.imageUrl,
+                                highlight.highlightTitle ?? 'Highlight',
+                                true,
+                                () => _showStoryViewer(highlight),
+                              )),
+
+                          // Active Stories
+                          ..._stories.map((story) => _buildStoryCircle(
+                                story.imageUrl,
+                                story.caption ?? 'Story',
+                                false,
+                                () => _showStoryViewer(story),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
                 ],
               ),
             ),
-          // ชื่อ
-          Text(
-            _profileUser?.displayName ?? '',
-            style: AppTextStyles.headline,
-            textAlign: TextAlign.center,
           ),
-          // bio/quote
-          if ((_profileUser?.bio?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 6),
-              child: Text(
-                _profileUser!.bio!,
-                style: AppTextStyles.body,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          // แสดงอีเมล
-          if ((_profileUser?.showEmail ?? false) &&
-              (_profileUser?.email.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Text(
-                _profileUser!.email,
-                style: AppTextStyles.body.copyWith(color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if ((_profileUser?.showFacebook ?? false) &&
-              (_profileUser?.facebook?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Text(
-                'Facebook: ${_profileUser!.facebook!}',
-                style: AppTextStyles.body,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if ((_profileUser?.showInstagram ?? false) &&
-              (_profileUser?.instagram?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Text(
-                'Instagram: ${_profileUser!.instagram!}',
-                style: AppTextStyles.body,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if ((_profileUser?.showLine ?? false) &&
-              (_profileUser?.lineId?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Text(
-                'Line ID: ${_profileUser!.lineId!}',
-                style: AppTextStyles.body,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          // ปุ่มสร้างโพสต์ (เฉพาะโปรไฟล์ตัวเอง)
-          if (_isMyProfile && !widget.hideCreatePostButton)
-            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 12),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('สร้างโพสต์ใหม่'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryTeal,
-                  foregroundColor: AppColors.white,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: () async {
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateCommunityPostScreen(),
-                    ),
-                  );
-                  if (result == true) {
-                    _refreshData();
-                  }
-                },
-              ),
-            ),
-          // ปุ่มแชท (เฉพาะเมื่อดูโปรไฟล์คนอื่น)
-          if (!_isMyProfile && _profileUser != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 8),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.chat),
-                label: const Text('แชทกับผู้ใช้'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryTeal,
-                  foregroundColor: AppColors.white,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: () {
-                  _navigateToChat(_profileUser!);
-                },
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsRow() {
-    final postsCount = _userStats?['totalPosts'] ?? 0;
-    final likesCount = _userStats?['totalLikes'] ?? 0;
-    final commentsCount = _userStats?['totalComments'] ?? 0;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatItem('โพสต์', postsCount.toString()),
-        _buildStatItem('ถูกใจ', likesCount.toString()),
-        _buildStatItem('ความคิดเห็น', commentsCount.toString()),
-      ],
+  Widget _buildStatCard(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceGray,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 24, color: AppColors.primaryTeal),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.headline.copyWith(fontSize: 18),
+          ),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(fontSize: 11),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildAddStoryButton() {
+    return GestureDetector(
+      onTap: _showAddStoryDialog,
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.grayBorder, width: 2),
+                color: AppColors.surfaceGray,
+              ),
+              child: Icon(Icons.add, size: 32, color: AppColors.primaryTeal),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'สร้าง Story',
+              style: AppTextStyles.caption,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryCircle(
+      String imageUrl, String label, bool isHighlight, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: isHighlight
+                    ? LinearGradient(
+                        colors: [
+                          AppColors.primaryTeal,
+                          AppColors.emeraldPrimary
+                        ],
+                      )
+                    : null,
+                border: Border.all(
+                  color:
+                      isHighlight ? Colors.transparent : AppColors.primaryTeal,
+                  width: 2,
+                ),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: CircleAvatar(
+                radius: 32,
+                backgroundImage: CachedNetworkImageProvider(imageUrl),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTextStyles.caption,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeProfilePicture() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isLoading = true);
+
+      final currentUser = context.read<UserProvider>().currentUser;
+      if (currentUser == null) return;
+
+      // Upload image
+      final storageRef = FirebaseStorage.instance.ref().child(
+          'profile_images/${currentUser.id}/${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final bytes = await image.readAsBytes();
+      await storageRef.putData(bytes);
+      final photoUrl = await storageRef.getDownloadURL();
+
+      // Update Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.id)
+          .update({'photoUrl': photoUrl});
+
+      // Reload profile
+      await _loadUserProfile();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error changing profile picture: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Widget _buildStatItem(String label, String value) {
@@ -514,6 +968,23 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
           label,
           style: AppTextStyles.caption,
         ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final postsCount = _userStats?['totalPosts'] ?? 0;
+    final followersCount = _userStats?['followersCount'] ?? 0;
+    final followingCount = _userStats?['followingCount'] ?? 0;
+    final commentsCount = _userStats?['commentsCount'] ?? 0;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildStatItem('โพสต์', postsCount.toString()),
+        _buildStatItem('ผู้ติดตาม', followersCount.toString()),
+        _buildStatItem('กำลังติดตาม', followingCount.toString()),
+        _buildStatItem('ความคิดเห็น', commentsCount.toString()),
       ],
     );
   }
@@ -987,12 +1458,19 @@ class _CommunityProfileScreenState extends State<CommunityProfileScreen>
                         'stories/${_profileUser!.id}_${DateTime.now().millisecondsSinceEpoch}.jpg');
                     await storageRef.putData(await file.readAsBytes());
                     final imageUrl = await storageRef.getDownloadURL();
+
                     final story = Story(
                       id: '',
                       userId: _profileUser!.id,
-                      imageUrl: imageUrl,
+                      userName: _profileUser!.displayName ?? 'ไม่ระบุชื่อ',
+                      userPhotoUrl: _profileUser!.photoUrl,
+                      mediaUrl: imageUrl,
+                      mediaType: 'image',
                       caption: captionController.text.trim(),
                       createdAt: Timestamp.now(),
+                      expiresAt: Timestamp.fromDate(
+                        DateTime.now().add(const Duration(hours: 24)),
+                      ),
                       isHighlight: isHighlight,
                       highlightTitle: isHighlight
                           ? highlightTitleController.text.trim()

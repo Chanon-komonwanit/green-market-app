@@ -18,6 +18,14 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"args": []
+		},
+		{
+			"label": "Run Flutter App on Chrome",
+			"type": "shell",
+			"command": "flutter run -d chrome",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

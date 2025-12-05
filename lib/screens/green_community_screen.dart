@@ -1,5 +1,6 @@
 // lib/screens/green_community_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 import '../utils/constants.dart';
 // import '../utils/app_text_styles.dart' as app_text_styles;
@@ -8,6 +9,8 @@ import 'feed_screen.dart';
 import 'community_profile_screen.dart';
 import 'community_notifications_screen.dart';
 import 'community_chat_list_screen.dart';
+import '../widgets/community_quick_actions.dart';
+import 'eco_challenges_screen.dart';
 
 class GreenCommunityScreen extends StatefulWidget {
   const GreenCommunityScreen({super.key});
@@ -33,8 +36,6 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
     super.dispose();
   }
 
-  int _currentTabIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,32 +54,58 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
               ),
             ),
             Spacer(),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.people_alt_rounded,
-                    color: AppColors.primaryTeal,
-                    size: 18,
+            // Real-time member count from Firebase
+            StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                final memberCount = snapshot.data?.docs.length ?? 0;
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  SizedBox(width: 4),
-                  Text(
-                    'สมาชิก 1,234',
-                    style: AppTextStyles.captionBold.copyWith(
-                      color: AppColors.primaryTeal,
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.people_alt_rounded,
+                        color: AppColors.primaryTeal,
+                        size: 18,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'สมาชิก ${memberCount.toString().replaceAllMapped(
+                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                              (Match m) => '${m[1]},',
+                            )}',
+                        style: AppTextStyles.captionBold.copyWith(
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EcoChallengesScreen(),
+                ),
+              );
+            },
+            icon: Icon(
+              Icons.emoji_events,
+              color: AppColors.primaryTeal,
+            ),
+            tooltip: 'Eco Challenges',
+          ),
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -129,9 +156,7 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
               TabBar(
                 controller: _tabController,
                 onTap: (index) {
-                  setState(() {
-                    _currentTabIndex = index;
-                  });
+                  // Tab index handled by TabController
                 },
                 indicator: BoxDecoration(
                   gradient: LinearGradient(
@@ -158,46 +183,27 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
           CommunityProfileScreen(hideCreatePostButton: true),
         ],
       ),
-      floatingActionButton: _currentTabIndex == 0
-          ? FloatingActionButton.extended(
-              heroTag: 'post',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateCommunityPostScreen(),
-                  ),
-                );
-              },
-              backgroundColor: AppColors.primaryTeal,
-              foregroundColor: AppColors.white,
-              icon: Icon(Icons.add_a_photo_rounded),
-              label: Text('สร้างโพสต์ใหม่'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 8,
-            )
-          : _currentTabIndex == 1
-              ? FloatingActionButton(
-                  heroTag: 'chat',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CommunityChatListScreen(),
-                      ),
-                    );
-                  },
-                  backgroundColor: AppColors.primaryTeal,
-                  foregroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 8,
-                  child: Icon(Icons.chat_bubble_outline_rounded, size: 28),
-                )
-              : null,
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'create_post',
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateCommunityPostScreen(),
+            ),
+          );
+          if (result == true && mounted) {
+            setState(() {});
+          }
+        },
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: AppColors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(Icons.add_rounded, size: 32),
+      ),
     );
   }
 }

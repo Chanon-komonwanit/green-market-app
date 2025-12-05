@@ -59,6 +59,8 @@ import 'package:green_market/models/static_page.dart';
 import 'package:green_market/models/sustainable_activity.dart';
 import 'package:green_market/models/theme_settings.dart';
 import 'package:green_market/models/user_investment.dart';
+import 'package:green_market/models/report.dart';
+import 'package:green_market/models/community_post.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:logger/logger.dart';
 
@@ -2167,6 +2169,25 @@ class FirebaseService {
     }
   }
 
+  /// Upload video from bytes (for web platform)
+  Future<String> uploadVideoBytes(List<int> bytes, String storagePath) async {
+    try {
+      logger.i("Attempting to upload video bytes to path: $storagePath");
+
+      final ref = _storage.ref().child(storagePath);
+      final uploadTask = await ref.putData(
+        bytes as Uint8List,
+        SettableMetadata(contentType: 'video/mp4'),
+      );
+      final downloadURL = await uploadTask.ref.getDownloadURL();
+      logger.i("Video bytes uploaded successfully: $downloadURL");
+      return downloadURL;
+    } catch (e) {
+      logger.e("Error uploading video bytes: $e");
+      rethrow;
+    }
+  }
+
   Future<void> deleteImageByUrl(String imageUrl) async {
     try {
       final ref = _storage.refFromURL(imageUrl);
@@ -3770,6 +3791,7 @@ class FirebaseService {
     List<String> imageUrls = const [],
     String? videoUrl,
     List<String> tags = const [],
+    Map<String, dynamic>? pollData,
   }) async {
     try {
       // ดึงข้อมูลผู้ใช้
@@ -3800,6 +3822,8 @@ class FirebaseService {
         'updatedAt': null,
         'isActive': true,
         'tags': tags,
+        'savedBy': <String>[],
+        'pollData': pollData,
       };
 
       await postRef.set(post);
@@ -3819,6 +3843,7 @@ class FirebaseService {
     List<String>? imageUrls,
     String? videoUrl,
     List<String>? tags,
+    Map<String, dynamic>? pollData,
   }) async {
     try {
       final postRef = _firestore.collection('community_posts').doc(postId);
@@ -3837,6 +3862,9 @@ class FirebaseService {
       if (tags != null) {
         updateData['tags'] = tags;
       }
+      if (pollData != null) {
+        updateData['pollData'] = pollData;
+      }
 
       await postRef.update(updateData);
       logger.i("Community post updated: $postId");
@@ -3846,22 +3874,91 @@ class FirebaseService {
     }
   }
 
-  /// ดึงโพสต์ทั้งหมดในชุมชน (สำหรับ Feed)
+  /// ดึงโพสต์ทั้งหมดในชุมชน (สำหรับ Feed) - With Pagination
   Stream<List<Map<String, dynamic>>> getCommunityPosts({
     int limit = 20,
-    String? startAfter,
+    DocumentSnapshot? startAfter,
+    List<String>? blockedUserIds, // Filter blocked users
   }) {
     Query query = _firestore
         .collection('community_posts')
         .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
+        .orderBy('createdAt', descending: true);
+
+    // Filter blocked users
+    if (blockedUserIds != null && blockedUserIds.isNotEmpty) {
+      // Note: Firestore doesn't support 'not in' for arrays > 10 items
+      // Need to filter in client side for large lists
+      if (blockedUserIds.length <= 10) {
+        query = query.where('userId', whereNotIn: blockedUserIds);
+      }
+    }
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    query = query.limit(limit);
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final posts = snapshot.docs.map((doc) {
         return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
       }).toList();
+
+      // Client-side filtering for large blocked lists
+      if (blockedUserIds != null && blockedUserIds.length > 10) {
+        return posts.where((post) {
+          return !blockedUserIds.contains(post['userId']);
+        }).toList();
+      }
+
+      return posts;
     });
+  }
+
+  /// ดึงโพสต์แบบ pagination (สำหรับ infinite scroll)
+  Future<List<Map<String, dynamic>>> getCommunityPostsPaginated({
+    int limit = 20,
+    DocumentSnapshot? lastDocument,
+    List<String>? blockedUserIds,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection('community_posts')
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true);
+
+      // Filter blocked users (max 10 for Firestore)
+      if (blockedUserIds != null &&
+          blockedUserIds.isNotEmpty &&
+          blockedUserIds.length <= 10) {
+        query = query.where('userId', whereNotIn: blockedUserIds);
+      }
+
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      query = query.limit(limit);
+
+      final snapshot = await query.get();
+
+      final posts = snapshot.docs.map((doc) {
+        return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
+      }).toList();
+
+      // Client-side filtering for large blocked lists
+      if (blockedUserIds != null && blockedUserIds.length > 10) {
+        return posts.where((post) {
+          return !blockedUserIds.contains(post['userId']);
+        }).toList();
+      }
+
+      return posts;
+    } catch (e) {
+      logger.e('Error getting paginated posts: $e');
+      return [];
+    }
   }
 
   /// ดึงโพสต์ของผู้ใช้คนใดคนหนึ่ง (สำหรับ Profile)
@@ -3928,6 +4025,80 @@ class FirebaseService {
       logger.i("Post $postId like toggled by user $userId");
     } catch (e) {
       logger.e("Error toggling like on post $postId: $e");
+      rethrow;
+    }
+  }
+
+  /// ดึงข้อมูลสินค้าตาม ID
+  Future<Map<String, dynamic>?> getProductById(String productId) async {
+    try {
+      final doc = await _firestore.collection('products').doc(productId).get();
+      if (!doc.exists) return null;
+      return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
+    } catch (e) {
+      logger.e("Error getting product $productId: $e");
+      return null;
+    }
+  }
+
+  /// เพิ่ม reaction ให้กับโพสต์ (like, love, wow, haha, sad, angry, care)
+  Future<void> addReactionToCommunityPost(
+    String postId,
+    String userId,
+    String reaction,
+  ) async {
+    try {
+      final postRef = _firestore.collection('community_posts').doc(postId);
+
+      await _firestore.runTransaction((transaction) async {
+        final postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+          throw Exception('ไม่พบโพสต์');
+        }
+
+        final reactions =
+            Map<String, String>.from(postDoc.data()?['reactions'] ?? {});
+        final likes = List<String>.from(postDoc.data()?['likes'] ?? []);
+
+        // Update reaction
+        reactions[userId] = reaction;
+
+        // If reaction is 'like', also add to likes array
+        if (reaction == 'like' && !likes.contains(userId)) {
+          likes.add(userId);
+        }
+
+        // Send notification to post owner
+        final postOwnerId = postDoc.data()?['userId'];
+        if (postOwnerId != null && postOwnerId != userId) {
+          final notification = {
+            'id': _firestore.collection('notifications').doc().id,
+            'recipientId': postOwnerId,
+            'senderId': userId,
+            'type': 'community_reaction',
+            'title': 'มีคนแสดงความรู้สึกกับโพสต์ของคุณ',
+            'body': 'มีคนแสดงความรู้สึกในชุมชนสีเขียว',
+            'data': {'postId': postId, 'reaction': reaction},
+            'isRead': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          };
+
+          await _firestore
+              .collection('notifications')
+              .doc(notification['id'] as String)
+              .set(notification);
+        }
+
+        transaction.update(postRef, {
+          'reactions': reactions,
+          'likes': likes,
+        });
+      });
+
+      logger.i("Reaction $reaction added to post $postId by user $userId");
+    } catch (e) {
+      logger.e("Error adding reaction to post $postId: $e");
       rethrow;
     }
   }
@@ -4733,6 +4904,199 @@ class FirebaseService {
     } catch (e) {
       logger.w('Failed to get device info: $e');
       return {'platform': 'unknown'};
+    }
+  }
+
+  // ===== REPORT & BLOCK SYSTEM =====
+
+  /// Submit a report
+  Future<void> submitReport({
+    required String reporterId,
+    required String reporterName,
+    required String reportedUserId,
+    String? reportedUserName,
+    String? postId,
+    String? commentId,
+    required ReportReason reason,
+    String? additionalInfo,
+  }) async {
+    try {
+      final reportRef = _firestore.collection('reports').doc();
+
+      await reportRef.set({
+        'id': reportRef.id,
+        'reporterId': reporterId,
+        'reporterName': reporterName,
+        'reportedUserId': reportedUserId,
+        'reportedUserName': reportedUserName,
+        'postId': postId,
+        'commentId': commentId,
+        'reason': reason.value,
+        'additionalInfo': additionalInfo,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+        'reviewedAt': null,
+        'reviewedBy': null,
+        'reviewNote': null,
+      });
+
+      logger.i('Report submitted: ${reportRef.id}');
+    } catch (e) {
+      logger.e('Error submitting report: $e');
+      rethrow;
+    }
+  }
+
+  /// Block a user
+  Future<void> blockUser({
+    required String currentUserId,
+    required String blockedUserId,
+  }) async {
+    try {
+      // Add to blocked users array
+      await _firestore.collection('users').doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayUnion([blockedUserId]),
+      });
+
+      // Add reverse blocking (optional: for mutual blocking)
+      await _firestore.collection('users').doc(blockedUserId).update({
+        'blockedBy': FieldValue.arrayUnion([currentUserId]),
+      });
+
+      logger.i('User $blockedUserId blocked by $currentUserId');
+    } catch (e) {
+      logger.e('Error blocking user: $e');
+      rethrow;
+    }
+  }
+
+  /// Unblock a user
+  Future<void> unblockUser({
+    required String currentUserId,
+    required String blockedUserId,
+  }) async {
+    try {
+      // Remove from blocked users array
+      await _firestore.collection('users').doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayRemove([blockedUserId]),
+      });
+
+      // Remove reverse blocking
+      await _firestore.collection('users').doc(blockedUserId).update({
+        'blockedBy': FieldValue.arrayRemove([currentUserId]),
+      });
+
+      logger.i('User $blockedUserId unblocked by $currentUserId');
+    } catch (e) {
+      logger.e('Error unblocking user: $e');
+      rethrow;
+    }
+  }
+
+  /// Get blocked users list
+  Future<List<String>> getBlockedUsers(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) return [];
+
+      final data = userDoc.data();
+      if (data == null || !data.containsKey('blockedUsers')) return [];
+
+      final blockedUsers = data['blockedUsers'];
+      if (blockedUsers is List) {
+        return blockedUsers.map((e) => e.toString()).toList();
+      }
+      return [];
+    } catch (e) {
+      logger.e('Error getting blocked users: $e');
+      return [];
+    }
+  }
+
+  /// Check if user is blocked
+  Future<bool> isUserBlocked({
+    required String currentUserId,
+    required String otherUserId,
+  }) async {
+    try {
+      final blockedUsers = await getBlockedUsers(currentUserId);
+      return blockedUsers.contains(otherUserId);
+    } catch (e) {
+      logger.e('Error checking if user is blocked: $e');
+      return false;
+    }
+  }
+
+  // ===== REPOST SYSTEM =====
+
+  /// Repost a community post
+  Future<String> repostCommunityPost({
+    required CommunityPost originalPost,
+    required String userId,
+    required String userName,
+    String? repostComment,
+  }) async {
+    try {
+      // Create a new post as a repost
+      final postRef = _firestore.collection('community_posts').doc();
+
+      final repost = {
+        'id': postRef.id,
+        'userId': userId,
+        'userDisplayName': userName,
+        'userProfileImage': null, // Will be populated from user doc if needed
+        'content': repostComment ?? '', // Optional comment
+        'imageUrls': originalPost.imageUrls,
+        'videoUrl': originalPost.videoUrl,
+        'likes': <String>[],
+        'commentCount': 0,
+        'shareCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': null,
+        'isActive': true,
+        'tags': [...originalPost.tags, 'repost'], // Add repost tag
+        'savedBy': <String>[],
+        'pollData': null, // Reposts don't copy poll data
+        'originalPostId': originalPost.id,
+        'originalUserId': originalPost.userId,
+        'originalUserName': originalPost.userDisplayName,
+        'repostComment': repostComment,
+      };
+
+      await postRef.set(repost);
+
+      // Increment shareCount on original post
+      await _firestore
+          .collection('community_posts')
+          .doc(originalPost.id)
+          .update({
+        'shareCount': FieldValue.increment(1),
+      });
+
+      // Send notification to original post author
+      if (originalPost.userId != userId) {
+        final notificationRef = _firestore.collection('notifications').doc();
+        await notificationRef.set({
+          'id': notificationRef.id,
+          'recipientId': originalPost.userId,
+          'senderId': userId,
+          'type': 'community_repost',
+          'title': 'มีคนรีโพสต์โพสต์ของคุณ',
+          'body': repostComment ?? 'รีโพสต์โพสต์ของคุณ',
+          'data': {
+            'postId': originalPost.id,
+            'repostId': postRef.id,
+          },
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      logger.i('Post reposted: ${postRef.id}');
+      return postRef.id;
+    } catch (e) {
+      logger.e('Error reposting post: $e');
+      rethrow;
     }
   }
 }

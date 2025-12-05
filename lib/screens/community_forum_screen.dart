@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/utils/constants.dart';
+import 'community_leaderboard_screen.dart';
+import 'enhanced_search_screen.dart';
 
 class CommunityForumScreen extends StatefulWidget {
   const CommunityForumScreen({super.key});
@@ -18,18 +20,42 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
   late TabController _tabController;
   final TextEditingController _postController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination state
+  bool _isLoadingMore = false;
+  final bool _hasMorePosts = true;
+  // ignore: unused_field
+  DocumentSnapshot? _lastDocument; // Reserved for future advanced pagination
+  final int _postsPerPage = 20;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _postController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // Load more when near bottom
+      if (!_isLoadingMore && _hasMorePosts) {
+        setState(() {
+          _isLoadingMore = true;
+        });
+        // The actual loading will be handled by StreamBuilder
+        // This just triggers a rebuild
+      }
+    }
   }
 
   @override
@@ -48,6 +74,30 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'ค้นหา',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EnhancedSearchScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.emoji_events),
+            tooltip: 'กระดานผู้นำ',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CommunityLeaderboardScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _showCreatePostDialog(context),
@@ -73,14 +123,32 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
           _buildMyPosts(),
         ],
       ),
+      floatingActionButton: _buildModernFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  // Modern FAB แบบ TikTok/Instagram
+  Widget _buildModernFAB() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FloatingActionButton(
+          heroTag: 'create_post',
+          onPressed: () => _showCreatePostDialog(context),
+          backgroundColor: AppColors.primaryTeal,
+          child: const Icon(Icons.add, size: 30),
+        ),
+      ],
     );
   }
 
   Widget _buildAllPosts() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('forum_posts')
+          .collection('community_posts')
           .orderBy('createdAt', descending: true)
+          .limit(_postsPerPage)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -104,9 +172,19 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
         }
 
         return ListView.builder(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
-          itemCount: posts.length,
+          itemCount: posts.length + (_hasMorePosts ? 1 : 0),
           itemBuilder: (context, index) {
+            if (index == posts.length) {
+              // Loading indicator at bottom
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
             final post = posts[index].data() as Map<String, dynamic>;
             return _buildPostCard(post, posts[index].id);
           },
@@ -118,9 +196,10 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
   Widget _buildPopularPosts() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('forum_posts')
+          .collection('community_posts')
           .where('likes', isGreaterThan: 5)
           .orderBy('likes', descending: true)
+          .limit(_postsPerPage)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -159,9 +238,10 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('forum_posts')
-          .where('authorId', isEqualTo: currentUser.uid)
+          .collection('community_posts')
+          .where('userId', isEqualTo: currentUser.uid)
           .orderBy('createdAt', descending: true)
+          .limit(_postsPerPage)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -424,7 +504,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
     final userData = userProvider.currentUser;
 
     try {
-      await FirebaseFirestore.instance.collection('forum_posts').add({
+      await FirebaseFirestore.instance.collection('community_posts').add({
         'content': _postController.text.trim(),
         'authorId': currentUser.uid,
         'authorName': userData?.displayName ?? 'ผู้ใช้ไม่ระบุชื่อ',
@@ -449,7 +529,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
   void _toggleLike(String postId, int currentLikes) async {
     try {
       await FirebaseFirestore.instance
-          .collection('forum_posts')
+          .collection('community_posts')
           .doc(postId)
           .update({
         'likes': currentLikes + 1,
@@ -464,7 +544,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
   void _deletePost(String postId) async {
     try {
       await FirebaseFirestore.instance
-          .collection('forum_posts')
+          .collection('community_posts')
           .doc(postId)
           .delete();
 
@@ -494,7 +574,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
                   style: TextStyle(fontWeight: FontWeight.bold)),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('forum_posts')
+                    .collection('community_posts')
                     .doc(postId)
                     .collection('comments')
                     .orderBy('createdAt', descending: false)
@@ -537,7 +617,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen>
                         final text = commentController.text.trim();
                         if (text.isNotEmpty) {
                           await FirebaseFirestore.instance
-                              .collection('forum_posts')
+                              .collection('community_posts')
                               .doc(postId)
                               .collection('comments')
                               .add({

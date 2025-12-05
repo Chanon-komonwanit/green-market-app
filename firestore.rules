@@ -127,15 +127,39 @@ service cloud.firestore {
     // Community posts
     match /community_posts/{postId} {
       allow read: if true; // Public read
-      allow write: if resource.data.userId == request.auth.uid || isAdmin();
       allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
       
       // Comments subcollection
       match /comments/{commentId} {
         allow read: if true; // Public read
-        allow write: if resource.data.userId == request.auth.uid || isAdmin();
         allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() &&
+          (resource.data.userId == request.auth.uid || isAdmin());
       }
+    }
+
+    // Stories
+    match /stories/{storyId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+      );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Reels/Short Videos
+    match /reels/{reelId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'viewCount'])
+      );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Green investments

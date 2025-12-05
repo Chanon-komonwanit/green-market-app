@@ -23,8 +23,9 @@ import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/thai_fuzzy_search.dart';
 import 'dart:async';
 
+/// Green Market Home Screen - หน้าแรกของแอป
+/// คุณสมบัติ: Banner, Categories, Products, Eco Level Tabs, Search
 class HomeScreen extends StatefulWidget {
-  // TODO: [ภาษาไทย] เพิ่มระบบตรวจสอบประสิทธิภาพ (Performance Monitoring) และ Analytics Dashboard
   const HomeScreen({super.key});
 
   @override
