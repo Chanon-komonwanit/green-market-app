@@ -2,38 +2,47 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // อนุญาตให้ทุกคนอ่านได้
-    match /{allPaths=**} {
-      allow read: if true;
-    }
     
-    // อัปโหลดได้เฉพาะคนที่ login แล้ว
-    match /{allPaths=**} {
-      allow write: if request.auth != null;
-    }
-    
-    // รูปโปรไฟล์ - แก้ได้แค่เจ้าของ
+    // ====== รูปโปรไฟล์ - อัปโหลดได้เฉพาะเจ้าของ ======
     match /profile_images/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // รูปสินค้า - แก้ได้แค่ seller เจ้าของ
+    // ====== รูปสินค้า - อัปโหลดได้เฉพาะ seller เจ้าของ ======
     match /product_images/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // โพสต์ชุมชน - อัปโหลดได้เฉพาะเจ้าของ
+    // ====== โพสต์ชุมชน (รูปภาพ + วิดีโอ) ======
     match /community_posts/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Stories - อัปโหลดได้เฉพาะเจ้าของ
+    // ====== Stories (รูปภาพ + วิดีโอ) ======
     match /stories/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ====== ภาพปก (Cover Images) ======
+    match /cover_images/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ====== แชท (Chat Media) ======
+    match /chat_media/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ====== Fallback: อัปโหลดได้เฉพาะคนที่ login ======
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
