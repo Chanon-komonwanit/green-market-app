@@ -178,8 +178,9 @@ class EcoCoinProvider extends ChangeNotifier {
       _transactionsSubscription = _ecoCoinsService.getEcoCoinsHistory().listen(
         (transactions) {
           _transactions = transactions;
-          if (!transactionsCompleter.isCompleted)
+          if (!transactionsCompleter.isCompleted) {
             transactionsCompleter.complete();
+          }
           notifyListeners();
         },
         onError: (error) => _setError('Transactions stream error: $error'),

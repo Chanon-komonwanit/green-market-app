@@ -53,7 +53,24 @@ class AppUser {
   final String? address;
   final String? shopDescription;
   final String? motto;
-  final double ecoCoins; // เปลี่ยนเป็น double เพื่อรองรับ 0.1 เหรียญ
+  final double
+      ecoCoins; // เปลี่ยนเป็น double เพื่อรองรับ 0.1 เหรียญ (สำหรับตลาด)
+
+  // Eco Influence Score - สำหรับชุมชนสีเขียว (แยกจาก ecoCoins)
+  final double ecoInfluenceScore; // คะแนนอิทธิพลชุมชนสีเขียว (0-100)
+  final int followersCount; // จำนวนผู้ติดตาม
+  final int challengesCompleted; // จำนวนภารกิจที่ทำสำเร็จ
+  final int communityPostsCount; // จำนวนโพสต์ในชุมชน
+  final int communityEngagement; // การมีส่วนร่วม (likes + comments + shares)
+  final double ecoProductsPurchased; // มูลค่าสินค้า ECO ที่ซื้อ
+  final DateTime? lastInfluenceUpdate; // อัปเดตคะแนนล่าสุด
+
+  // Content Moderation & Violations
+  final int violationCount; // จำนวนครั้งที่ถูกตรวจพบการละเมิด
+  final List<Map<String, dynamic>> violationHistory; // ประวัติการละเมิด
+  final DateTime? lastViolationDate; // วันที่ถูกตรวจพบล่าสุด
+  final double penaltyPercentage; // เปร์เซ็นต์หักคะแนน (0-100%)
+
   final String? website; // เพิ่ม field สำหรับ website
   final String? facebook; // เพิ่ม field สำหรับ Facebook
   final String? instagram; // เพิ่ม field สำหรับ Instagram
@@ -99,6 +116,17 @@ class AppUser {
     this.shopDescription,
     this.motto,
     this.ecoCoins = 0.0,
+    this.ecoInfluenceScore = 0.0,
+    this.followersCount = 0,
+    this.challengesCompleted = 0,
+    this.communityPostsCount = 0,
+    this.communityEngagement = 0,
+    this.ecoProductsPurchased = 0.0,
+    this.lastInfluenceUpdate,
+    this.violationCount = 0,
+    this.violationHistory = const [],
+    this.lastViolationDate,
+    this.penaltyPercentage = 0.0,
     this.website,
     this.facebook,
     this.instagram,
@@ -203,6 +231,26 @@ class AppUser {
         shopDescription: map['shopDescription'] as String?,
         motto: map['motto'] as String?,
         ecoCoins: _validateAndParseEcoCoins(map['ecoCoins']),
+        ecoInfluenceScore:
+            (map['ecoInfluenceScore'] as num?)?.toDouble() ?? 0.0,
+        followersCount: map['followersCount'] as int? ?? 0,
+        challengesCompleted: map['challengesCompleted'] as int? ?? 0,
+        communityPostsCount: map['communityPostsCount'] as int? ?? 0,
+        communityEngagement: map['communityEngagement'] as int? ?? 0,
+        ecoProductsPurchased:
+            (map['ecoProductsPurchased'] as num?)?.toDouble() ?? 0.0,
+        lastInfluenceUpdate: map['lastInfluenceUpdate'] != null
+            ? (map['lastInfluenceUpdate'] as Timestamp).toDate()
+            : null,
+        violationCount: map['violationCount'] as int? ?? 0,
+        violationHistory: (map['violationHistory'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [],
+        lastViolationDate: map['lastViolationDate'] != null
+            ? (map['lastViolationDate'] as Timestamp).toDate()
+            : null,
+        penaltyPercentage:
+            (map['penaltyPercentage'] as num?)?.toDouble() ?? 0.0,
         website: map['website'] as String?,
         facebook: map['facebook'] as String?,
         instagram: map['instagram'] as String?,
@@ -258,6 +306,21 @@ class AppUser {
       'shopDescription': shopDescription,
       'motto': motto,
       'ecoCoins': ecoCoins, // เพิ่ม field ใน toMap
+      'ecoInfluenceScore': ecoInfluenceScore,
+      'followersCount': followersCount,
+      'challengesCompleted': challengesCompleted,
+      'communityPostsCount': communityPostsCount,
+      'communityEngagement': communityEngagement,
+      'ecoProductsPurchased': ecoProductsPurchased,
+      'lastInfluenceUpdate': lastInfluenceUpdate != null
+          ? Timestamp.fromDate(lastInfluenceUpdate!)
+          : null,
+      'violationCount': violationCount,
+      'violationHistory': violationHistory,
+      'lastViolationDate': lastViolationDate != null
+          ? Timestamp.fromDate(lastViolationDate!)
+          : null,
+      'penaltyPercentage': penaltyPercentage,
       'website': website, // เพิ่ม field ใน toMap
       'facebook': facebook, // เพิ่ม field ใน toMap
       'instagram': instagram, // เพิ่ม field ใน toMap
@@ -298,6 +361,13 @@ class AppUser {
     String? shopDescription,
     String? motto,
     double? ecoCoins,
+    double? ecoInfluenceScore,
+    int? followersCount,
+    int? challengesCompleted,
+    int? communityPostsCount,
+    int? communityEngagement,
+    double? ecoProductsPurchased,
+    DateTime? lastInfluenceUpdate,
     String? website,
     String? facebook,
     String? instagram,
@@ -337,6 +407,13 @@ class AppUser {
       shopDescription: shopDescription ?? this.shopDescription,
       motto: motto ?? this.motto,
       ecoCoins: ecoCoins ?? this.ecoCoins,
+      ecoInfluenceScore: ecoInfluenceScore ?? this.ecoInfluenceScore,
+      followersCount: followersCount ?? this.followersCount,
+      challengesCompleted: challengesCompleted ?? this.challengesCompleted,
+      communityPostsCount: communityPostsCount ?? this.communityPostsCount,
+      communityEngagement: communityEngagement ?? this.communityEngagement,
+      ecoProductsPurchased: ecoProductsPurchased ?? this.ecoProductsPurchased,
+      lastInfluenceUpdate: lastInfluenceUpdate ?? this.lastInfluenceUpdate,
       website: website ?? this.website,
       facebook: facebook ?? this.facebook,
       instagram: instagram ?? this.instagram,

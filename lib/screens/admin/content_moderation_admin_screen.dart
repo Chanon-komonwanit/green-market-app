@@ -111,11 +111,17 @@ class _ContentModerationAdminScreenState
     final reason = report['reason'] ?? 'ไม่ระบุ';
     final reportedBy = report['reportedBy'] ?? 'ไม่ระบุ';
     final createdAt = report['createdAt'] as Timestamp?;
+    final autoDetected = report['autoDetected'] as bool? ?? false;
+    final severity = report['severity'] as String?;
+    final imageUrls = (report['imageUrls'] as List<dynamic>?)?.cast<String>();
+    final videoUrl = report['videoUrl'] as String?;
+    final contentPreview = report['contentPreview'] as String?;
 
     IconData icon;
     Color color;
     switch (contentType) {
       case 'post':
+      case 'community_post':
         icon = Icons.article;
         color = Colors.blue;
         break;
@@ -140,17 +146,41 @@ class _ContentModerationAdminScreenState
           backgroundColor: color.withOpacity(0.2),
           child: Icon(icon, color: color),
         ),
-        title: Text(
-          'รายงาน${_getContentTypeName(contentType)}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Text(
+              'รายงาน${_getContentTypeName(contentType)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (autoDetected) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '🤖 ตรวจจับอัตโนมัติ',
+                  style: TextStyle(fontSize: 10, color: Colors.red),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
             Text('เหตุผล: $reason'),
+            if (severity != null)
+              Text(
+                'ระดับ: ${_getSeverityText(severity)}',
+                style:
+                    TextStyle(fontSize: 12, color: _getSeverityColor(severity)),
+              ),
             Text(
-              'โดย: $reportedBy • ${_formatDate(createdAt)}',
+              'โดย: ${autoDetected ? "ระบบ" : reportedBy} • ${_formatDate(createdAt)}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -165,7 +195,86 @@ class _ContentModerationAdminScreenState
                   'Content ID: ${report['contentId']}',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+
+                // แสดง Content Preview
+                if (contentPreview != null) ...[
+                  const Divider(),
+                  const Text('เนื้อหา:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      contentPreview,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // แสดงรูปภาพ
+                if (imageUrls != null && imageUrls.isNotEmpty) ...[
+                  const Divider(),
+                  const Text('รูปภาพ:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: imageUrls.length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          width: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red, width: 2),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.network(
+                              imageUrls[index],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.broken_image);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // แสดงวิดีโอ
+                if (videoUrl != null) ...[
+                  const Divider(),
+                  Row(
+                    children: [
+                      const Icon(Icons.videocam, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'วิดีโอ: $videoUrl',
+                          style: const TextStyle(fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -195,6 +304,20 @@ class _ContentModerationAdminScreenState
         ],
       ),
     );
+  }
+
+  String _getSeverityText(String severity) {
+    if (severity.contains('high')) return 'รุนแรง';
+    if (severity.contains('medium')) return 'ปานกลาง';
+    if (severity.contains('low')) return 'เล็กน้อย';
+    return 'ไม่ระบุ';
+  }
+
+  Color _getSeverityColor(String severity) {
+    if (severity.contains('high')) return Colors.red;
+    if (severity.contains('medium')) return Colors.orange;
+    if (severity.contains('low')) return Colors.yellow.shade700;
+    return Colors.grey;
   }
 
   /// Tab: ผู้ใช้ที่ถูกระงับ
@@ -406,12 +529,19 @@ class _ContentModerationAdminScreenState
         content: const Text('เลือกการดำเนินการกับเนื้อหานี้'),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(context, 'hide'),
+            child: const Text('ซ่อนเนื้อหา',
+                style: TextStyle(color: Colors.orange)),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(context, 'delete'),
-            child: const Text('ลบเนื้อหา'),
+            child: const Text('ลบเนื้อหา', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 'suspend'),
-            child: const Text('ระงับผู้ใช้'),
+            child: const Text('ระงับผู้ใช้',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -425,6 +555,8 @@ class _ContentModerationAdminScreenState
       await _showSuspendUserDialog(report);
     } else if (result == 'delete') {
       await _deleteContent(report);
+    } else if (result == 'hide') {
+      await _hideContent(report);
     }
   }
 
@@ -505,37 +637,84 @@ class _ContentModerationAdminScreenState
   }
 
   Future<void> _deleteContent(Map<String, dynamic> report) async {
+    // Confirm deletion
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการลบ'),
+        content: const Text(
+            'คุณแน่ใจหรือไม่ว่าต้องการลบเนื้อหานี้?\n\nการลบจะไม่สามารถกู้คืนได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('ลบ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       final contentType = report['contentType'];
       final contentId = report['contentId'];
 
-      String collection;
-      switch (contentType) {
-        case 'post':
-          collection = 'community_posts';
-          break;
-        case 'comment':
-          collection = 'comments';
-          break;
-        default:
-          throw Exception('Unsupported content type');
-      }
+      // ใช้ service method ที่มี error handling ดีกว่า
+      await _moderationService.deleteContent(
+        contentId: contentId,
+        contentType: contentType,
+        reason: report['reason'] ?? 'รายงานโดยผู้ใช้',
+      );
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(contentId)
-          .delete();
       await _moderationService.updateReportStatus(report['id'], 'action_taken');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ลบเนื้อหาสำเร็จ')),
+          const SnackBar(
+            content: Text('✅ ลบเนื้อหาสำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+          SnackBar(content: Text('❌ เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _hideContent(Map<String, dynamic> report) async {
+    try {
+      final contentType = report['contentType'];
+      final contentId = report['contentId'];
+
+      await _moderationService.hideContent(
+        contentId: contentId,
+        contentType: contentType,
+        reason: report['reason'] ?? 'รายงานโดยผู้ใช้',
+      );
+
+      await _moderationService.updateReportStatus(report['id'], 'action_taken');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('👁️ ซ่อนเนื้อหาสำเร็จ'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ เกิดข้อผิดพลาด: $e')),
         );
       }
     }

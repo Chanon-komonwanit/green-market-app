@@ -11,6 +11,7 @@ import 'community_notifications_screen.dart';
 import 'community_chat_list_screen.dart';
 import '../widgets/community_quick_actions.dart';
 import 'eco_challenges_screen.dart';
+import 'eco_influence_screen.dart';
 
 class GreenCommunityScreen extends StatefulWidget {
   const GreenCommunityScreen({super.key});
@@ -44,75 +45,47 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.black12,
+        toolbarHeight: 56, // ลดความสูง
         title: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF10B981), Color(0xFF059669)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF10B981).withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child:
-                  Icon(Icons.groups_3_rounded, color: Colors.white, size: 24),
+            // ไอคอนเดียว ไม่มีกล่อง
+            Icon(
+              Icons.groups_3_rounded,
+              color: Color(0xFF10B981),
+              size: 28,
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 10),
             Text(
               'ชุมชนสีเขียว',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20, // ย่อลง
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1F2937),
-                letterSpacing: -0.5,
+                letterSpacing: -0.3,
               ),
             ),
             Spacer(),
-            // จำนวนสมาชิก - สไตล์ Instagram
+            // จำนวนสมาชิก - แบบกระทัดรัด
             StreamBuilder<QuerySnapshot>(
               stream:
                   FirebaseFirestore.instance.collection('users').snapshots(),
               builder: (context, snapshot) {
                 final memberCount = snapshot.data?.docs.length ?? 0;
                 return Container(
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF10B981).withOpacity(0.1),
-                        Color(0xFF059669).withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Color(0xFF10B981).withOpacity(0.3),
-                      width: 1,
-                    ),
+                    color: Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.people_alt_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
+                      Icon(
+                        Icons.people_alt_rounded,
+                        color: Color(0xFF10B981),
+                        size: 16,
                       ),
-                      SizedBox(width: 6),
+                      SizedBox(width: 4),
                       Text(
                         memberCount.toString().replaceAllMapped(
                               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -121,7 +94,7 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                         style: TextStyle(
                           color: Color(0xFF10B981),
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -132,63 +105,49 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
           ],
         ),
         actions: [
-          Container(
-            margin: EdgeInsets.only(right: 4),
-            child: IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EcoChallengesScreen(),
-                  ),
-                );
-              },
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+          // Eco Influence - คะแนนอิทธิพลชุมชน
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EcoInfluenceScreen(),
                 ),
-                child: Icon(
-                  Icons.emoji_events_rounded,
-                  color: Colors.amber[700],
-                  size: 22,
-                ),
-              ),
+              );
+            },
+            icon: Icon(
+              Icons.emoji_events_rounded,
+              color: Colors.amber[700],
+              size: 24,
             ),
+            tooltip: 'คะแนนอิทธิพลชุมชน',
           ),
-          Container(
-            margin: EdgeInsets.only(right: 8),
-            child: IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CommunityNotificationsScreen(),
-                  ),
-                );
-              },
-              icon: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+          // Notifications - กระทัดรัด
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommunityNotificationsScreen(),
                 ),
-                child: Icon(
-                  Icons.notifications_rounded,
-                  color: Color(0xFF10B981),
-                  size: 22,
-                ),
-              ),
+              );
+            },
+            icon: Icon(
+              Icons.notifications_rounded,
+              color: Color(0xFF10B981),
+              size: 24,
             ),
+            tooltip: 'การแจ้งเตือน',
           ),
+          SizedBox(width: 4),
         ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(100),
+          preferredSize: Size.fromHeight(90), // ลดความสูง
           child: Column(
             children: [
+              // Search bar - ย่อลง
               Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
@@ -203,15 +162,15 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                   ),
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: '🔍 ค้นหาโพสต์, เพื่อน หรือ #แฮชแท็ก...',
+                      hintText: '🔍 ค้นหาโพสต์...',
                       hintStyle: TextStyle(
                         color: Colors.grey[500],
-                        fontSize: 15,
+                        fontSize: 14,
                       ),
                       prefixIcon: Icon(
                         Icons.search_rounded,
                         color: Color(0xFF10B981),
-                        size: 24,
+                        size: 22,
                       ),
                       suffixIcon: _searchKeyword.isNotEmpty
                           ? IconButton(
@@ -226,8 +185,8 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                       filled: true,
                       fillColor: Colors.transparent,
                       contentPadding: EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
+                        vertical: 12,
+                        horizontal: 12,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -249,12 +208,13 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                   ),
                 ),
               ),
+              // TabBar - ปรับให้กระทัดรัด
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16),
-                padding: EdgeInsets.all(4),
+                margin: EdgeInsets.fromLTRB(16, 0, 16, 8), // ลด margin
+                padding: EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.04),
@@ -272,11 +232,11 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(11),
                     boxShadow: [
                       BoxShadow(
                         color: Color(0xFF10B981).withOpacity(0.3),
-                        blurRadius: 8,
+                        blurRadius: 6,
                         offset: Offset(0, 2),
                       ),
                     ],
@@ -286,30 +246,30 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
                   unselectedLabelColor: Colors.grey[600],
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                   unselectedLabelStyle: TextStyle(
                     fontWeight: FontWeight.w500,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                   tabs: [
                     Tab(
-                      height: 44,
+                      height: 40, // ลดความสูง
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.home_rounded, size: 20),
+                          Icon(Icons.home_rounded, size: 18),
                           SizedBox(width: 6),
                           Text('ฟีด'),
                         ],
                       ),
                     ),
                     Tab(
-                      height: 44,
+                      height: 40, // ลดความสูง
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.person_rounded, size: 20),
+                          Icon(Icons.person_rounded, size: 18),
                           SizedBox(width: 6),
                           Text('โปรไฟล์'),
                         ],

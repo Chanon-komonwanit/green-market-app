@@ -1,4 +1,5 @@
 // lib/screens/community_notifications_screen.dart
+// การแจ้งเตือนเฉพาะชุมชนสีเขียว (Like, Comment, Share ในโพสต์ชุมชน)
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/models/community_post.dart';
 import 'package:green_market/models/app_user.dart';
 import 'package:green_market/screens/post_comments_screen.dart';
+import 'package:green_market/screens/eco_influence_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -90,8 +92,9 @@ class _CommunityNotificationsScreenState
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'การแจ้งเตือนจะปรากฏที่นี่',
+                    'เมื่อมีคนกด Like, Comment หรือ Share\nโพสต์ของคุณในชุมชนสีเขียว\nคุณจะเห็นการแจ้งเตือนที่นี่',
                     style: AppTextStyles.body,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -185,6 +188,8 @@ class _CommunityNotificationsScreenState
         return AppColors.infoBlue;
       case 'community_share':
         return AppColors.primaryGreen;
+      case 'content_violation':
+        return Colors.red.shade700;
       default:
         return const Color(0xFF059669);
     }
@@ -200,6 +205,8 @@ class _CommunityNotificationsScreenState
         return Icons.comment;
       case 'community_share':
         return Icons.share;
+      case 'content_violation':
+        return Icons.warning_rounded;
       default:
         return Icons.notifications;
     }
@@ -214,6 +221,21 @@ class _CommunityNotificationsScreenState
       Map<String, dynamic> data, String notificationId) async {
     // Mark as read
     await _firebaseService.markNotificationAsRead(notificationId);
+
+    final type = data['type'] as String?;
+
+    // ถ้าเป็นการแจ้งเตือนการละเมิด - นำทางไปหน้า Eco Influence (ประวัติการละเมิด)
+    if (type == 'content_violation') {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EcoInfluenceScreen(),
+          ),
+        );
+      }
+      return;
+    }
 
     // Navigate based on type
     final notificationData = data['data'] as Map<String, dynamic>?;

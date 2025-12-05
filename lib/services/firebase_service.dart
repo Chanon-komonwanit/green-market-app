@@ -31,6 +31,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show Uint8List, kDebugMode;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:green_market/services/eco_influence_service.dart';
 import 'package:green_market/models/activity_report.dart';
 import 'package:green_market/models/activity_review.dart';
 import 'package:green_market/models/activity_summary.dart';
@@ -4107,6 +4108,15 @@ class FirebaseService {
               .collection('notifications')
               .doc(notification['id'] as String)
               .set(notification);
+
+          // 🌟 เพิ่มคะแนนอิทธิพลให้เจ้าของโพสต์เมื่อได้รับ Like (ผ่าน EcoInfluenceService)
+          try {
+            final ecoInfluenceService = EcoInfluenceService();
+            await ecoInfluenceService.awardEngagementPoints(
+                postOwnerId, 'like');
+          } catch (e) {
+            logger.w('Failed to update engagement score: $e');
+          }
         }
 
         transaction.update(postRef, {
@@ -4185,6 +4195,15 @@ class FirebaseService {
             };
 
             transaction.set(notificationRef, notification);
+
+            // 🌟 เพิ่มคะแนนอิทธิพลให้เจ้าของโพสต์เมื่อได้รับ Comment (ผ่าน EcoInfluenceService)
+            // Note: ไม่สามารถเรียก async service ใน transaction ได้ - ใช้ increment โดยตรง
+            transaction.update(
+              _firestore.collection('users').doc(postOwnerId),
+              {
+                'communityEngagement': FieldValue.increment(3)
+              }, // Comment มีค่ามากกว่า Like (3 คะแนน)
+            );
           }
         }
       });

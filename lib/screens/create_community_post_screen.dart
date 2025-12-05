@@ -12,6 +12,7 @@ import '../models/post_type.dart';
 import '../models/post_location.dart';
 import '../services/firebase_service.dart';
 import '../services/content_moderation_service.dart';
+import '../services/eco_influence_service.dart';
 import '../services/image_compression_service.dart';
 import '../providers/user_provider.dart';
 import '../utils/constants.dart';
@@ -1625,6 +1626,54 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           location: _selectedLocation,
         );
       } else {
+        // ✅ เพิ่ม Content Moderation ก่อนโพสต์
+        final moderationService = ContentModerationService();
+        final moderationResult = await moderationService.moderateContent(
+          content,
+          imageUrls: imageUrls.isNotEmpty ? imageUrls : null,
+          videoUrl: videoUrl,
+        );
+
+        // ถ้าเจอเนื้อหาไม่เหมาะสม
+        if (!moderationResult.isClean) {
+          // แสดงแจ้งเตือนผู้ใช้
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('⚠️ ตรวจพบเนื้อหาไม่เหมาะสม'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('เนื้อหาของคุณมีปัญหาดังนี้:'),
+                    const SizedBox(height: 8),
+                    ...moderationResult.issues.map(
+                      (issue) => Padding(
+                        padding: const EdgeInsets.only(left: 16, bottom: 4),
+                        child: Text('• $issue',
+                            style: const TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'กรุณาแก้ไขเนื้อหาก่อนโพสต์\n\nการโพสต์เนื้อหาไม่เหมาะสมจะส่งผลให้คะแนนอิทธิพลของคุณลดลง',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('ตกลง'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return; // ยกเลิกการโพสต์
+        }
+
         final newPostId = await _firebaseService.createCommunityPost(
           userId: currentUser.id,
           content: content,
@@ -1636,6 +1685,45 @@ class _CreateCommunityPostScreenState extends State<CreateCommunityPostScreen> {
           taggedUserNames: _taggedUserNames,
           location: _selectedLocation,
         );
+
+        // 🌟 เพิ่มคะแนนอิทธิพลเมื่อโพสต์
+        final ecoInfluenceService = EcoInfluenceService();
+        await ecoInfluenceService.awardPostPoints(currentUser.id);
+
+        // เพิ่ม engagement base score สำหรับการโพสต์ (1 คะแนน)
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.id)
+            .update({
+          'communityEngagement': FieldValue.increment(1),
+        });
+
+        // ถ้าเจอเนื้อหาน่าสงสัย (Low/Medium) - อนุญาตให้โพสต์แต่ส่งรายงานไป Admin
+        if (moderationResult.severity != ModerationSeverity.none) {
+          await moderationService.sendAutoReportToAdmin(
+            contentId: newPostId,
+            contentType: 'community_post',
+            userId: currentUser.id,
+            severity: moderationResult.severity,
+            issues: moderationResult.issues,
+            contentPreview:
+                content.length > 100 ? content.substring(0, 100) : content,
+            imageUrls: imageUrls.isNotEmpty ? imageUrls : null,
+            videoUrl: videoUrl,
+          );
+
+          // หักคะแนนถ้าเป็น Medium หรือ High
+          if (moderationResult.severity == ModerationSeverity.medium ||
+              moderationResult.severity == ModerationSeverity.high) {
+            await moderationService.recordViolationAndApplyPenalty(
+              userId: currentUser.id,
+              contentId: newPostId,
+              contentType: 'community_post',
+              severity: moderationResult.severity,
+              issues: moderationResult.issues,
+            );
+          }
+        }
 
         // Send notifications to tagged users
         if (_taggedUserIds.isNotEmpty) {

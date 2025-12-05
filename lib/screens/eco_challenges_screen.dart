@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/utils/constants.dart';
+import 'package:green_market/services/eco_influence_service.dart';
 
 class EcoChallengesScreen extends StatefulWidget {
   const EcoChallengesScreen({super.key});
@@ -727,24 +728,23 @@ class _EcoChallengesScreenState extends State<EcoChallengesScreen>
       });
 
       if (isCompleted) {
-        // Award coins to user
+        // Award Influence Score
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUser.uid)
+          final userChallengeDoc = await FirebaseFirestore.instance
+              .collection('user_challenges')
+              .doc(userChallengeId)
               .get();
 
-          if (userDoc.exists) {
-            final userData = userDoc.data() as Map<String, dynamic>;
-            final currentCoins = userData['ecoCoins'] ?? 0.0;
+          if (userChallengeDoc.exists) {
+            final challengeData =
+                userChallengeDoc.data() as Map<String, dynamic>;
+            final difficulty = challengeData['difficulty'] ?? 'medium';
 
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUser.uid)
-                .update({
-              'ecoCoins': currentCoins + 50, // Default reward
-            });
+            // Award influence points through service
+            final influenceService = EcoInfluenceService();
+            await influenceService.awardChallengePoints(
+                currentUser.uid, difficulty);
           }
         }
 
