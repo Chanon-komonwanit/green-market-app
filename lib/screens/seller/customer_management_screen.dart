@@ -228,6 +228,14 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                 _buildStatsTab(),
               ],
             ),
+      floatingActionButton: _filteredCustomers.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _showBulkActionDialog,
+              icon: const Icon(Icons.send),
+              label: const Text('ส่งข้อเสนอทั้งหมด'),
+              backgroundColor: Colors.green,
+            )
+          : null,
     );
   }
 
@@ -901,15 +909,32 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Open chat
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('ฟีเจอร์แชทกำลังพัฒนา')),
-                            );
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            // Navigate to chat with customer
+                            await _openChatWithCustomer(customer);
                           },
                           icon: const Icon(Icons.chat),
                           label: const Text('แชท'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showSendOfferDialog(customer);
+                          },
+                          icon: const Icon(Icons.local_offer),
+                          label: const Text('ส่งข้อเสนอ'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -944,6 +969,276 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
         ],
       ),
     );
+  }
+
+  // ===== NEW FUNCTIONS =====
+  
+  Future<void> _openChatWithCustomer(CustomerData customer) async {
+    try {
+      if (_sellerId == null) return;
+      
+      // Create or get existing chat room
+      final chatRoomsRef = _firestore.collection('chat_rooms');
+      final participants = [_sellerId!, customer.userId]..sort();
+      final roomId = participants.join('_');
+      
+      // Check if chat room exists
+      final roomDoc = await chatRoomsRef.doc(roomId).get();
+      
+      if (!roomDoc.exists) {
+        // Create new chat room
+        await chatRoomsRef.doc(roomId).set({
+          'participants': participants,
+          'participantNames': {
+            _sellerId!: 'ร้านค้า',
+            customer.userId: customer.name,
+          },
+          'lastMessage': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'unreadCount': {
+            _sellerId!: 0,
+            customer.userId: 0,
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      // Navigate to chat screen
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          '/chat',
+          arguments: {
+            'roomId': roomId,
+            'otherUserId': customer.userId,
+            'otherUserName': customer.name,
+            'otherUserPhoto': customer.photoUrl,
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showSendOfferDialog(CustomerData customer) async {
+    final offerController = TextEditingController();
+    final discountController = TextEditingController();
+    String offerType = 'discount'; // discount, freeShipping, bundle
+    
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('📨 ส่งข้อเสนอพิเศษ'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('ส่งถึง: ${customer.name}'),
+                const SizedBox(height: 16),
+                const Text('ประเภทข้อเสนอ:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: offerType,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'discount', child: Text('ส่วนลด')),
+                    DropdownMenuItem(value: 'freeShipping', child: Text('ส่งฟรี')),
+                    DropdownMenuItem(value: 'bundle', child: Text('ชุดสินค้า')),
+                    DropdownMenuItem(value: 'points', child: Text('แต้มสะสม')),
+                  ],
+                  onChanged: (value) {
+                    setState(() => offerType = value!);
+                  },
+                ),
+                const SizedBox(height: 16),
+                if (offerType == 'discount') ...[
+                  TextField(
+                    controller: discountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'ส่วนลด (%)',
+                      border: OutlineInputBorder(),
+                      suffixText: '%',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
+                  controller: offerController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'ข้อความ',
+                    hintText: 'เขียนข้อความถึงลูกค้า...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await _sendOfferToCustomer(
+                  customer,
+                  offerType,
+                  offerController.text,
+                  discountController.text,
+                );
+                if (mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.send),
+              label: const Text('ส่ง'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendOfferToCustomer(
+    CustomerData customer,
+    String offerType,
+    String message,
+    String discountValue,
+  ) async {
+    try {
+      if (_sellerId == null) return;
+
+      // Save offer to Firestore
+      await _firestore.collection('customer_offers').add({
+        'sellerId': _sellerId,
+        'customerId': customer.userId,
+        'customerName': customer.name,
+        'offerType': offerType,
+        'message': message,
+        'discountValue': discountValue.isNotEmpty ? int.tryParse(discountValue) : null,
+        'status': 'sent', // sent, viewed, accepted, rejected
+        'createdAt': FieldValue.serverTimestamp(),
+        'expiresAt': Timestamp.fromDate(
+          DateTime.now().add(const Duration(days: 7)),
+        ),
+      });
+
+      // Send notification to customer
+      await _firestore.collection('notifications').add({
+        'userId': customer.userId,
+        'type': 'special_offer',
+        'title': '🎁 ข้อเสนอพิเศษสำหรับคุณ',
+        'message': message.isNotEmpty 
+            ? message 
+            : 'คุณได้รับข้อเสนอพิเศษจากร้านค้า',
+        'data': {
+          'sellerId': _sellerId,
+          'offerType': offerType,
+          'discountValue': discountValue,
+        },
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ ส่งข้อเสนอเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showBulkActionDialog() async {
+    final selectedSegment = _selectedSegment;
+    final customersInSegment = _customers.where((c) {
+      if (selectedSegment == 'all') return true;
+      return c.segment == selectedSegment;
+    }).toList();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('📢 การดำเนินการกับกลุ่มลูกค้า'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('เลือกลูกค้า: ${customersInSegment.length} คน'),
+            const SizedBox(height: 16),
+            const Text('เลือกการดำเนินการ:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _sendBulkOffers(customersInSegment);
+            },
+            icon: const Icon(Icons.local_offer),
+            label: const Text('ส่งข้อเสนอทั้งหมด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendBulkOffers(List<CustomerData> customers) async {
+    try {
+      int successCount = 0;
+      for (var customer in customers) {
+        await _sendOfferToCustomer(
+          customer,
+          'discount',
+          'ข้อเสนอพิเศษสำหรับคุณ!',
+          '10',
+        );
+        successCount++;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ส่งข้อเสนอให้ $successCount คนเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    }
   }
 }
 

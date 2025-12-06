@@ -866,16 +866,207 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
   }
 
   void _showPromotionDetails(Map<String, dynamic> promotion) {
-    // TODO: Show detailed view
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('รายละเอียดโปรโมชั่น (Coming Soon)')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              promotion['type'] == 'flash_sale'
+                  ? Icons.flash_on
+                  : promotion['type'] == 'bundle'
+                      ? Icons.inventory
+                      : Icons.card_giftcard,
+              color: Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                promotion['name'] ?? 'โปรโมชั่น',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailItem('ประเภท', _getPromotionTypeText(promotion['type'])),
+              _buildDetailItem('คำอธิบาย', promotion['description'] ?? '-'),
+              _buildDetailItem(
+                'ส่วนลด',
+                promotion['type'] == 'flash_sale'
+                    ? '${promotion['discountPercent']}%'
+                    : promotion['type'] == 'bundle'
+                        ? '฿${promotion['bundlePrice']}'
+                        : 'ซื้อ ${promotion['buyQuantity']} แถม ${promotion['getQuantity']}',
+              ),
+              _buildDetailItem(
+                'ระยะเวลา',
+                '${_formatDate(promotion['startDate'])} - ${_formatDate(promotion['endDate'])}',
+              ),
+              _buildDetailItem(
+                'สถานะ',
+                promotion['isActive'] == true ? '✅ เปิดใช้งาน' : '⏸️ ปิดใช้งาน',
+              ),
+              if (promotion['products'] != null)
+                _buildDetailItem(
+                  'สินค้า',
+                  '${(promotion['products'] as List).length} รายการ',
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _showEditPromotionDialog(promotion);
+            },
+            icon: const Icon(Icons.edit),
+            label: const Text('แก้ไข'),
+          ),
+        ],
+      ),
     );
   }
 
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPromotionTypeText(String type) {
+    switch (type) {
+      case 'flash_sale':
+        return '⚡ Flash Sale';
+      case 'bundle':
+        return '📦 ชุดสินค้า';
+      case 'buy_x_get_y':
+        return '🎁 ซื้อ X แถม Y';
+      default:
+        return type;
+    }
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '-';
+    try {
+      final DateTime dt = date is Timestamp ? date.toDate() : date;
+      return DateFormat('d MMM yyyy', 'th').format(dt);
+    } catch (e) {
+      return '-';
+    }
+  }
+
   void _showEditPromotionDialog(Map<String, dynamic> promotion) {
-    // TODO: Edit form
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('แก้ไขโปรโมชั่น (Coming Soon)')),
+    final nameController = TextEditingController(text: promotion['name']);
+    final descController = TextEditingController(text: promotion['description']);
+    bool isActive = promotion['isActive'] ?? true;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('✏️ แก้ไขโปรโมชั่น'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'ชื่อโปรโมชั่น',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'คำอธิบาย',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('เปิดใช้งาน'),
+                  value: isActive,
+                  onChanged: (value) {
+                    setState(() => isActive = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                try {
+                  await _firestore
+                      .collection('advanced_promotions')
+                      .doc(promotion['id'])
+                      .update({
+                    'name': nameController.text,
+                    'description': descController.text,
+                    'isActive': isActive,
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  });
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ บันทึกเรียบร้อยแล้ว'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    _loadPromotions();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('บันทึก'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

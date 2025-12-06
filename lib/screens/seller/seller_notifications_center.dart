@@ -140,8 +140,43 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
         }
       }
 
-      // 5. ข้อความจากลูกค้า (Mock - ควรเชื่อม chat system จริง)
-      // TODO: Implement real chat notifications
+      // 5. ข้อความจากลูกค้า (Real chat notifications)
+      final chatSnapshot = await _firestore
+          .collection('chat_rooms')
+          .where('participants', arrayContains: _sellerId)
+          .orderBy('lastMessageTime', descending: true)
+          .limit(20)
+          .get();
+
+      for (var doc in chatSnapshot.docs) {
+        final data = doc.data();
+        final unreadMap = data['unreadCount'] as Map<String, dynamic>?;
+        final unreadCount = unreadMap?[_sellerId] as int? ?? 0;
+        
+        if (unreadCount > 0) {
+          final participants = data['participants'] as List;
+          final otherUserId = participants.firstWhere(
+            (p) => p != _sellerId,
+            orElse: () => '',
+          );
+          final participantNames = data['participantNames'] as Map<String, dynamic>?;
+          final otherUserName = participantNames?[otherUserId] ?? 'ลูกค้า';
+          
+          notifications.add(NotificationItem(
+            id: doc.id,
+            type: NotificationType.newMessage,
+            title: '💬 ข้อความใหม่จาก $otherUserName',
+            message: data['lastMessage'] ?? 'มีข้อความใหม่',
+            timestamp: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+            isRead: false,
+            actionData: {
+              'roomId': doc.id,
+              'otherUserId': otherUserId,
+              'otherUserName': otherUserName,
+            },
+          ));
+        }
+      }
 
       // เรียงตามเวลาล่าสุด
       notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -167,7 +202,16 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       notification.isRead = true;
       _unreadCount = _allNotifications.where((n) => !n.isRead).length;
     });
-    // TODO: Persist read status to Firestore
+    
+    // Persist read status to Firestore
+    try {
+      await _firestore
+          .collection('seller_notifications')
+          .doc(notification.id)
+          .update({'isRead': true});
+    } catch (e) {
+      print('Error marking notification as read: $e');
+    }
   }
 
   Future<void> _markAllAsRead() async {
@@ -177,6 +221,20 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       }
       _unreadCount = 0;
     });
+    
+    // Persist all read statuses to Firestore
+    try {
+      final batch = _firestore.batch();
+      for (var notification in _allNotifications) {
+        final docRef = _firestore
+            .collection('seller_notifications')
+            .doc(notification.id);
+        batch.update(docRef, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+    }
   }
 
   @override
