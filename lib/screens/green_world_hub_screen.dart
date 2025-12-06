@@ -14,6 +14,8 @@ import 'package:green_market/screens/investment_hub_screen.dart';
 import 'package:green_market/screens/sustainable_activities_hub_screen.dart';
 import 'package:green_market/screens/community_forum_screen.dart';
 import 'package:green_market/screens/eco_challenges_screen.dart';
+import 'package:green_market/screens/investment_notifications_screen.dart';
+import 'package:green_market/screens/activity_notifications_screen.dart';
 import 'package:green_market/widgets/debug_panel.dart';
 // -------------------- END IMPORTS --------------------
 
@@ -286,36 +288,102 @@ class _GreenWorldHubScreenState extends State<GreenWorldHubScreen>
                 ),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'เปิดโลกสีเขียว',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 1.1,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0x33000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 1),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'เปิดโลกสีเขียว',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 1.1,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x33000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'สร้างอนาคตที่ยั่งยืนไปด้วยกัน',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.92),
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 📢 ปุ่มแจ้งเตือนการลงทุน
+            Container(
+              margin: EdgeInsets.only(right: 4),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InvestmentNotificationsScreen(),
                       ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.trending_up, color: Colors.white, size: 20),
+                        SizedBox(width: 4),
+                        Icon(Icons.notifications,
+                            color: Colors.white, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 🌿 ปุ่มแจ้งเตือนกิจกรรม
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ActivityNotificationsScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.eco, color: Colors.white, size: 20),
+                      SizedBox(width: 4),
+                      Icon(Icons.notifications, color: Colors.white, size: 18),
                     ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'สร้างอนาคตที่ยั่งยืนไปด้วยกัน',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white.withOpacity(0.92),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),

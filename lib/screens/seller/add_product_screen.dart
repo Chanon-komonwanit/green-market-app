@@ -8,6 +8,7 @@ import 'package:green_market/models/category.dart' as app_category;
 import 'package:green_market/models/product.dart';
 import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/services/ai_eco_analysis_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:green_market/utils/ui_helpers.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,7 +43,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _verificationVideoController =
       TextEditingController();
 
+  // 🆕 New AI-related controllers
+  final TextEditingController _manufacturingProcessController =
+      TextEditingController();
+  final TextEditingController _packagingTypeController =
+      TextEditingController();
+  final TextEditingController _wasteManagementController =
+      TextEditingController();
+  final List<String> _selectedCertificates = [];
+  final List<String> _selectedMaterials = [];
+
   int _ecoScore = 50; // Default Eco Score
+  EcoAnalysisResult? _aiAnalysisResult; // 🆕 AI Analysis Result
+  bool _isAnalyzingWithAI = false; // 🆕 AI Analysis Loading State
+
   final List<XFile> _pickedProductImageFiles = []; // For 1-7 product images
   XFile? _pickedPromotionalImageFile; // For 1 promotional image
   final ImagePicker _picker = ImagePicker();
@@ -53,6 +67,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   List<app_category.Category> _categories = [];
   final List<_CategoryDropdownItem> _categoryDropdownItems = [];
   bool _isLoadingCategories = true;
+
+  final AIEcoAnalysisService _aiService = AIEcoAnalysisService();
 
   @override
   void initState() {
@@ -149,6 +165,289 @@ class _AddProductScreenState extends State<AddProductScreen> {
       setState(() {
         _pickedPromotionalImageFile = null;
       });
+    }
+  }
+
+  /// 🤖 วิเคราะห์สินค้าด้วย AI
+  Future<void> _analyzeWithAI() async {
+    // 🔍 ตรวจสอบว่า AI เปิดใช้งานหรือไม่
+    final aiSettings = await _aiService.getAISettings();
+    
+    if (!aiSettings.canUseAI()) {
+      if (!aiSettings.aiEnabled) {
+        _showSnackBar('⚠️ ระบบ AI ถูกปิดชั่วคราว กรุณาติดต่อทีมงาน', isError: true);
+      } else {
+        _showSnackBar('⚠️ ระบบ AI ถึงขีดจำกัดการใช้งานวันนี้ (${aiSettings.dailyLimit} ครั้ง)', isError: true);
+      }
+      return;
+    }
+
+    // ตรวจสอบข้อมูลพื้นฐานก่อน
+    if (_nameController.text.trim().isEmpty) {
+      _showSnackBar('กรุณากรอกชื่อสินค้าก่อนวิเคราะห์', isError: true);
+      return;
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      _showSnackBar('กรุณากรอกคำอธิบายสินค้าก่อนวิเคราะห์', isError: true);
+      return;
+    }
+    if (_ecoJustificationController.text.trim().isEmpty) {
+      _showSnackBar('กรุณากรอกเหตุผลความเป็น Eco ก่อนวิเคราะห์', isError: true);
+      return;
+    }
+
+    setState(() => _isAnalyzingWithAI = true);
+
+    try {
+      // เตรียมข้อมูลสำหรับ AI
+      final productData = ProductEcoData(
+        productName: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        sellerClaimedScore: _ecoScore,
+        sellerJustification: _ecoJustificationController.text.trim(),
+        materials: _selectedMaterials.isNotEmpty
+            ? _selectedMaterials
+            : _materialController.text
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList(),
+        certificates: _selectedCertificates,
+        manufacturingProcess: _manufacturingProcessController.text.trim(),
+        packagingType: _packagingTypeController.text.trim(),
+        wasteManagement: _wasteManagementController.text.trim(),
+        category: _selectedCategoryName ?? '',
+      );
+
+      // เรียก AI วิเคราะห์
+      final result = await _aiService.analyzeProduct(productData);
+
+      if (mounted) {
+        setState(() {
+          _aiAnalysisResult = result;
+          _isAnalyzingWithAI = false;
+        });
+
+        // แสดงผลการวิเคราะห์
+        _showAIAnalysisDialog(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isAnalyzingWithAI = false);
+        _showSnackBar('เกิดข้อผิดพลาดในการวิเคราะห์: $e', isError: true);
+      }
+    }
+  }
+
+  /// แสดงผลการวิเคราะห์จาก AI
+  void _showAIAnalysisDialog(EcoAnalysisResult result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.purple),
+            const SizedBox(width: 12),
+            const Text('ผลการวิเคราะห์จาก AI'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // AI Eco Score
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _getEcoLevelColor(result.ecoLevel).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _getEcoLevelColor(result.ecoLevel)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${result.aiEcoScore}',
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: _getEcoLevelColor(result.ecoLevel),
+                      ),
+                    ),
+                    Text(
+                      'AI Eco Score',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Chip(
+                      label: Text(
+                        _getEcoLevelText(result.ecoLevel),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: _getEcoLevelColor(result.ecoLevel),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Score Comparison
+              if ((_ecoScore - result.aiEcoScore).abs() > 10) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'คะแนนที่คุณระบุ ($_ecoScore) แตกต่างจาก AI (${result.aiEcoScore}) ค่อนข้างมาก',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // AI Reasoning
+              const Text(
+                'เหตุผลจาก AI:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                result.aiReasoning,
+                style: TextStyle(color: Colors.grey[700]),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Score Breakdown
+              const Text(
+                'รายละเอียดคะแนน:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...result.scoreBreakdown.entries.map((e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(_getScoreBreakdownLabel(e.key)),
+                        ),
+                        Text(
+                          '${e.value.toStringAsFixed(0)}/25',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  )),
+
+              const SizedBox(height: 16),
+
+              // AI Suggestions
+              if (result.aiSuggestions.isNotEmpty) ...[
+                const Text(
+                  'คำแนะนำจาก AI:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...result.aiSuggestions.asMap().entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${e.key + 1}. ',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          Expanded(child: Text(e.value)),
+                        ],
+                      ),
+                    )),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _ecoScore = result.aiEcoScore;
+              });
+              Navigator.pop(context);
+              _showSnackBar('ใช้คะแนนจาก AI เรียบร้อยแล้ว', isSuccess: true);
+            },
+            child: const Text('ใช้คะแนนนี้'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getEcoLevelColor(String level) {
+    switch (level) {
+      case 'champion':
+        return Colors.purple;
+      case 'excellent':
+        return Colors.green;
+      case 'good':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getEcoLevelText(String level) {
+    switch (level) {
+      case 'champion':
+        return 'Eco Champion';
+      case 'excellent':
+        return 'Excellent';
+      case 'good':
+        return 'Good';
+      default:
+        return 'Standard';
+    }
+  }
+
+  String _getScoreBreakdownLabel(String key) {
+    switch (key) {
+      case 'materials':
+        return 'วัสดุ';
+      case 'manufacturing':
+        return 'กระบวนการผลิต';
+      case 'packaging':
+        return 'บรรจุภัณฑ์';
+      case 'wasteManagement':
+        return 'การจัดการขยะ';
+      case 'certificates':
+        return 'ใบรับรอง';
+      default:
+        return key;
     }
   }
 
@@ -254,6 +553,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
             _verificationVideoController.text.trim().isNotEmpty
                 ? _verificationVideoController.text.trim()
                 : null,
+        // AI Analysis data (if analyzed)
+        aiEcoScore: _aiAnalysisResult?.aiEcoScore,
+        aiReasoning: _aiAnalysisResult?.aiReasoning,
+        aiSuggestions: _aiAnalysisResult?.aiSuggestions,
+        aiScoreBreakdown: _aiAnalysisResult?.scoreBreakdown,
+        aiEcoLevel: _aiAnalysisResult?.ecoLevel,
+        aiConfidence: _aiAnalysisResult?.confidence,
+        aiAnalyzed: _aiAnalysisResult != null,
+        aiAnalyzedAt: _aiAnalysisResult != null ? Timestamp.now() : null,
       );
 
       await firebaseService.submitProductRequest(product);
@@ -480,7 +788,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               context,
                               'เหตุผลที่สินค้านี้เป็นมิตรต่อสิ่งแวดล้อม*',
                             ),
-                            maxLines: 2,
+                            maxLines: 3,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'กรุณาให้เหตุผลความเป็นมิตรต่อสิ่งแวดล้อม';
@@ -489,10 +797,47 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
+
+                          // 🆕 Additional Eco Fields
+                          TextFormField(
+                            controller: _manufacturingProcessController,
+                            decoration: buildInputDecoration(
+                              context,
+                              'กระบวนการผลิต (ถ้ามี)',
+                            ),
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _packagingTypeController,
+                            decoration: buildInputDecoration(
+                              context,
+                              'ประเภทบรรจุภัณฑ์ (ถ้ามี)',
+                            ).copyWith(
+                              hintText: 'เช่น กระดาษรีไซเคิล, ย่อยสลายได้',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _wasteManagementController,
+                            decoration: buildInputDecoration(
+                              context,
+                              'การจัดการขยะ/รีไซเคิล (ถ้ามี)',
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                          const Divider(),
+                          const SizedBox(height: 16),
+
+                          // Eco Score Slider
                           Text(
                             'ระดับ Eco Score (%): $_ecoScore',
-                            style: theme.textTheme.bodyLarge,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                          const SizedBox(height: 8),
                           Slider(
                             value: _ecoScore.toDouble(),
                             min: 1.0,
@@ -510,9 +855,143 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             inactiveColor:
                                 theme.colorScheme.surfaceContainerHighest,
                           ),
-                          Text(
-                            'ระดับ Eco Level (คำนวณ): ${EcoLevelExtension.fromScore(_ecoScore).name}',
-                            style: theme.textTheme.bodyMedium,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'ระดับ: ${EcoLevelExtension.fromScore(_ecoScore).name}',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: EcoLevelExtension.fromScore(_ecoScore)
+                                      .color
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        EcoLevelExtension.fromScore(_ecoScore)
+                                            .color,
+                                  ),
+                                ),
+                                child: Text(
+                                  EcoLevelExtension.fromScore(_ecoScore).name,
+                                  style: TextStyle(
+                                    color:
+                                        EcoLevelExtension.fromScore(_ecoScore)
+                                            .color,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // 🤖 AI Analysis Button
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.purple.withOpacity(0.1),
+                                  Colors.blue.withOpacity(0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.purple),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.auto_awesome,
+                                        color: Colors.purple, size: 28),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Text(
+                                        'วิเคราะห์ด้วย AI',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'ให้ AI ช่วยวิเคราะห์ความเป็น Eco ของสินค้า พร้อมคำแนะนำปรับปรุง',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isAnalyzingWithAI
+                                        ? null
+                                        : _analyzeWithAI,
+                                    icon: _isAnalyzingWithAI
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(Icons.psychology),
+                                    label: Text(
+                                      _isAnalyzingWithAI
+                                          ? 'กำลังวิเคราะห์...'
+                                          : 'วิเคราะห์ด้วย AI (ฟรี)',
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.purple,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (_aiAnalysisResult != null) ...[
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.green),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.check_circle,
+                                            color: Colors.green),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'AI ให้คะแนน: ${_aiAnalysisResult!.aiEcoScore}/100 (${_aiAnalysisResult!.ecoLevel})',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -721,6 +1200,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _materialController.dispose();
     _ecoJustificationController.dispose();
     _verificationVideoController.dispose();
+    _manufacturingProcessController.dispose();
+    _packagingTypeController.dispose();
+    _wasteManagementController.dispose();
     super.dispose();
   }
 }

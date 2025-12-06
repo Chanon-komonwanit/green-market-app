@@ -93,6 +93,24 @@ class Product {
   final String? brandName;
   final String? manufacturerCountry;
 
+  // Additional properties for UI features
+  final double rating; // Average product rating (0.0 - 5.0)
+  final int soldCount; // Total units sold
+  final String category; // Category name for display
+
+  // AI Analysis properties
+  final int? aiEcoScore; // AI-predicted Eco Score (0-100)
+  final String? aiReasoning; // AI's explanation for the score
+  final List<String>? aiSuggestions; // AI's improvement suggestions
+  final Map<String, double>? aiScoreBreakdown; // Category-wise breakdown
+  final String? aiEcoLevel; // champion/excellent/good/standard
+  final String? aiConfidence; // high/medium/low
+  final bool aiAnalyzed; // Whether AI has analyzed this product
+  final Timestamp? aiAnalyzedAt; // When AI analysis was done
+  final bool? adminVerified; // Whether admin verified the AI result
+  final String? adminFeedback; // Admin's feedback on AI accuracy
+  final int? adminApprovedScore; // Final score approved by admin
+
   // Validation state cache
   late final List<ProductValidationError> _validationErrors;
 
@@ -137,7 +155,22 @@ class Product {
     this.tags,
     this.brandName,
     this.manufacturerCountry,
-  }) {
+    this.rating = 0.0,
+    this.soldCount = 0,
+    String? category,
+    // AI Analysis parameters
+    this.aiEcoScore,
+    this.aiReasoning,
+    this.aiSuggestions,
+    this.aiScoreBreakdown,
+    this.aiEcoLevel,
+    this.aiConfidence,
+    this.aiAnalyzed = false,
+    this.aiAnalyzedAt,
+    this.adminVerified,
+    this.adminFeedback,
+    this.adminApprovedScore,
+  }) : category = category ?? categoryName ?? 'อื่นๆ' {
     // Initialize validation errors using existing validation logic
     _validationErrors = _computeValidationErrors();
   }
@@ -327,6 +360,32 @@ class Product {
       approvalStatus: map['approvalStatus'] as String? ??
           map['status'] as String? ??
           'pending_approval',
+      rating: (map['rating'] as num?)?.toDouble() ??
+          (map['averageRating'] as num?)?.toDouble() ??
+          0.0,
+      soldCount: (map['soldCount'] as num?)?.toInt() ?? 0,
+      category: map['category'] as String? ?? map['categoryName'] as String?,
+      // AI Analysis fields
+      aiEcoScore: (map['aiEcoScore'] as num?)?.toInt(),
+      aiReasoning: map['aiReasoning'] as String?,
+      aiSuggestions: map['aiSuggestions'] != null
+          ? List<String>.from(map['aiSuggestions'] as List)
+          : null,
+      aiScoreBreakdown: map['aiScoreBreakdown'] != null
+          ? Map<String, double>.from(
+              (map['aiScoreBreakdown'] as Map).map(
+                (key, value) =>
+                    MapEntry(key.toString(), (value as num).toDouble()),
+              ),
+            )
+          : null,
+      aiEcoLevel: map['aiEcoLevel'] as String?,
+      aiConfidence: map['aiConfidence'] as String?,
+      aiAnalyzed: map['aiAnalyzed'] as bool? ?? false,
+      aiAnalyzedAt: map['aiAnalyzedAt'] as Timestamp?,
+      adminVerified: map['adminVerified'] as bool?,
+      adminFeedback: map['adminFeedback'] as String?,
+      adminApprovedScore: (map['adminApprovedScore'] as num?)?.toInt(),
     );
   }
 
@@ -378,6 +437,22 @@ class Product {
       'averageRating': averageRating,
       'reviewCount': reviewCount,
       'approvalStatus': approvalStatus,
+      'rating': rating,
+      'soldCount': soldCount,
+      'category': category,
+
+      // AI Analysis fields
+      if (aiEcoScore != null) 'aiEcoScore': aiEcoScore,
+      if (aiReasoning != null) 'aiReasoning': aiReasoning,
+      if (aiSuggestions != null) 'aiSuggestions': aiSuggestions,
+      if (aiScoreBreakdown != null) 'aiScoreBreakdown': aiScoreBreakdown,
+      if (aiEcoLevel != null) 'aiEcoLevel': aiEcoLevel,
+      if (aiConfidence != null) 'aiConfidence': aiConfidence,
+      'aiAnalyzed': aiAnalyzed,
+      if (aiAnalyzedAt != null) 'aiAnalyzedAt': aiAnalyzedAt,
+      if (adminVerified != null) 'adminVerified': adminVerified,
+      if (adminFeedback != null) 'adminFeedback': adminFeedback,
+      if (adminApprovedScore != null) 'adminApprovedScore': adminApprovedScore,
     };
   }
 
@@ -417,6 +492,21 @@ class Product {
     double? averageRating,
     int? reviewCount,
     String? approvalStatus,
+    double? rating,
+    int? soldCount,
+    String? category,
+    // AI Analysis properties
+    int? aiEcoScore,
+    String? aiReasoning,
+    List<String>? aiSuggestions,
+    Map<String, double>? aiScoreBreakdown,
+    String? aiEcoLevel,
+    String? aiConfidence,
+    bool? aiAnalyzed,
+    Timestamp? aiAnalyzedAt,
+    bool? adminVerified,
+    String? adminFeedback,
+    int? adminApprovedScore,
   }) {
     return Product(
       id: id ?? this.id,
@@ -451,6 +541,21 @@ class Product {
       averageRating: averageRating ?? this.averageRating,
       reviewCount: reviewCount ?? this.reviewCount,
       approvalStatus: approvalStatus ?? this.approvalStatus,
+      rating: rating ?? this.rating,
+      soldCount: soldCount ?? this.soldCount,
+      category: category ?? this.category,
+      // AI Analysis properties
+      aiEcoScore: aiEcoScore ?? this.aiEcoScore,
+      aiReasoning: aiReasoning ?? this.aiReasoning,
+      aiSuggestions: aiSuggestions ?? this.aiSuggestions,
+      aiScoreBreakdown: aiScoreBreakdown ?? this.aiScoreBreakdown,
+      aiEcoLevel: aiEcoLevel ?? this.aiEcoLevel,
+      aiConfidence: aiConfidence ?? this.aiConfidence,
+      aiAnalyzed: aiAnalyzed ?? this.aiAnalyzed,
+      aiAnalyzedAt: aiAnalyzedAt ?? this.aiAnalyzedAt,
+      adminVerified: adminVerified ?? this.adminVerified,
+      adminFeedback: adminFeedback ?? this.adminFeedback,
+      adminApprovedScore: adminApprovedScore ?? this.adminApprovedScore,
     );
   }
 
@@ -487,10 +592,13 @@ class Product {
       condition: 'ใหม่',
       allowReturns: true,
       isActive: true,
-      isFeatured: true,
+      isFeatured: false,
       averageRating: 4.5,
-      reviewCount: 100,
+      reviewCount: 10,
       approvalStatus: 'approved',
+      rating: 4.5,
+      soldCount: 25,
+      category: 'หมวดหมู่ Mock',
     );
   }
 

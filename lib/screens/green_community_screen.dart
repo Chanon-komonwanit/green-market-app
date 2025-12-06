@@ -105,41 +105,97 @@ class _GreenCommunityScreenState extends State<GreenCommunityScreen>
           ],
         ),
         actions: [
-          // Eco Influence - คะแนนอิทธิพลชุมชน
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EcoInfluenceScreen(),
+          // Eco Influence - คะแนนอิทธิพลชุมชน (ขยายขนาด)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EcoInfluenceScreen(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.amber[200]!,
+                    width: 1.5,
+                  ),
                 ),
-              );
-            },
-            icon: Icon(
-              Icons.emoji_events_rounded,
-              color: Colors.amber[700],
-              size: 24,
-            ),
-            tooltip: 'คะแนนอิทธิพลชุมชน',
-          ),
-          // Notifications - กระทัดรัด
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CommunityNotificationsScreen(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.amber[700],
+                      size: 28,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'อิทธิพล',
+                      style: TextStyle(
+                        color: Colors.amber[900],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-            icon: Icon(
-              Icons.notifications_rounded,
-              color: Color(0xFF10B981),
-              size: 24,
+              ),
             ),
-            tooltip: 'การแจ้งเตือน',
           ),
-          SizedBox(width: 4),
+          // Notifications - ขยายขนาด
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CommunityNotificationsScreen(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Color(0xFF10B981).withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.notifications_rounded,
+                      color: Color(0xFF10B981),
+                      size: 28,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'แจ้งเตือน',
+                      style: TextStyle(
+                        color: Color(0xFF10B981),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
         ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(90), // ลดความสูง

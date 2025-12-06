@@ -7,11 +7,10 @@ import 'chat_screen.dart';
 import 'cart_screen.dart';
 import 'edit_profile_screen.dart';
 import 'user/enhanced_edit_profile_screen.dart';
-import 'notifications_center_screen.dart';
 import 'orders_screen.dart';
 import 'profile/my_coupons_screen.dart';
 import 'customer_shipping_dashboard_screen.dart';
-import 'seller/seller_dashboard_screen.dart';
+import 'seller/complete_modern_seller_dashboard.dart';
 import 'seller/seller_application_form_screen.dart';
 import 'eco_rewards_screen.dart';
 import 'product_detail_screen.dart';
@@ -107,21 +106,6 @@ class _MyHomeScreenState extends State<MyHomeScreen>
               );
             },
             actions: [
-              // ปุ่มแจ้งเตือน
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Color(0xFF059669),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationsCenterScreen(),
-                    ),
-                  );
-                },
-              ),
               // ปุ่มการตั้งค่า
               IconButton(
                 icon: const Icon(
@@ -445,8 +429,8 @@ class _MyHomeScreenState extends State<MyHomeScreen>
             child: Text('แชท', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Tab(
-            icon: Icon(Icons.notifications_outlined, size: 24),
-            child: Text('การแจ้งเตือน',
+            icon: Icon(Icons.shopping_bag_outlined, size: 24),
+            child: Text('คำสั่งซื้อ',
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
@@ -1008,59 +992,79 @@ class _MyHomeScreenState extends State<MyHomeScreen>
                 Text('กรุณาเข้าสู่ระบบ',
                     style: TextStyle(fontSize: 16, color: Colors.grey)),
                 SizedBox(height: 8),
-                Text('เพื่อดูการแจ้งเตือน',
+                Text('เพื่อดูการแจ้งเตือนคำสั่งซื้อ',
                     style: TextStyle(fontSize: 13, color: Colors.grey)),
               ],
             ),
           );
         }
 
-        // Mock notifications data
-        final mockNotifications = [
-          {
-            'id': 'notif1',
-            'title': 'คำสั่งซื้อใหม่',
-            'message': 'คุณมีคำสั่งซื้อใหม่ รหัส #12345',
-            'type': 'order',
-            'timestamp': Timestamp.fromDate(
-                DateTime.now().subtract(const Duration(minutes: 10))),
-            'isRead': false,
-          },
-          {
-            'id': 'notif2',
-            'title': 'โปรโมชันใหม่!',
-            'message': 'ลด 20% สำหรับสินค้าเพื่อสิ่งแวดล้อม',
-            'type': 'promotion',
-            'timestamp': Timestamp.fromDate(
-                DateTime.now().subtract(const Duration(hours: 1))),
-            'isRead': true,
-          },
-        ];
+        // ดึงข้อมูลการแจ้งเตือนจริงจาก Firebase - เฉพาะคำสั่งซื้อและการซื้อสินค้า
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('notifications')
+              .where('userId', isEqualTo: currentUser.id)
+              .where('category',
+                  whereIn: ['buyer', 'order', 'payment', 'shipping'])
+              .orderBy('createdAt', descending: true)
+              .limit(50)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+                ),
+              );
+            }
 
-        if (mockNotifications.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.notifications_outlined,
-                    size: 60, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('ไม่มีการแจ้งเตือน',
-                    style: TextStyle(fontSize: 16, color: Colors.grey)),
-                SizedBox(height: 8),
-                Text('การแจ้งเตือนจะแสดงที่นี่',
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
-          );
-        }
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+                    SizedBox(height: 16),
+                    Text('เกิดข้อผิดพลาด',
+                        style: TextStyle(fontSize: 16, color: Colors.grey)),
+                    SizedBox(height: 8),
+                    Text('กรุณาลองใหม่อีกครั้ง',
+                        style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  ],
+                ),
+              );
+            }
 
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          itemCount: mockNotifications.length,
-          itemBuilder: (context, index) {
-            final notification = mockNotifications[index];
-            return _buildNotificationItem(notification);
+            final notifications = snapshot.data?.docs ?? [];
+
+            if (notifications.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shopping_bag_outlined,
+                        size: 60, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('ไม่มีการแจ้งเตือนคำสั่งซื้อ',
+                        style: TextStyle(fontSize: 16, color: Colors.grey)),
+                    SizedBox(height: 8),
+                    Text('การแจ้งเตือนเกี่ยวกับคำสั่งซื้อจะแสดงที่นี่',
+                        style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final doc = notifications[index];
+                final notification = doc.data() as Map<String, dynamic>;
+                notification['id'] = doc.id;
+                return _buildNotificationItem(notification);
+              },
+            );
           },
         );
       },

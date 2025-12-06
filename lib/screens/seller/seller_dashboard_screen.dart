@@ -1,18 +1,34 @@
-// lib/screens/seller/seller_dashboard_screen_premium.dart
+// lib/screens/seller/seller_dashboard_screen.dart
+// 🌟 World-Class Seller Dashboard - Shopee/TikTok Shop Standard
+// Redesigned for Green Market with modern UI/UX and comprehensive features
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:green_market/screens/seller/add_product_screen.dart';
-import 'package:green_market/screens/seller/my_products_screen.dart';
-import 'package:green_market/screens/seller/seller_orders_screen.dart';
-import 'package:green_market/screens/seller/shop_settings_screen.dart';
-import 'package:green_market/screens/seller/seller_notifications_screen.dart';
-import 'package:green_market/screens/seller/enhanced_shipping_management_screen.dart';
-import 'package:green_market/screens/seller/promotion_management_screen.dart';
-import 'package:green_market/screens/seller/shop_customization_screen.dart';
-import 'package:green_market/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:green_market/screens/seller/shop_preview_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:green_market/screens/seller/add_product_screen.dart';
+import 'package:green_market/screens/seller/seller_orders_screen.dart';
+import 'package:green_market/screens/seller/my_products_screen.dart';
+import 'package:green_market/screens/seller/shop_settings_screen.dart';
+import 'package:green_market/screens/seller/seller_notifications_screen.dart';
+import 'package:green_market/screens/seller/promotion_management_screen.dart';
+import 'package:green_market/screens/seller/enhanced_shipping_management_screen.dart';
+import 'package:green_market/screens/seller/wallet_screen.dart';
+import 'package:green_market/screens/seller/coupon_management_screen.dart';
+import 'package:green_market/screens/seller/shop_analytics_screen.dart';
+import 'package:green_market/screens/seller/complete_shop_theme_system.dart';
+import 'package:green_market/screens/seller/advanced_promotions_screen.dart';
+import 'package:green_market/screens/seller/customer_management_screen.dart';
+import 'package:green_market/screens/seller/seller_notifications_center.dart';
+import 'package:green_market/screens/seller/review_management_screen.dart';
+import 'package:green_market/screens/seller/advanced_stock_management_screen.dart';
+import 'package:green_market/screens/seller/preview_my_shop_screen.dart';
+import 'package:green_market/screens/seller/auto_reply_settings_screen.dart';
+import 'package:green_market/screens/seller/return_refund_management_screen.dart';
+import 'package:green_market/providers/user_provider.dart';
+import 'package:green_market/widgets/quick_stock_update_widget.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   const SellerDashboardScreen({super.key});
@@ -23,226 +39,373 @@ class SellerDashboardScreen extends StatefulWidget {
 
 class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     with TickerProviderStateMixin {
-  late TabController _tabController;
-  Map<String, dynamic> _dashboardData = {};
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  Map<String, dynamic> _stats = {};
+  List<Map<String, dynamic>> _recentOrders = [];
+  List<Map<String, dynamic>> _topProducts = [];
+  Map<String, List<double>> _chartData = {};
   bool _isLoading = true;
+  String _selectedPeriod = '7d'; // 7d, 30d, 90d
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
     _loadDashboardData();
+    _animationController.forward();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
+
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // โหลดข้อมูลจริงแบบ Parallel จาก Firebase
-        final results = await Future.wait([
-          // ข้อมูลผู้ขาย
-          FirebaseFirestore.instance.collection('sellers').doc(user.uid).get(),
-
-          // จำนวนสินค้าทั้งหมด
-          FirebaseFirestore.instance
-              .collection('products')
-              .where('sellerId', isEqualTo: user.uid)
-              .get(),
-
-          // คำสั่งซื้อทั้งหมด
-          FirebaseFirestore.instance
-              .collection('orders')
-              .where('sellerId', isEqualTo: user.uid)
-              .get(),
-        ]);
-
-        final sellerDoc = results[0] as DocumentSnapshot;
-        final productsQuery = results[1] as QuerySnapshot;
-        final ordersQuery = results[2] as QuerySnapshot;
-
-        // คำนวณสถิติจากข้อมูลจริง
-        double totalRevenue = 0;
-        double todayRevenue = 0;
-        int newOrders = 0;
-        int pendingOrders = 0;
-        int processingOrders = 0;
-        int completedOrders = 0;
-        int todayOrders = 0;
-        int cancelledOrders = 0;
-
-        final today = DateTime.now();
-        final startOfToday = DateTime(today.year, today.month, today.day);
-
-        for (var orderDoc in ordersQuery.docs) {
-          final orderData = orderDoc.data() as Map<String, dynamic>;
-          final status = orderData['status'] as String? ?? '';
-          final total = (orderData['total'] as num?)?.toDouble() ?? 0.0;
-          final orderDate = (orderData['createdAt'] as Timestamp?)?.toDate();
-
-          // คำนวณยอดขายรวม
-          if (status == 'completed') {
-            totalRevenue += total;
-          }
-
-          // คำนวณยอดขายวันนี้
-          if (orderDate != null &&
-              orderDate.isAfter(startOfToday) &&
-              status == 'completed') {
-            todayRevenue += total;
-            todayOrders++;
-          }
-
-          // นับสถานะคำสั่งซื้อ
-          switch (status) {
-            case 'pending':
-              pendingOrders++;
-              break;
-            case 'confirmed':
-            case 'processing':
-              processingOrders++;
-              break;
-            case 'completed':
-              completedOrders++;
-              break;
-            case 'cancelled':
-              cancelledOrders++;
-              break;
-            default:
-              newOrders++;
-          }
-
-          // คำสั่งซื้อใหม่ (สถานะใหม่หรือรอดำเนินการ)
-          if (status == 'new' || status == 'pending') {
-            newOrders++;
-          }
-        }
-
-        setState(() {
-          _dashboardData = {
-            // ข้อมูลร้านค้า
-            'shopName': sellerDoc.exists ? sellerDoc.get('shopName') : null,
-            'shopDescription':
-                sellerDoc.exists ? sellerDoc.get('shopDescription') : null,
-            'shopImage': sellerDoc.exists ? sellerDoc.get('shopImage') : null,
-            'rating': sellerDoc.exists ? (sellerDoc.get('rating') ?? 0.0) : 0.0,
-            'totalReviews':
-                sellerDoc.exists ? (sellerDoc.get('totalReviews') ?? 0) : 0,
-
-            // สถิติสินค้า
-            'totalProducts': productsQuery.docs.length,
-            'activeProducts': productsQuery.docs
-                .where((doc) =>
-                    (doc.data() as Map<String, dynamic>)['isActive'] == true)
-                .length,
-
-            // สถิติคำสั่งซื้อ
-            'totalOrders': ordersQuery.docs.length,
-            'newOrders': newOrders,
-            'pendingOrders': pendingOrders,
-            'processingOrders': processingOrders,
-            'completedOrders': completedOrders,
-            'cancelledOrders': cancelledOrders,
-            'todayOrders': todayOrders,
-
-            // สถิติการขาย
-            'totalRevenue': totalRevenue,
-            'todayRevenue': todayRevenue,
-            'todaySales': todayRevenue, // เพื่อความเข้ากันได้
-
-            // สถิติอื่นๆ (จะแสดงเป็น 0 ถ้าไม่มีข้อมูล)
-            'todayViews': 0, // ต้องเก็บข้อมูลแยก
-            'newFollowers': 0, // ต้องเก็บข้อมูลแยก
-            'conversionRate': ordersQuery.docs.isEmpty
-                ? 0.0
-                : (completedOrders / ordersQuery.docs.length * 100),
-          };
-        });
-      } else {
-        setState(() {
-          _dashboardData = {};
-        });
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
       }
-    } catch (e) {
-      print('Error loading dashboard data: $e');
+
+      // Parallel data loading
+      final results = await Future.wait([
+        _loadSellerStats(user.uid),
+        _loadRecentOrders(user.uid),
+        _loadTopProducts(user.uid),
+        _loadChartData(user.uid),
+      ]);
+
       setState(() {
-        _dashboardData = {};
+        _stats = results[0] as Map<String, dynamic>;
+        _recentOrders = results[1] as List<Map<String, dynamic>>;
+        _topProducts = results[2] as List<Map<String, dynamic>>;
+        _chartData = results[3] as Map<String, List<double>>;
+        _isLoading = false;
       });
-    } finally {
+    } catch (e) {
+      print('Error loading dashboard: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<Map<String, dynamic>> _loadSellerStats(String sellerId) async {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final startOfPeriod = _getStartOfPeriod(now, _selectedPeriod);
+
+    // Load products
+    final productsSnapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .get();
+
+    // Load orders for period
+    final ordersSnapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfPeriod))
+        .get();
+
+    // Calculate statistics
+    int totalProducts = productsSnapshot.docs.length;
+    int activeProducts = productsSnapshot.docs
+        .where((doc) => (doc.data()['isActive'] ?? false))
+        .length;
+    int lowStockProducts = productsSnapshot.docs
+        .where((doc) => ((doc.data()['stock'] ?? 0) as num) < 10)
+        .length;
+
+    double totalRevenue = 0;
+    double todayRevenue = 0;
+    int totalOrders = ordersSnapshot.docs.length;
+    int todayOrders = 0;
+    int pendingOrders = 0;
+    int processingOrders = 0;
+    int completedOrders = 0;
+    int totalViews = 0;
+
+    for (var order in ordersSnapshot.docs) {
+      final data = order.data();
+      final status = data['status'] as String? ?? '';
+      final total = (data['total'] as num?)?.toDouble() ?? 0;
+      final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+
+      if (status == 'completed') {
+        totalRevenue += total;
+      }
+
+      if (createdAt != null && createdAt.isAfter(startOfDay)) {
+        todayOrders++;
+        if (status == 'completed') {
+          todayRevenue += total;
+        }
+      }
+
+      // Count by status
+      switch (status) {
+        case 'pending':
+          pendingOrders++;
+          break;
+        case 'processing':
+        case 'confirmed':
+          processingOrders++;
+          break;
+        case 'completed':
+          completedOrders++;
+          break;
+      }
+    }
+
+    // Calculate views from products
+    for (var product in productsSnapshot.docs) {
+      totalViews += ((product.data()['views'] ?? 0) as num).toInt();
+    }
+
+    // Calculate conversion rate
+    double conversionRate =
+        totalViews > 0 ? (completedOrders / totalViews * 100) : 0;
+
+    return {
+      'totalRevenue': totalRevenue,
+      'todayRevenue': todayRevenue,
+      'totalOrders': totalOrders,
+      'todayOrders': todayOrders,
+      'pendingOrders': pendingOrders,
+      'processingOrders': processingOrders,
+      'completedOrders': completedOrders,
+      'totalProducts': totalProducts,
+      'activeProducts': activeProducts,
+      'lowStockProducts': lowStockProducts,
+      'totalViews': totalViews,
+      'conversionRate': conversionRate,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> _loadRecentOrders(String sellerId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('createdAt', descending: true)
+        .limit(5)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'id': doc.id,
+        'customerName': data['fullName'] ?? 'ไม่ระบุชื่อ',
+        'total': (data['total'] as num?)?.toDouble() ?? 0,
+        'status': data['status'] ?? 'pending',
+        'createdAt':
+            (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        'items': (data['items'] as List?)?.length ?? 0,
+      };
+    }).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadTopProducts(String sellerId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('sold', descending: true)
+        .limit(5)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'id': doc.id,
+        'name': data['name'] ?? 'ไม่มีชื่อ',
+        'image': data['images'] != null && (data['images'] as List).isNotEmpty
+            ? data['images'][0]
+            : null,
+        'price': (data['price'] as num?)?.toDouble() ?? 0,
+        'sold': (data['sold'] as num?)?.toInt() ?? 0,
+        'stock': (data['stock'] as num?)?.toInt() ?? 0,
+        'views': (data['views'] as num?)?.toInt() ?? 0,
+      };
+    }).toList();
+  }
+
+  Future<Map<String, List<double>>> _loadChartData(String sellerId) async {
+    final now = DateTime.now();
+    final startOfPeriod = _getStartOfPeriod(now, _selectedPeriod);
+    final days = _getDaysInPeriod(_selectedPeriod);
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfPeriod))
+        .get();
+
+    // Initialize daily data
+    List<double> dailyRevenue = List.filled(days, 0);
+    List<double> dailyOrders = List.filled(days, 0);
+
+    for (var order in snapshot.docs) {
+      final data = order.data();
+      final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+      final status = data['status'] as String? ?? '';
+      final total = (data['total'] as num?)?.toDouble() ?? 0;
+
+      if (createdAt != null && status == 'completed') {
+        final dayIndex = now.difference(createdAt).inDays;
+        if (dayIndex >= 0 && dayIndex < days) {
+          final index = days - 1 - dayIndex; // Reverse for chronological order
+          dailyRevenue[index] += total;
+          dailyOrders[index] += 1;
+        }
+      }
+    }
+
+    return {
+      'revenue': dailyRevenue,
+      'orders': dailyOrders,
+    };
+  }
+
+  DateTime _getStartOfPeriod(DateTime now, String period) {
+    switch (period) {
+      case '7d':
+        return now.subtract(const Duration(days: 7));
+      case '30d':
+        return now.subtract(const Duration(days: 30));
+      case '90d':
+        return now.subtract(const Duration(days: 90));
+      default:
+        return now.subtract(const Duration(days: 7));
+    }
+  }
+
+  int _getDaysInPeriod(String period) {
+    switch (period) {
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      default:
+        return 7;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFB),
-      appBar: AppBar(
-        title: const Text('ร้านค้าของฉัน'),
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SellerNotificationsScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.notifications_outlined),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'ภาพรวม'),
-            Tab(icon: Icon(Icons.inventory_2), text: 'สินค้า'),
-            Tab(icon: Icon(Icons.shopping_cart), text: 'คำสั่งซื้อ'),
-            Tab(icon: Icon(Icons.local_shipping), text: 'การจัดส่ง'),
-            Tab(icon: Icon(Icons.bar_chart), text: 'สถิติ'),
-            Tab(icon: Icon(Icons.settings), text: 'ตั้งค่า'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(),
-                _buildProductsTab(),
-                _buildOrdersTab(),
-                _buildShippingTab(),
-                _buildAnalyticsTab(),
-                _buildSettingsTab(),
-              ],
-            ),
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: _buildAppBar(),
+      body: _isLoading ? _buildLoadingState() : _buildDashboardContent(),
     );
   }
 
-  Widget _buildOverviewTab() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Center(
-        child: Text('กรุณาเข้าสู่ระบบ'),
-      );
-    }
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: const Text(
+        'ศูนย์ผู้ขาย',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      backgroundColor: const Color(0xFF2E7D32),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      actions: [
+        // Notifications
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SellerNotificationCenter(),
+                  ),
+                );
+              },
+            ),
+            if ((_stats['pendingOrders'] ?? 0) > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '${_stats['pendingOrders']}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        // Settings
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ShopSettingsScreen(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
 
-    return Container(
-      color: const Color(0xFFF8FAFB),
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'กำลังโหลดข้อมูล...',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
       child: RefreshIndicator(
         onRefresh: _loadDashboardData,
         color: const Color(0xFF2E7D32),
@@ -252,28 +415,32 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Premium Welcome Card with Real-time Status
-              _buildPremiumWelcomeCard(),
+              // Quick Stats Cards
+              _buildQuickStatsGrid(),
               const SizedBox(height: 20),
 
-              // Enhanced Quick Stats
-              _buildEnhancedQuickStats(),
+              // Quick Stock Update Widget
+              const QuickStockUpdateWidget(),
               const SizedBox(height: 20),
 
-              // Today Summary
-              _buildTodaySummary(),
+              // Quick Action Buttons
+              _buildQuickActions(),
               const SizedBox(height: 20),
 
-              // Premium Quick Actions
-              _buildPremiumQuickActions(),
+              // Revenue Chart
+              _buildRevenueChart(),
               const SizedBox(height: 20),
 
-              // Orders Status Dashboard
-              _buildOrdersStatusDashboard(),
+              // Recent Orders
+              _buildRecentOrders(),
               const SizedBox(height: 20),
 
-              // Shop Management
-              _buildShopManagement(),
+              // Top Products
+              _buildTopProducts(),
+              const SizedBox(height: 20),
+
+              // Performance Insights
+              _buildPerformanceInsights(),
             ],
           ),
         ),
@@ -281,410 +448,344 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     );
   }
 
-  Widget _buildPremiumWelcomeCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1B5E20),
-            Color(0xFF2E7D32),
-            Color(0xFF388E3C),
-            Color(0xFF43A047)
-          ],
+  Widget _buildQuickStatsGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.5,
+      children: [
+        _buildStatCard(
+          title: 'ยอดขายวันนี้',
+          value:
+              '฿${NumberFormat('#,##0.00').format(_stats['todayRevenue'] ?? 0)}',
+          icon: Icons.trending_up,
+          color: const Color(0xFF4CAF50),
+          subtitle: '${_stats['todayOrders'] ?? 0} คำสั่งซื้อ',
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2E7D32).withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Consumer<UserProvider>(
-        builder: (context, userProvider, child) {
-          final user = userProvider.currentUser;
-          final shopName = _dashboardData['shopName'] as String?;
+        _buildStatCard(
+          title: 'รอดำเนินการ',
+          value: '${_stats['pendingOrders'] ?? 0}',
+          icon: Icons.pending_actions,
+          color: const Color(0xFFFF9800),
+          subtitle: 'คำสั่งซื้อใหม่',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SellerOrdersScreen()),
+            );
+          },
+        ),
+        _buildStatCard(
+          title: 'ยอดขายรวม',
+          value:
+              '฿${NumberFormat('#,##0').format(_stats['totalRevenue'] ?? 0)}',
+          icon: Icons.account_balance_wallet,
+          color: const Color(0xFF2196F3),
+          subtitle: 'ทั้งหมด ${_stats['completedOrders'] ?? 0} คำสั่ง',
+        ),
+        _buildStatCard(
+          title: 'สินค้าทั้งหมด',
+          value: '${_stats['totalProducts'] ?? 0}',
+          icon: Icons.inventory_2,
+          color: const Color(0xFF9C27B0),
+          subtitle: 'ใช้งาน ${_stats['activeProducts'] ?? 0}',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyProductsScreen()),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
-          return Column(
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    String? subtitle,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(50),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.white,
-                      child: user?.photoUrl != null
-                          ? ClipOval(
-                              child: Image.network(
-                                user!.photoUrl!,
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.store,
-                                        size: 32, color: Color(0xFF2E7D32)),
-                              ),
-                            )
-                          : const Icon(Icons.store,
-                              size: 32, color: Color(0xFF2E7D32)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'สวัสดี ${user?.displayName ?? "เจ้าของร้าน"}!',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          shopName ?? 'ยังไม่ได้ตั้งชื่อร้าน',
-                          style: TextStyle(
-                            color: shopName != null
-                                ? Colors.white70
-                                : Colors.amber[300],
-                            fontSize: 15,
-                            fontWeight: shopName != null
-                                ? FontWeight.normal
-                                : FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.verified,
-                                      color: Colors.white, size: 16),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'ผู้ขายยืนยัน',
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'PRO',
-                                style: TextStyle(
-                                  color: Color(0xFF1B5E20),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Real-time Status Indicator
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _dashboardData['totalOrders'] != null &&
-                                        _dashboardData['totalOrders'] > 0
-                                    ? const Color(0xFF4CAF50).withOpacity(0.9)
-                                    : Colors.orange.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _dashboardData['totalOrders'] != null &&
-                                            _dashboardData['totalOrders'] > 0
-                                        ? 'Active'
-                                        : 'Setup',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Performance Summary Bar
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _buildMiniStatItem(
-                                  'สินค้า',
-                                  '${_dashboardData['totalProducts'] ?? 0}',
-                                  Icons.inventory_2,
-                                ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 20,
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              Expanded(
-                                child: _buildMiniStatItem(
-                                  'คำสั่งซื้อ',
-                                  '${_dashboardData['totalOrders'] ?? 0}',
-                                  Icons.shopping_cart,
-                                ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 20,
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              Expanded(
-                                child: _buildMiniStatItem(
-                                  'รายได้',
-                                  '฿${(_dashboardData['totalRevenue'] ?? 0).toStringAsFixed(0)}',
-                                  Icons.monetization_on,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: Icon(icon, size: 20, color: color),
                   ),
                 ],
               ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                ],
+              ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMiniStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white, size: 16),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 10,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildQuickActions() {
+    final user = FirebaseAuth.instance.currentUser;
+    final sellerId = user?.uid ?? '';
 
-  Widget _buildEnhancedQuickStats() {
+    final actions = [
+      {
+        'title': 'ดูหน้าร้าน',
+        'icon': Icons.storefront,
+        'color': const Color(0xFFE91E63),
+        'onTap': () {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PreviewMyShopScreen(
+                sellerId: sellerId,
+                sellerName: userProvider.currentUser?.displayName ?? 'ร้านค้า',
+              ),
+            ),
+          );
+        },
+      },
+      {
+        'title': 'เพิ่มสินค้า',
+        'icon': Icons.add_circle_outline,
+        'color': const Color(0xFF4CAF50),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddProductScreen()),
+            ),
+      },
+      {
+        'title': 'คำสั่งซื้อ',
+        'icon': Icons.receipt_long_outlined,
+        'color': const Color(0xFF2196F3),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SellerOrdersScreen()),
+            ),
+      },
+      {
+        'title': 'สินค้าของฉัน',
+        'icon': Icons.inventory_2_outlined,
+        'color': const Color(0xFF9C27B0),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyProductsScreen()),
+            ),
+      },
+      {
+        'title': 'สถิติร้านค้า',
+        'icon': Icons.analytics_outlined,
+        'color': const Color(0xFF00BCD4),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ShopAnalyticsScreen()),
+            ),
+      },
+      {
+        'title': 'โปรโมชั่น',
+        'icon': Icons.local_offer_outlined,
+        'color': const Color(0xFFFF5722),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const AdvancedPromotionsScreen()),
+            ),
+      },
+      {
+        'title': 'กระเป๋าเงิน',
+        'icon': Icons.account_balance_wallet_outlined,
+        'color': const Color(0xFFFFB300),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WalletScreen()),
+            ),
+      },
+      {
+        'title': 'การจัดส่ง',
+        'icon': Icons.local_shipping_outlined,
+        'color': const Color(0xFF5E35B1),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const EnhancedShippingManagementScreen()),
+            ),
+      },
+      {
+        'title': 'ตั้งค่าร้าน',
+        'icon': Icons.settings_outlined,
+        'color': const Color(0xFF607D8B),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CompleteShopThemeSystem(sellerId: sellerId),
+              ),
+            ),
+      },
+      {
+        'title': 'Auto Reply',
+        'icon': Icons.chat_bubble_outline,
+        'color': const Color(0xFF00897B),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AutoReplySettingsScreen(),
+              ),
+            ),
+      },
+      {
+        'title': 'คืนสินค้า/เงิน',
+        'icon': Icons.assignment_return_outlined,
+        'color': const Color(0xFFD32F2F),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ReturnRefundManagementScreen(),
+              ),
+            ),
+      },
+    ];
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top Row - Main Metrics
-        Row(
-          children: [
-            Expanded(
-              child: _buildPremiumStatCard(
-                'สินค้าทั้งหมด',
-                '${_dashboardData['totalProducts'] ?? 0}',
-                '${_dashboardData['activeProducts'] ?? 0} ใช้งาน',
-                Icons.inventory_2_outlined,
-                const Color(0xFF1976D2),
-                const Color(0xFFE3F2FD),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildPremiumStatCard(
-                'คำสั่งซื้อวันนี้',
-                '${_dashboardData['todayOrders'] ?? 0}',
-                'คำสั่งใหม่',
-                Icons.shopping_cart_outlined,
-                const Color(0xFFFF9800),
-                const Color(0xFFFFF3E0),
-              ),
-            ),
-          ],
+        const Text(
+          'เมนูหลัก',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 12),
-        // Bottom Row - Financial Metrics
-        Row(
-          children: [
-            Expanded(
-              child: _buildPremiumStatCard(
-                'ยอดขายวันนี้',
-                '฿${(_dashboardData['todayRevenue'] ?? 0).toStringAsFixed(0)}',
-                'รายได้รวม ฿${(_dashboardData['totalRevenue'] ?? 0).toStringAsFixed(0)}',
-                Icons.monetization_on_outlined,
-                const Color(0xFF388E3C),
-                const Color(0xFFE8F5E8),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildPremiumStatCard(
-                'คะแนนร้าน',
-                '${(_dashboardData['rating'] ?? 0.0).toStringAsFixed(1)}',
-                '${_dashboardData['totalReviews'] ?? 0} รีวิว',
-                Icons.star_outline,
-                const Color(0xFFFBC02D),
-                const Color(0xFFFFFDE7),
-              ),
-            ),
-          ],
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 4,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.85,
+          children: actions.map((action) {
+            return _buildActionCard(
+              title: action['title'] as String,
+              icon: action['icon'] as IconData,
+              color: action['color'] as Color,
+              onTap: action['onTap'] as VoidCallback,
+            );
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildPremiumStatCard(String title, String mainValue, String subValue,
-      IconData icon, Color iconColor, Color backgroundColor) {
+  Widget _buildActionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 24, color: color),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRevenueChart() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: iconColor.withOpacity(0.1), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: iconColor.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
-              const Spacer(),
-              if (mainValue != '0' && mainValue != '฿0')
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            mainValue,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: iconColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF424242),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subValue,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFF757575),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodaySummary() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -692,401 +793,200 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.today, color: Color(0xFF2E7D32), size: 24),
-              const SizedBox(width: 8),
               const Text(
-                'สรุปประจำวัน',
+                'ยอดขาย',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D32),
+                  color: Colors.black87,
                 ),
               ),
-              const Spacer(),
-              Text(
-                '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF757575),
-                ),
-              ),
+              _buildPeriodSelector(),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'การดูสินค้า:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                _dashboardData['todayViews'] == null ||
-                        _dashboardData['todayViews'] == 0
-                    ? 'ไม่มีข้อมูล'
-                    : '${_dashboardData['todayViews']} ครั้ง',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF757575)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'ผู้ติดตามใหม่:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                _dashboardData['newFollowers'] == null ||
-                        _dashboardData['newFollowers'] == 0
-                    ? 'ไม่มีข้อมูล'
-                    : '${_dashboardData['newFollowers']} คน',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF757575)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'อัตราการแปลง:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                _dashboardData['conversionRate'] == null ||
-                        _dashboardData['conversionRate'] == 0
-                    ? 'ไม่มีข้อมูล'
-                    : '${(_dashboardData['conversionRate'] as double).toStringAsFixed(1)}%',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF757575)),
-              ),
-            ],
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: _buildLineChart(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPremiumQuickActions() {
+  Widget _buildPeriodSelector() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.flash_on, color: Color(0xFF2E7D32), size: 24),
-              const SizedBox(width: 8),
-              const Text(
-                'การดำเนินการด่วน',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: ['7d', '30d', '90d'].map((period) {
+          final isSelected = _selectedPeriod == period;
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedPeriod = period);
+              _loadDashboardData();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color:
+                    isSelected ? const Color(0xFF2E7D32) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                period.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D32),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey[700],
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Pro',
-                  style: TextStyle(
-                    color: Color(0xFF2E7D32),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // First Row of Actions
-          Row(
-            children: [
-              Expanded(
-                child: _buildPremiumActionCard(
-                  'เพิ่มสินค้าใหม่',
-                  'สร้างรายการสินค้า',
-                  Icons.add_circle_outline,
-                  const Color(0xFF4CAF50),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const AddProductScreen()),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPremiumActionCard(
-                  'จัดการสินค้า',
-                  '${_dashboardData['totalProducts'] ?? 0} รายการ',
-                  Icons.inventory_outlined,
-                  const Color(0xFF2196F3),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const MyProductsScreen()),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Second Row of Actions
-          Row(
-            children: [
-              Expanded(
-                child: _buildPremiumActionCard(
-                  'คำสั่งซื้อ',
-                  '${_dashboardData['newOrders'] ?? 0} ใหม่',
-                  Icons.shopping_bag_outlined,
-                  const Color(0xFFFF9800),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SellerOrdersScreen()),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPremiumActionCard(
-                  'การจัดส่ง',
-                  'จัดการพัสดุ',
-                  Icons.local_shipping_outlined,
-                  const Color(0xFF9C27B0),
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            const EnhancedShippingManagementScreen()),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Third Row - Smart Actions with AI Insights
-          _buildSmartActionCard(
-            'เปลี่ยนทีมร้าน',
-            'อัปเดตลุคร้านค้า',
-            Icons.palette_outlined,
-            const Color(0xFF795548),
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => ShopCustomizationScreen(
-                        sellerId: FirebaseAuth.instance.currentUser?.uid ?? '',
-                      )),
             ),
-            hasAlert: (_dashboardData['totalProducts'] as int? ?? 0) < 3,
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildLineChart() {
+    if (_chartData.isEmpty || _chartData['revenue']!.isEmpty) {
+      return Center(
+        child: Text(
+          'ไม่มีข้อมูลในช่วงเวลานี้',
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+      );
+    }
+
+    final revenueData = _chartData['revenue']!;
+    final maxRevenue = revenueData.reduce((a, b) => a > b ? a : b);
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxRevenue > 0 ? maxRevenue / 4 : 1000,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey[200]!,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 45,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  '฿${NumberFormat.compact().format(value)}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                  ),
+                );
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: _getDaysInPeriod(_selectedPeriod) / 7,
+              getTitlesWidget: (value, meta) {
+                final days = _getDaysInPeriod(_selectedPeriod);
+                final now = DateTime.now();
+                final date =
+                    now.subtract(Duration(days: days - value.toInt() - 1));
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    DateFormat('d/M').format(date),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: (revenueData.length - 1).toDouble(),
+        minY: 0,
+        maxY: maxRevenue * 1.2,
+        lineBarsData: [
+          LineChartBarData(
+            spots: revenueData.asMap().entries.map((entry) {
+              return FlSpot(entry.key.toDouble(), entry.value);
+            }).toList(),
+            isCurved: true,
+            color: const Color(0xFF4CAF50),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: Colors.white,
+                  strokeWidth: 2,
+                  strokeColor: const Color(0xFF4CAF50),
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFF4CAF50).withOpacity(0.1),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPremiumActionCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.2), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(icon, color: color, size: 20),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                return LineTooltipItem(
+                  '฿${NumberFormat('#,##0').format(spot.y)}',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
-                  const Spacer(),
-                  Icon(Icons.arrow_forward_ios, size: 14, color: color),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.withOpacity(0.7),
-                ),
-              ),
-            ],
+                );
+              }).toList();
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSmartActionCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    VoidCallback onTap, {
-    bool isPriority = false,
-    bool hasAlert = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color:
-                isPriority ? color.withOpacity(0.15) : color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isPriority
-                    ? color.withOpacity(0.4)
-                    : color.withOpacity(0.2),
-                width: isPriority ? 2 : 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(icon, color: color, size: 20),
-                      ),
-                      if (hasAlert || isPriority)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const Spacer(),
-                  if (isPriority)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'ด่วน',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
-                  else
-                    Icon(Icons.arrow_forward_ios, size: 14, color: color),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isPriority ? color : color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.withOpacity(0.7),
-                  fontWeight: isPriority ? FontWeight.w500 : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrdersStatusDashboard() {
-    final totalOrders = _dashboardData['totalOrders'] as int? ?? 0;
-    final newOrders = _dashboardData['newOrders'] as int? ?? 0;
-    final pendingOrders = _dashboardData['pendingOrders'] as int? ?? 0;
-    final processingOrders = _dashboardData['processingOrders'] as int? ?? 0;
-    final completedOrders = _dashboardData['completedOrders'] as int? ?? 0;
-
+  Widget _buildRecentOrders() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1096,159 +996,145 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.assignment,
-                      color: Color(0xFF2E7D32), size: 24),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'สถานะคำสั่งซื้อ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2E7D32),
-                    ),
-                  ),
-                ],
+              const Text(
+                'คำสั่งซื้อล่าสุด',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
               TextButton(
-                onPressed: () => _tabController.animateTo(2),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const SellerOrdersScreen()),
+                  );
+                },
                 child: const Text('ดูทั้งหมด'),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (totalOrders == 0)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: const Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.shopping_cart_outlined,
-                        size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      'ยังไม่มีคำสั่งซื้อ',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                  ],
+          const SizedBox(height: 12),
+          if (_recentOrders.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'ยังไม่มีคำสั่งซื้อ',
+                  style: TextStyle(color: Colors.grey[400]),
                 ),
               ),
             )
-          else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: _buildOrderStatusCard(
-                    'ใหม่',
-                    newOrders,
-                    const Color(0xFF2196F3),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildOrderStatusCard(
-                    'รอดำเนินการ',
-                    pendingOrders,
-                    const Color(0xFFFF9800),
-                  ),
-                ),
-              ],
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _recentOrders.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final order = _recentOrders[index];
+                return _buildOrderItem(order);
+              },
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildOrderStatusCard(
-                    'กำลังดำเนินการ',
-                    processingOrders,
-                    const Color(0xFF9C27B0),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildOrderStatusCard(
-                    'เสร็จสิ้น',
-                    completedOrders,
-                    const Color(0xFF4CAF50),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _tabController.animateTo(2),
-                icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                label: const Text('จัดการคำสั่งซื้อ'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildOrderStatusCard(String title, int count, Color color) {
+  Widget _buildOrderItem(Map<String, dynamic> order) {
+    final statusInfo = _getOrderStatusInfo(order['status']);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: statusInfo['color'].withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          statusInfo['icon'],
+          color: statusInfo['color'],
+          size: 24,
+        ),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              order['customerName'],
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusInfo['color'].withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              statusInfo['text'],
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: statusInfo['color'],
+              ),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            '${order['items']} รายการ • ฿${NumberFormat('#,##0.00').format(order['total'])}',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _formatDateTime(order['createdAt']),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
+      ),
+      onTap: () {
+        // Navigate to order detail
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SellerOrdersScreen(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTopProducts() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShopManagement() {
-    final shopName = _dashboardData['shopName'] as String?;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1256,116 +1142,265 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.store, color: Color(0xFF2E7D32), size: 24),
-              const SizedBox(width: 8),
               const Text(
-                'จัดการร้านค้า',
+                'สินค้าขายดี',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D32),
+                  color: Colors.black87,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (shopName == null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.amber[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber, color: Colors.amber),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'กรุณาตั้งชื่อร้านค้าเพื่อเริ่มต้นการขาย',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => _tabController.animateTo(5),
-                    child: const Text('ตั้งค่า'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // ปุ่มแถวแรก
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const ShopPreviewScreen(),
-                    ),
-                  ),
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('ดูหน้าร้าน'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _tabController.animateTo(5),
-                  icon: const Icon(Icons.settings_outlined),
-                  label: const Text('ตั้งค่า'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2E7D32),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+                    MaterialPageRoute(builder: (_) => const MyProductsScreen()),
+                  );
+                },
+                child: const Text('ดูทั้งหมด'),
               ),
             ],
           ),
           const SizedBox(height: 12),
+          if (_topProducts.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'ยังไม่มีสินค้า',
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _topProducts.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final product = _topProducts[index];
+                return _buildProductItem(product, index + 1);
+              },
+            ),
+        ],
+      ),
+    );
+  }
 
-          // ปุ่มแถวที่สอง - เปลี่ยนทีม
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ShopCustomizationScreen(
-                    sellerId: FirebaseAuth.instance.currentUser?.uid ?? '',
+  Widget _buildProductItem(Map<String, dynamic> product, int rank) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      leading: Stack(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[200],
+              image: product['image'] != null
+                  ? DecorationImage(
+                      image: NetworkImage(product['image']),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: product['image'] == null
+                ? const Icon(Icons.image, color: Colors.grey)
+                : null,
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: rank <= 3 ? const Color(0xFFFFD700) : Colors.grey[600],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+              ),
+              child: Text(
+                '#$rank',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      title: Text(
+        product['name'],
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            '฿${NumberFormat('#,##0.00').format(product['price'])}',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                'ขายแล้ว ${product['sold']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              Text(
+                ' • คงเหลือ ${product['stock']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: product['stock'] < 10 ? Colors.red : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceInsights() {
+    final conversionRate = _stats['conversionRate'] ?? 0.0;
+    final lowStockProducts = _stats['lowStockProducts'] ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'ข้อมูลเชิงลึก',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Conversion Rate
+          _buildInsightItem(
+            icon: Icons.insights,
+            title: 'อัตราการแปลง',
+            value: '${conversionRate.toStringAsFixed(2)}%',
+            subtitle: 'จากผู้เข้าชมเป็นลูกค้า',
+            color: conversionRate >= 5 ? Colors.green : Colors.orange,
+          ),
+
+          const SizedBox(height: 12),
+
+          // Low Stock Warning
+          if (lowStockProducts > 0)
+            _buildInsightItem(
+              icon: Icons.warning_amber_rounded,
+              title: 'สินค้าใกล้หมด',
+              value: '$lowStockProducts รายการ',
+              subtitle: 'ควรเติมสต๊อกโดยเร็ว',
+              color: Colors.red,
+            ),
+
+          const SizedBox(height: 12),
+
+          // Total Views
+          _buildInsightItem(
+            icon: Icons.visibility_outlined,
+            title: 'การเข้าชมสินค้า',
+            value: NumberFormat('#,##0').format(_stats['totalViews'] ?? 0),
+            subtitle: 'ผู้เข้าชมทั้งหมด',
+            color: Colors.blue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightItem({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 24, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              icon: const Icon(Icons.palette_outlined),
-              label: const Text('ธีมร้านค้า (ครบครัน)'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF795548),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-              ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1373,28 +1408,62 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     );
   }
 
-  Widget _buildProductsTab() {
-    return const MyProductsScreen();
+  Map<String, dynamic> _getOrderStatusInfo(String status) {
+    switch (status) {
+      case 'pending':
+        return {
+          'text': 'รอดำเนินการ',
+          'icon': Icons.pending_actions,
+          'color': const Color(0xFFFF9800),
+        };
+      case 'confirmed':
+      case 'processing':
+        return {
+          'text': 'กำลังดำเนินการ',
+          'icon': Icons.autorenew,
+          'color': const Color(0xFF2196F3),
+        };
+      case 'shipping':
+        return {
+          'text': 'กำลังจัดส่ง',
+          'icon': Icons.local_shipping,
+          'color': const Color(0xFF9C27B0),
+        };
+      case 'completed':
+        return {
+          'text': 'เสร็จสิ้น',
+          'icon': Icons.check_circle,
+          'color': const Color(0xFF4CAF50),
+        };
+      case 'cancelled':
+        return {
+          'text': 'ยกเลิก',
+          'icon': Icons.cancel,
+          'color': const Color(0xFFF44336),
+        };
+      default:
+        return {
+          'text': 'ไม่ทราบสถานะ',
+          'icon': Icons.help_outline,
+          'color': Colors.grey,
+        };
+    }
   }
 
-  Widget _buildOrdersTab() {
-    return const SellerOrdersScreen();
-  }
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
 
-  Widget _buildShippingTab() {
-    return const EnhancedShippingManagementScreen();
-  }
-
-  Widget _buildAnalyticsTab() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: const Center(
-        child: Text('สถิติการขาย - Coming Soon'),
-      ),
-    );
-  }
-
-  Widget _buildSettingsTab() {
-    return const ShopSettingsScreen();
+    if (difference.inMinutes < 1) {
+      return 'เมื่อสักครู่';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} นาทีที่แล้ว';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} ชั่วโมงที่แล้ว';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} วันที่แล้ว';
+    } else {
+      return DateFormat('d MMM yyyy', 'th').format(dateTime);
+    }
   }
 }

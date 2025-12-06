@@ -178,6 +178,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   firebaseService,
                   onTap: () => widget.tabController?.animateTo(7),
                 ),
+                // NEW: AI Product Review Card
+                _buildStatisticCard(
+                  context,
+                  'AI Product Review',
+                  firebaseService.getAIAnalyzedProductsCount().asStream(),
+                  Icons.smart_toy_outlined,
+                  Colors.deepPurple.shade600,
+                  firebaseService,
+                  subtitle: 'สินค้าที่ AI วิเคราะห์',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/admin/ai-review');
+                  },
+                ),
+                // NEW: AI Settings Card
+                _buildStatisticCard(
+                  context,
+                  'AI Settings',
+                  Stream.value(1).map((e) => 0),
+                  Icons.settings_outlined,
+                  Colors.teal.shade600,
+                  firebaseService,
+                  subtitle: 'จัดการระบบ AI',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/admin/ai-settings');
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 24.0),

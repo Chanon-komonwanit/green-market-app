@@ -2225,6 +2225,15 @@ class FirebaseService {
     return snapshot.docs.length;
   }
 
+  // AI Product Analysis Count
+  Future<int> getAIAnalyzedProductsCount() async {
+    final snapshot = await _firestore
+        .collection('products')
+        .where('aiAnalyzed', isEqualTo: true)
+        .get();
+    return snapshot.docs.length;
+  }
+
   Future<void> updateOrderStatusWithSlip(
     String orderId,
     String status,
@@ -4839,10 +4848,8 @@ class FirebaseService {
   // === Shop Customization Methods ===
   Future<ShopCustomization?> getShopCustomization(String sellerId) async {
     try {
-      final doc = await _firestore
-          .collection('shop_customizations')
-          .doc(sellerId)
-          .get();
+      final doc =
+          await _firestore.collection('shop_settings').doc(sellerId).get();
 
       if (doc.exists) {
         return ShopCustomization.fromMap(doc.data()!);
@@ -4867,7 +4874,7 @@ class FirebaseService {
   Future<void> saveShopCustomization(ShopCustomization customization) async {
     try {
       await _firestore
-          .collection('shop_customizations')
+          .collection('shop_settings')
           .doc(customization.sellerId)
           .set(customization.toMap());
       logger.i(
@@ -4897,7 +4904,7 @@ class FirebaseService {
 
   Future<void> updateShopTheme(String sellerId, ScreenShopTheme theme) async {
     try {
-      await _firestore.collection('shop_customizations').doc(sellerId).update({
+      await _firestore.collection('shop_settings').doc(sellerId).update({
         'theme': theme.toString().split('.').last,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -4913,7 +4920,7 @@ class FirebaseService {
     List<String> productIds,
   ) async {
     try {
-      await _firestore.collection('shop_customizations').doc(sellerId).update({
+      await _firestore.collection('shop_settings').doc(sellerId).update({
         'featuredProductIds': productIds,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -5177,6 +5184,733 @@ class FirebaseService {
       return postRef.id;
     } catch (e) {
       logger.e('Error reposting post: $e');
+      rethrow;
+    }
+  }
+
+  // ===== PRODUCT VARIATIONS SYSTEM =====
+
+  /// Get product variations
+  Future<List<Map<String, dynamic>>> getProductVariations(
+      String productId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('product_variations')
+          .where('productId', isEqualTo: productId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting product variations: $e');
+      return [];
+    }
+  }
+
+  /// Add product variation
+  Future<String> addProductVariation(Map<String, dynamic> variationData) async {
+    try {
+      final docRef = _firestore.collection('product_variations').doc();
+      variationData['id'] = docRef.id;
+      variationData['createdAt'] = FieldValue.serverTimestamp();
+      variationData['updatedAt'] = FieldValue.serverTimestamp();
+
+      await docRef.set(variationData);
+      logger.i('Product variation added: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      logger.e('Error adding product variation: $e');
+      rethrow;
+    }
+  }
+
+  /// Update product variation
+  Future<void> updateProductVariation(
+      String variationId, Map<String, dynamic> updates) async {
+    try {
+      updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore
+          .collection('product_variations')
+          .doc(variationId)
+          .update(updates);
+      logger.i('Product variation updated: $variationId');
+    } catch (e) {
+      logger.e('Error updating product variation: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete product variation
+  Future<void> deleteProductVariation(String variationId) async {
+    try {
+      await _firestore.collection('product_variations').doc(variationId).update(
+          {'isActive': false, 'updatedAt': FieldValue.serverTimestamp()});
+      logger.i('Product variation deleted: $variationId');
+    } catch (e) {
+      logger.e('Error deleting product variation: $e');
+      rethrow;
+    }
+  }
+
+  /// Get variation options for a product
+  Future<Map<String, dynamic>?> getProductVariationOptions(
+      String productId) async {
+    try {
+      final doc = await _firestore
+          .collection('product_variation_options')
+          .doc(productId)
+          .get();
+
+      if (doc.exists) {
+        return doc.data();
+      }
+      return null;
+    } catch (e) {
+      logger.e('Error getting variation options: $e');
+      return null;
+    }
+  }
+
+  /// Save variation options for a product
+  Future<void> saveProductVariationOptions(
+      String productId, Map<String, dynamic> optionsData) async {
+    try {
+      optionsData['productId'] = productId;
+      optionsData['updatedAt'] = FieldValue.serverTimestamp();
+
+      await _firestore
+          .collection('product_variation_options')
+          .doc(productId)
+          .set(optionsData, SetOptions(merge: true));
+
+      logger.i('Variation options saved for product: $productId');
+    } catch (e) {
+      logger.e('Error saving variation options: $e');
+      rethrow;
+    }
+  }
+
+  /// Batch update variation stock
+  Future<void> batchUpdateVariationStock(
+      List<Map<String, dynamic>> stockUpdates) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (var update in stockUpdates) {
+        final docRef = _firestore
+            .collection('product_variations')
+            .doc(update['variationId']);
+        batch.update(docRef, {
+          'stock': update['stock'],
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+      logger.i('Batch variation stock updated: ${stockUpdates.length} items');
+    } catch (e) {
+      logger.e('Error batch updating variation stock: $e');
+      rethrow;
+    }
+  }
+
+  /// Get variations by SKU
+  Future<Map<String, dynamic>?> getVariationBySKU(String sku) async {
+    try {
+      final snapshot = await _firestore
+          .collection('product_variations')
+          .where('sku', isEqualTo: sku)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data();
+      }
+      return null;
+    } catch (e) {
+      logger.e('Error getting variation by SKU: $e');
+      return null;
+    }
+  }
+
+  /// Check if product has variations
+  Future<bool> productHasVariations(String productId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('product_variations')
+          .where('productId', isEqualTo: productId)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      logger.e('Error checking product variations: $e');
+      return false;
+    }
+  }
+
+  /// Get total stock across all variations
+  Future<int> getTotalVariationStock(String productId) async {
+    try {
+      final variations = await getProductVariations(productId);
+      return variations.fold<int>(
+          0,
+          (sum, variation) =>
+              sum + ((variation['stock'] as num?)?.toInt() ?? 0));
+    } catch (e) {
+      logger.e('Error getting total variation stock: $e');
+      return 0;
+    }
+  }
+
+  // ===== AUTO REPLY SYSTEM =====
+
+  /// Get auto reply settings for seller
+  Future<Map<String, dynamic>?> getAutoReplySettings(String sellerId) async {
+    try {
+      final doc = await _firestore
+          .collection('auto_reply_settings')
+          .doc(sellerId)
+          .get();
+      return doc.exists ? doc.data() : null;
+    } catch (e) {
+      logger.e('Error getting auto reply settings: $e');
+      return null;
+    }
+  }
+
+  /// Save auto reply settings
+  Future<void> saveAutoReplySettings(
+      String sellerId, Map<String, dynamic> settings) async {
+    try {
+      settings['sellerId'] = sellerId;
+      settings['updatedAt'] = FieldValue.serverTimestamp();
+
+      await _firestore
+          .collection('auto_reply_settings')
+          .doc(sellerId)
+          .set(settings, SetOptions(merge: true));
+
+      logger.i('Auto reply settings saved for seller: $sellerId');
+    } catch (e) {
+      logger.e('Error saving auto reply settings: $e');
+      rethrow;
+    }
+  }
+
+  /// Get auto reply templates
+  Future<List<Map<String, dynamic>>> getAutoReplyTemplates(
+      String sellerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('auto_reply_templates')
+          .where('sellerId', isEqualTo: sellerId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('priority', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting auto reply templates: $e');
+      return [];
+    }
+  }
+
+  /// Add auto reply template
+  Future<String> addAutoReplyTemplate(Map<String, dynamic> templateData) async {
+    try {
+      final docRef = _firestore.collection('auto_reply_templates').doc();
+      templateData['id'] = docRef.id;
+      templateData['createdAt'] = FieldValue.serverTimestamp();
+      templateData['updatedAt'] = FieldValue.serverTimestamp();
+
+      await docRef.set(templateData);
+      logger.i('Auto reply template added: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      logger.e('Error adding auto reply template: $e');
+      rethrow;
+    }
+  }
+
+  /// Update auto reply template
+  Future<void> updateAutoReplyTemplate(
+      String templateId, Map<String, dynamic> updates) async {
+    try {
+      updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore
+          .collection('auto_reply_templates')
+          .doc(templateId)
+          .update(updates);
+      logger.i('Auto reply template updated: $templateId');
+    } catch (e) {
+      logger.e('Error updating auto reply template: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete auto reply template
+  Future<void> deleteAutoReplyTemplate(String templateId) async {
+    try {
+      await _firestore
+          .collection('auto_reply_templates')
+          .doc(templateId)
+          .update(
+              {'isActive': false, 'updatedAt': FieldValue.serverTimestamp()});
+      logger.i('Auto reply template deleted: $templateId');
+    } catch (e) {
+      logger.e('Error deleting auto reply template: $e');
+      rethrow;
+    }
+  }
+
+  /// Get quick replies
+  Future<List<Map<String, dynamic>>> getQuickReplies(String sellerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('quick_replies')
+          .where('sellerId', isEqualTo: sellerId)
+          .orderBy('usageCount', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting quick replies: $e');
+      return [];
+    }
+  }
+
+  /// Add quick reply
+  Future<String> addQuickReply(Map<String, dynamic> quickReplyData) async {
+    try {
+      final docRef = _firestore.collection('quick_replies').doc();
+      quickReplyData['id'] = docRef.id;
+      quickReplyData['usageCount'] = 0;
+      quickReplyData['createdAt'] = FieldValue.serverTimestamp();
+
+      await docRef.set(quickReplyData);
+      logger.i('Quick reply added: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      logger.e('Error adding quick reply: $e');
+      rethrow;
+    }
+  }
+
+  /// Update quick reply
+  Future<void> updateQuickReply(
+      String replyId, Map<String, dynamic> updates) async {
+    try {
+      await _firestore.collection('quick_replies').doc(replyId).update(updates);
+      logger.i('Quick reply updated: $replyId');
+    } catch (e) {
+      logger.e('Error updating quick reply: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete quick reply
+  Future<void> deleteQuickReply(String replyId) async {
+    try {
+      await _firestore.collection('quick_replies').doc(replyId).delete();
+      logger.i('Quick reply deleted: $replyId');
+    } catch (e) {
+      logger.e('Error deleting quick reply: $e');
+      rethrow;
+    }
+  }
+
+  /// Increment quick reply usage count
+  Future<void> incrementQuickReplyUsage(String replyId) async {
+    try {
+      await _firestore
+          .collection('quick_replies')
+          .doc(replyId)
+          .update({'usageCount': FieldValue.increment(1)});
+    } catch (e) {
+      logger.e('Error incrementing quick reply usage: $e');
+    }
+  }
+
+  /// Check if message matches auto reply trigger
+  Future<String?> findAutoReplyResponse(String sellerId, String message) async {
+    try {
+      final templates = await getAutoReplyTemplates(sellerId);
+      final lowerMessage = message.toLowerCase();
+
+      for (var template in templates) {
+        final trigger = (template['trigger'] as String?)?.toLowerCase() ?? '';
+        if (lowerMessage.contains(trigger)) {
+          return template['response'] as String?;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      logger.e('Error finding auto reply response: $e');
+      return null;
+    }
+  }
+
+  // ===== RETURN & REFUND SYSTEM =====
+
+  /// Create return request
+  Future<String> createReturnRequest(Map<String, dynamic> requestData) async {
+    try {
+      final docRef = _firestore.collection('return_requests').doc();
+      requestData['id'] = docRef.id;
+      requestData['status'] = 'pending';
+      requestData['requestedAt'] = FieldValue.serverTimestamp();
+
+      await docRef.set(requestData);
+      logger.i('Return request created: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      logger.e('Error creating return request: $e');
+      rethrow;
+    }
+  }
+
+  /// Get return requests for seller
+  Future<List<Map<String, dynamic>>> getSellerReturnRequests(String sellerId,
+      {String? status}) async {
+    try {
+      var query = _firestore
+          .collection('return_requests')
+          .where('sellerId', isEqualTo: sellerId);
+
+      if (status != null) {
+        query = query.where('status', isEqualTo: status);
+      }
+
+      final snapshot =
+          await query.orderBy('requestedAt', descending: true).get();
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting seller return requests: $e');
+      return [];
+    }
+  }
+
+  /// Get return requests for buyer
+  Future<List<Map<String, dynamic>>> getBuyerReturnRequests(
+      String buyerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('return_requests')
+          .where('buyerId', isEqualTo: buyerId)
+          .orderBy('requestedAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting buyer return requests: $e');
+      return [];
+    }
+  }
+
+  /// Stream return requests for seller
+  Stream<List<Map<String, dynamic>>> streamSellerReturnRequests(
+      String sellerId) {
+    return _firestore
+        .collection('return_requests')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('requestedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  /// Approve return request
+  Future<void> approveReturnRequest(String requestId) async {
+    try {
+      await _firestore.collection('return_requests').doc(requestId).update({
+        'status': 'approved',
+        'respondedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i('Return request approved: $requestId');
+    } catch (e) {
+      logger.e('Error approving return request: $e');
+      rethrow;
+    }
+  }
+
+  /// Reject return request
+  Future<void> rejectReturnRequest(String requestId, String reason) async {
+    try {
+      await _firestore.collection('return_requests').doc(requestId).update({
+        'status': 'rejected',
+        'rejectionReason': reason,
+        'respondedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i('Return request rejected: $requestId');
+    } catch (e) {
+      logger.e('Error rejecting return request: $e');
+      rethrow;
+    }
+  }
+
+  /// Process refund to wallet
+  Future<void> processRefundToWallet(
+      String requestId, String buyerId, double amount) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Update return request status
+      final requestRef =
+          _firestore.collection('return_requests').doc(requestId);
+      batch.update(requestRef, {
+        'status': 'completed',
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Add refund to buyer's wallet
+      final walletRef = _firestore.collection('wallets').doc(buyerId);
+      batch.set(
+        walletRef,
+        {
+          'userId': buyerId,
+          'balance': FieldValue.increment(amount),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      // Create wallet transaction
+      final transactionRef = _firestore.collection('wallet_transactions').doc();
+      batch.set(transactionRef, {
+        'id': transactionRef.id,
+        'userId': buyerId,
+        'type': 'refund',
+        'amount': amount,
+        'description': 'คืนเงินจากการคืนสินค้า',
+        'relatedId': requestId,
+        'status': 'completed',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+      logger.i('Refund processed to wallet: $requestId');
+    } catch (e) {
+      logger.e('Error processing refund: $e');
+      rethrow;
+    }
+  }
+
+  /// Get return request details
+  Future<Map<String, dynamic>?> getReturnRequestDetails(
+      String requestId) async {
+    try {
+      final doc =
+          await _firestore.collection('return_requests').doc(requestId).get();
+      return doc.exists ? doc.data() : null;
+    } catch (e) {
+      logger.e('Error getting return request details: $e');
+      return null;
+    }
+  }
+
+  /// Get pending returns count for seller
+  Future<int> getPendingReturnsCount(String sellerId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('return_requests')
+          .where('sellerId', isEqualTo: sellerId)
+          .where('status', isEqualTo: 'pending')
+          .get();
+
+      return snapshot.size;
+    } catch (e) {
+      logger.e('Error getting pending returns count: $e');
+      return 0;
+    }
+  }
+
+  /// Update return request status
+  Future<void> updateReturnRequestStatus(String requestId, String status,
+      {Map<String, dynamic>? additionalData}) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (additionalData != null) {
+        updates.addAll(additionalData);
+      }
+
+      await _firestore
+          .collection('return_requests')
+          .doc(requestId)
+          .update(updates);
+      logger.i('Return request status updated: $requestId -> $status');
+    } catch (e) {
+      logger.e('Error updating return request status: $e');
+      rethrow;
+    }
+  }
+
+  /// Add tracking number to return request
+  Future<void> addReturnTrackingNumber(
+      String requestId, String trackingNumber) async {
+    try {
+      await _firestore.collection('return_requests').doc(requestId).update({
+        'trackingNumber': trackingNumber,
+        'status': 'shipped',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i('Tracking number added: $requestId');
+    } catch (e) {
+      logger.e('Error adding tracking number: $e');
+      rethrow;
+    }
+  }
+
+  /// Confirm received return product
+  Future<void> confirmReturnReceived(String requestId,
+      {String? sellerNote}) async {
+    try {
+      final updates = {
+        'status': 'received',
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (sellerNote != null) {
+        updates['sellerNote'] = sellerNote;
+      }
+
+      await _firestore
+          .collection('return_requests')
+          .doc(requestId)
+          .update(updates);
+      logger.i('Return confirmed received: $requestId');
+    } catch (e) {
+      logger.e('Error confirming return received: $e');
+      rethrow;
+    }
+  }
+
+  /// Process full refund (update request + wallet + transaction)
+  Future<void> processFullRefund(
+      String requestId, String buyerId, double amount,
+      {String? note}) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Update return request
+      final requestRef =
+          _firestore.collection('return_requests').doc(requestId);
+      batch.update(requestRef, {
+        'status': 'refunded',
+        'refundedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        if (note != null) 'sellerNote': note,
+      });
+
+      // Update wallet balance
+      final walletRef = _firestore.collection('wallets').doc(buyerId);
+      batch.set(
+          walletRef,
+          {
+            'userId': buyerId,
+            'balance': FieldValue.increment(amount),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
+
+      // Create transaction record
+      final transactionRef = _firestore.collection('wallet_transactions').doc();
+      batch.set(transactionRef, {
+        'id': transactionRef.id,
+        'userId': buyerId,
+        'type': 'refund',
+        'amount': amount,
+        'description': 'คืนเงินจากการคืนสินค้า (Order Return)',
+        'relatedId': requestId,
+        'status': 'completed',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+      logger.i('Full refund processed: $requestId -> ฿$amount');
+    } catch (e) {
+      logger.e('Error processing full refund: $e');
+      rethrow;
+    }
+  }
+
+  /// Cancel return request (by buyer)
+  Future<void> cancelReturnRequest(String requestId, {String? reason}) async {
+    try {
+      await _firestore.collection('return_requests').doc(requestId).update({
+        'status': 'cancelled',
+        if (reason != null) 'cancelReason': reason,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i('Return request cancelled: $requestId');
+    } catch (e) {
+      logger.e('Error cancelling return request: $e');
+      rethrow;
+    }
+  }
+
+  // ===== QUICK STOCK UPDATE =====
+
+  /// Batch update product stock (quick update)
+  Future<void> batchUpdateProductStock(
+      List<Map<String, dynamic>> updates) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (var update in updates) {
+        final productRef =
+            _firestore.collection('products').doc(update['productId']);
+        batch.update(productRef, {
+          'stock': update['stock'],
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+      logger.i('Batch stock update completed: ${updates.length} products');
+    } catch (e) {
+      logger.e('Error batch updating stock: $e');
+      rethrow;
+    }
+  }
+
+  /// Get low stock products for seller
+  Future<List<Map<String, dynamic>>> getLowStockProducts(String sellerId,
+      {int threshold = 10}) async {
+    try {
+      final snapshot = await _firestore
+          .collection('products')
+          .where('sellerId', isEqualTo: sellerId)
+          .where('stock', isLessThan: threshold)
+          .where('stock', isGreaterThan: 0)
+          .orderBy('stock', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      logger.e('Error getting low stock products: $e');
+      return [];
+    }
+  }
+
+  /// Quick update single product stock
+  Future<void> quickUpdateProductStock(String productId, int newStock) async {
+    try {
+      await _firestore.collection('products').doc(productId).update({
+        'stock': newStock,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      logger.i('Quick stock update: $productId -> $newStock');
+    } catch (e) {
+      logger.e('Error quick updating stock: $e');
       rethrow;
     }
   }

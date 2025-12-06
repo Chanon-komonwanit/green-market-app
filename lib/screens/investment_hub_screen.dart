@@ -9,6 +9,7 @@ import 'package:green_market/screens/investment_project_list_screen.dart';
 import 'package:green_market/screens/submit_investment_project_screen.dart';
 import 'package:green_market/screens/investment/p2p_lending_coming_soon_screen.dart';
 import 'package:green_market/screens/investment/esg_funds_coming_soon_screen.dart';
+import 'package:green_market/screens/investment_notifications_screen.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -39,6 +40,21 @@ class InvestmentHubScreen extends StatelessWidget {
         backgroundColor: AppColors.primaryTeal,
         iconTheme: const IconThemeData(color: AppColors.white),
         elevation: 0,
+        actions: [
+          // ปุ่มแจ้งเตือนการลงทุน
+          IconButton(
+            icon: Icon(Icons.notifications_outlined, color: Colors.white),
+            tooltip: 'การแจ้งเตือนการลงทุน',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvestmentNotificationsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(

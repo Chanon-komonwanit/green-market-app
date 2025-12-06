@@ -12,6 +12,7 @@ import 'package:green_market/models/product.dart';
 import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/screens/seller/add_product_screen.dart';
 import 'package:green_market/screens/seller/edit_product_screen.dart';
+import 'package:green_market/screens/seller/product_variation_management_screen.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 
 /// Professional Product Management Screen
@@ -2486,6 +2487,18 @@ class _ProfessionalProductManagementState
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
+                        _buildQuickActionButton(Icons.tune, 'ตัวเลือก', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductVariationManagementScreen(
+                                productId: product.id,
+                                productName: product.name,
+                              ),
+                            ),
+                          );
+                        }),
                         _buildQuickActionButton(Icons.edit, 'แก้ไข', () {
                           Navigator.push(
                             context,
@@ -2494,9 +2507,6 @@ class _ProfessionalProductManagementState
                                   EditProductScreen(product: product),
                             ),
                           ).then((_) => _refreshData());
-                        }),
-                        _buildQuickActionButton(Icons.copy, 'คัดลอก', () {
-                          _duplicateProduct(product);
                         }),
                         _buildQuickActionButton(Icons.bar_chart, 'สถิติ', () {
                           _showProductAnalytics(product);
@@ -6230,7 +6240,7 @@ class _ProfessionalProductManagementState
     );
   }
 
-  void _duplicateProduct(Product product) {
+  void _duplicateProduct(Product product) async {
     Navigator.push(
       context,
       MaterialPageRoute(

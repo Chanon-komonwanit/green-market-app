@@ -7,6 +7,7 @@ import '../utils/constants.dart';
 import 'create_activity_screen.dart';
 import 'activity_list_screen.dart';
 import 'admin_approve_activities_screen.dart';
+import 'activity_notifications_screen.dart';
 
 class SustainableActivitiesHubScreen extends StatefulWidget {
   const SustainableActivitiesHubScreen({super.key});
@@ -221,6 +222,19 @@ class _SustainableActivitiesHubScreenState
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          // ปุ่มแจ้งเตือนกิจกรรม
+          IconButton(
+            icon: Icon(Icons.notifications_outlined, color: Colors.white),
+            tooltip: 'การแจ้งเตือนกิจกรรม',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ActivityNotificationsScreen(),
+                ),
+              );
+            },
+          ),
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings, color: Colors.white),

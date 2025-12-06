@@ -10,7 +10,7 @@ import 'package:green_market/services/firebase_service.dart';
 import 'package:green_market/widgets/product_card.dart';
 import 'package:green_market/screens/product_detail_screen.dart';
 import 'package:green_market/screens/chat_screen.dart';
-import 'package:green_market/screens/seller/shop_customization_screen.dart';
+import 'package:green_market/screens/seller/complete_shop_theme_system.dart';
 
 class ShopeeStyleShopScreen extends StatefulWidget {
   final String sellerId;

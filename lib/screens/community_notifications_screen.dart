@@ -79,7 +79,7 @@ class _CommunityNotificationsScreenState
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(
                     Icons.notifications_none,
                     size: 64,

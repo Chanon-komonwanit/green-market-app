@@ -11,6 +11,7 @@ import 'package:green_market/screens/chat_screen.dart';
 import 'package:green_market/screens/seller_shop_screen.dart';
 // ↑ ใช้ไฟล์นี้เพราะมันเป็น wrapper ที่จะไปเรียก ShopeeStyleShopScreen
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/services/product_view_tracking_service.dart';
 import 'package:green_market/utils/constants.dart';
 // import 'package:green_market/utils/app_text_styles.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +27,34 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final PageController _pageController = PageController();
+  final ProductViewTrackingService _trackingService =
+      ProductViewTrackingService();
   int _currentImageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // บันทึกการเข้าชมสินค้า
+    _trackProductView();
+  }
+
+  Future<void> _trackProductView() async {
+    try {
+      await _trackingService.trackProductView(
+        productId: widget.product.id,
+        sellerId: widget.product.sellerId,
+        source: ViewSource.direct, // หรือจะส่งมาจาก parameter ก็ได้
+        additionalData: {
+          'productName': widget.product.name,
+          'category': widget.product.category,
+          'price': widget.product.price,
+        },
+      );
+    } catch (e) {
+      print('Error tracking product view: $e');
+    }
+  }
+
   Widget _buildEcoScoreIndicator(EcoLevel level, BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
