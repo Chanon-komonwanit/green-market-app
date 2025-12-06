@@ -189,7 +189,7 @@ class _ShopeeStyleShopScreenState extends State<ShopeeStyleShopScreen>
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      ShopCustomizationScreen(sellerId: widget.sellerId),
+                      CompleteShopThemeSystem(sellerId: widget.sellerId),
                 ),
               ).then((_) => _loadShopData()); // รีเฟรชหลังจากแก้ไข
             },
@@ -317,7 +317,7 @@ class _ShopeeStyleShopScreenState extends State<ShopeeStyleShopScreen>
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        ShopCustomizationScreen(sellerId: widget.sellerId),
+                        CompleteShopThemeSystem(sellerId: widget.sellerId),
                   ),
                 ).then((_) => _loadShopData());
               },
@@ -547,7 +547,7 @@ class _ShopeeStyleShopScreenState extends State<ShopeeStyleShopScreen>
           context,
           MaterialPageRoute(
             builder: (context) =>
-                ShopCustomizationScreen(sellerId: widget.sellerId),
+                CompleteShopThemeSystem(sellerId: widget.sellerId),
           ),
         ).then((_) => _loadShopData());
       },

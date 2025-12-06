@@ -510,14 +510,3 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
     }
   }
 }
-        return {
-          'accuracy': total > 0 ? (points / total).toStringAsFixed(1) : '0',
-          'totalAnalyzed': total,
-        };
-      }
-    } catch (e) {
-      print('Error getting AI stats: $e');
-    }
-    return {'accuracy': '0', 'totalAnalyzed': 0};
-  }
-}

@@ -947,11 +947,6 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
     String decision,
     String feedback,
   ) async {
-    final firebaseService = Provider.of<FirebaseService>(
-      context,
-      listen: false,
-    );
-
     await FirebaseFirestore.instance
         .collection('products')
         .doc(product.id)

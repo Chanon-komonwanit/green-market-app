@@ -172,12 +172,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _analyzeWithAI() async {
     // 🔍 ตรวจสอบว่า AI เปิดใช้งานหรือไม่
     final aiSettings = await _aiService.getAISettings();
-    
+
     if (!aiSettings.canUseAI()) {
       if (!aiSettings.aiEnabled) {
-        _showSnackBar('⚠️ ระบบ AI ถูกปิดชั่วคราว กรุณาติดต่อทีมงาน', isError: true);
+        _showSnackBar('⚠️ ระบบ AI ถูกปิดชั่วคราว กรุณาติดต่อทีมงาน',
+            isError: true);
       } else {
-        _showSnackBar('⚠️ ระบบ AI ถึงขีดจำกัดการใช้งานวันนี้ (${aiSettings.dailyLimit} ครั้ง)', isError: true);
+        _showSnackBar(
+            '⚠️ ระบบ AI ถึงขีดจำกัดการใช้งานวันนี้ (${aiSettings.dailyLimit} ครั้ง)',
+            isError: true);
       }
       return;
     }

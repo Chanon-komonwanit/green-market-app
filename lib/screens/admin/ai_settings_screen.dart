@@ -21,7 +21,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _apiKeyController = TextEditingController();
   final _dailyLimitController = TextEditingController();
   final _minConfidenceController = TextEditingController();
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   AISettings? _currentSettings;
@@ -70,16 +70,17 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
   Future<void> _toggleAI(bool enabled) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final adminId = authProvider.currentUser?.uid ?? '';
+    final adminId = authProvider.user?.uid ?? '';
 
     try {
       await _aiService.toggleAI(enabled, adminId);
       await _loadSettings();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(enabled ? '✅ เปิดใช้งาน AI สำเร็จ' : '⛔ ปิดใช้งาน AI สำเร็จ'),
+            content: Text(
+                enabled ? '✅ เปิดใช้งาน AI สำเร็จ' : '⛔ ปิดใช้งาน AI สำเร็จ'),
             backgroundColor: enabled ? Colors.green : Colors.orange,
           ),
         );
@@ -100,7 +101,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final adminId = authProvider.currentUser?.uid ?? '';
+      final adminId = authProvider.user?.uid ?? '';
 
       final updatedSettings = _currentSettings!.copyWith(
         apiKey: _apiKeyController.text.trim(),
@@ -176,7 +177,9 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                     Row(
                       children: [
                         Icon(
-                          settings.aiEnabled ? Icons.check_circle : Icons.cancel,
+                          settings.aiEnabled
+                              ? Icons.check_circle
+                              : Icons.cancel,
                           color: settings.aiEnabled ? Colors.green : Colors.red,
                           size: 32,
                         ),
@@ -194,7 +197,9 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                               Text(
                                 settings.aiEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
                                 style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: settings.aiEnabled ? Colors.green : Colors.red,
+                                  color: settings.aiEnabled
+                                      ? Colors.green
+                                      : Colors.red,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -209,7 +214,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       ],
                     ),
                     const Divider(height: 32),
-                    
+
                     // Usage Stats
                     Text(
                       'การใช้งานวันนี้',
@@ -218,17 +223,19 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     LinearProgressIndicator(
                       value: usage['usagePercentage'] / 100,
                       backgroundColor: Colors.grey[200],
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        usage['usagePercentage'] > 80 ? Colors.red : Colors.green,
+                        usage['usagePercentage'] > 80
+                            ? Colors.red
+                            : Colors.green,
                       ),
                       minHeight: 8,
                     ),
                     const SizedBox(height: 8),
-                    
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -240,7 +247,9 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                           '${usage['usagePercentage'].toStringAsFixed(1)}%',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: usage['usagePercentage'] > 80 ? Colors.red : Colors.green,
+                            color: usage['usagePercentage'] > 80
+                                ? Colors.red
+                                : Colors.green,
                           ),
                         ),
                       ],
@@ -268,7 +277,8 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.analytics, color: Colors.blue, size: 28),
+                        const Icon(Icons.analytics,
+                            color: Colors.blue, size: 28),
                         const SizedBox(width: 12),
                         Text(
                           'ความแม่นยำของ AI',
@@ -279,14 +289,14 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildStatItem(
                           icon: Icons.assessment,
                           label: 'ความแม่นยำ',
-                          value: '${accuracy['accuracy']?.toStringAsFixed(1) ?? '0.0'}%',
+                          value:
+                              '${accuracy['accuracy']?.toStringAsFixed(1) ?? '0.0'}%',
                           color: Colors.blue,
                         ),
                         _buildStatItem(
@@ -318,7 +328,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
                     TextField(
                       controller: _apiKeyController,
                       decoration: const InputDecoration(
@@ -337,9 +346,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
-                    
                     const SizedBox(height: 20),
-                    
                     TextField(
                       controller: _dailyLimitController,
                       decoration: const InputDecoration(
@@ -359,9 +366,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                         color: Colors.grey[600],
                       ),
                     ),
-                    
                     const SizedBox(height: 20),
-                    
                     TextField(
                       controller: _minConfidenceController,
                       decoration: const InputDecoration(
@@ -374,12 +379,11 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
-                    
                     const SizedBox(height: 20),
-                    
                     SwitchListTile(
                       title: const Text('Auto-approve High Confidence'),
-                      subtitle: const Text('อนุมัติอัตโนมัติเมื่อ AI มั่นใจสูง'),
+                      subtitle:
+                          const Text('อนุมัติอัตโนมัติเมื่อ AI มั่นใจสูง'),
                       value: settings.autoApproveHighConfidence,
                       onChanged: (value) {
                         setState(() {

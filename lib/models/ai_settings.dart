@@ -36,7 +36,9 @@ class AISettings {
       'autoApproveHighConfidence': autoApproveHighConfidence,
       'minConfidenceScore': minConfidenceScore,
       'apiKey': apiKey,
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
+          : FieldValue.serverTimestamp(),
       'updatedBy': updatedBy,
     };
   }
@@ -46,7 +48,8 @@ class AISettings {
       aiEnabled: map['aiEnabled'] ?? false,
       dailyLimit: map['dailyLimit'] ?? 1500,
       currentUsage: map['currentUsage'] ?? 0,
-      lastResetDate: (map['lastResetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastResetDate:
+          (map['lastResetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       autoApproveHighConfidence: map['autoApproveHighConfidence'] ?? false,
       minConfidenceScore: map['minConfidenceScore'] ?? 80,
       apiKey: map['apiKey'] ?? '',
@@ -74,9 +77,10 @@ class AISettings {
 
     // ตรวจสอบว่าต้อง reset หรือไม่ (เปลี่ยนวันแล้ว)
     final now = DateTime.now();
-    final resetDate = DateTime(lastResetDate.year, lastResetDate.month, lastResetDate.day);
+    final resetDate =
+        DateTime(lastResetDate.year, lastResetDate.month, lastResetDate.day);
     final today = DateTime(now.year, now.month, now.day);
-    
+
     // ถ้าเปลี่ยนวันแล้ว ควร reset (จะ reset ใน service)
     if (today.isAfter(resetDate)) return true;
 
@@ -111,7 +115,8 @@ class AISettings {
       dailyLimit: dailyLimit ?? this.dailyLimit,
       currentUsage: currentUsage ?? this.currentUsage,
       lastResetDate: lastResetDate ?? this.lastResetDate,
-      autoApproveHighConfidence: autoApproveHighConfidence ?? this.autoApproveHighConfidence,
+      autoApproveHighConfidence:
+          autoApproveHighConfidence ?? this.autoApproveHighConfidence,
       minConfidenceScore: minConfidenceScore ?? this.minConfidenceScore,
       apiKey: apiKey ?? this.apiKey,
       updatedAt: updatedAt ?? this.updatedAt,

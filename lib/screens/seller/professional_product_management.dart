@@ -6240,34 +6240,6 @@ class _ProfessionalProductManagementState
     );
   }
 
-  void _duplicateProduct(Product product) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProductScreen(
-          product: Product(
-            id: '', // ใหม่
-            sellerId: product.sellerId,
-            name: '${product.name} (สำเนา)',
-            description: product.description,
-            price: product.price,
-            categoryId: product.categoryId,
-            categoryName: product.categoryName,
-            imageUrls: product.imageUrls,
-            stock: 0, // เริ่มต้นด้วยสต็อก 0
-            isActive: false, // เริ่มต้นปิด
-            ecoScore: product.ecoScore,
-            materialDescription: product.materialDescription,
-            ecoJustification: product.ecoJustification,
-            status: 'pending_approval',
-            createdAt: null,
-            updatedAt: null,
-          ),
-        ),
-      ),
-    ).then((_) => _refreshData());
-  }
-
   // Bulk operations methods
   Future<void> _applyBulkPriceUpdate() async {
     if (_selectedProductsList.isEmpty) return;
