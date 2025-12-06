@@ -18,7 +18,7 @@ class _AdvancedStockManagementScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   List<ProductStock> _products = [];
   bool _isLoading = true;
@@ -31,8 +31,11 @@ class _AdvancedStockManagementScreenState
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadProducts();
-    _loadSettings();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadProducts();
+      _loadSettings();
+    }
   }
 
   @override
@@ -44,7 +47,7 @@ class _AdvancedStockManagementScreenState
   Future<void> _loadSettings() async {
     try {
       final doc =
-          await _firestore.collection('seller_settings').doc(sellerId).get();
+          await _firestore.collection('seller_settings').doc(_sellerId).get();
       if (doc.exists) {
         final data = doc.data()!;
         setState(() {
@@ -59,7 +62,7 @@ class _AdvancedStockManagementScreenState
 
   Future<void> _saveSettings() async {
     try {
-      await _firestore.collection('seller_settings').doc(sellerId).set({
+      await _firestore.collection('seller_settings').doc(_sellerId).set({
         'lowStockThreshold': _lowStockThreshold,
         'autoStockAlert': _autoAlertEnabled,
       }, SetOptions(merge: true));
@@ -86,7 +89,7 @@ class _AdvancedStockManagementScreenState
     try {
       final snapshot = await _firestore
           .collection('products')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .orderBy('stock', descending: false)
           .get();
 
@@ -140,7 +143,7 @@ class _AdvancedStockManagementScreenState
       // Log stock change
       await _firestore.collection('stock_history').add({
         'productId': product.id,
-        'sellerId': sellerId,
+        'sellerId': _sellerId,
         'oldStock': product.stock,
         'newStock': newStock,
         'change': newStock - product.stock,

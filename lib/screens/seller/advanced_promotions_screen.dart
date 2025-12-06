@@ -18,7 +18,7 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   List<Map<String, dynamic>> _promotions = [];
   bool _isLoading = true;
@@ -27,7 +27,10 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadPromotions();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadPromotions();
+    }
   }
 
   @override
@@ -41,7 +44,7 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
     try {
       final snapshot = await _firestore
           .collection('advanced_promotions')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -681,7 +684,7 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
             ElevatedButton(
               onPressed: () async {
                 await _firestore.collection('advanced_promotions').add({
-                  'sellerId': sellerId,
+                  'sellerId': _sellerId,
                   'type': 'flash_sale',
                   'name': nameController.text,
                   'discount': double.tryParse(discountController.text) ?? 0,
@@ -752,7 +755,7 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
           ElevatedButton(
             onPressed: () async {
               await _firestore.collection('advanced_promotions').add({
-                'sellerId': sellerId,
+                'sellerId': _sellerId,
                 'type': 'bundle',
                 'name': nameController.text,
                 'bundlePrice': double.tryParse(priceController.text) ?? 0,
@@ -837,7 +840,7 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
           ElevatedButton(
             onPressed: () async {
               await _firestore.collection('advanced_promotions').add({
-                'sellerId': sellerId,
+                'sellerId': _sellerId,
                 'type': 'buy_x_get_y',
                 'name': nameController.text,
                 'buyQuantity': int.tryParse(buyController.text) ?? 2,

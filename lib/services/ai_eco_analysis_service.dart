@@ -97,7 +97,7 @@ class AIEcoAnalysisService {
     try {
       // 🔍 ตรวจสอบว่า AI เปิดใช้งานหรือไม่
       final settings = await getAISettings();
-      
+
       if (!settings.canUseAI()) {
         print('⚠️ AI ถูกปิดใช้งานหรือเกิน daily limit');
         return _fallbackAnalysis(data);
@@ -177,7 +177,7 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
   Future<String> _callGeminiAPI(String prompt, String apiKey) async {
     // ใช้ API key จาก settings แทน hardcoded
     final effectiveApiKey = apiKey.isNotEmpty ? apiKey : _geminiApiKey;
-    
+
     final response = await http.post(
       Uri.parse('$_geminiApiUrl?key=$effectiveApiKey'),
       headers: {'Content-Type': 'application/json'},
@@ -397,24 +397,23 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
   }
 
   // ================== AI SETTINGS MANAGEMENT ==================
-  
+
   /// ดึงการตั้งค่า AI
   Future<AISettings> getAISettings() async {
     try {
-      final doc = await _firestore
-          .collection('app_settings')
-          .doc('ai_config')
-          .get();
+      final doc =
+          await _firestore.collection('app_settings').doc('ai_config').get();
 
       if (doc.exists && doc.data() != null) {
         final settings = AISettings.fromMap(doc.data()!);
-        
+
         // ตรวจสอบว่าต้อง reset usage หรือไม่
         final now = DateTime.now();
         final lastReset = settings.lastResetDate;
         final today = DateTime(now.year, now.month, now.day);
-        final resetDate = DateTime(lastReset.year, lastReset.month, lastReset.day);
-        
+        final resetDate =
+            DateTime(lastReset.year, lastReset.month, lastReset.day);
+
         if (today.isAfter(resetDate)) {
           // Reset usage เพราะเปลี่ยนวันแล้ว
           final resetSettings = settings.copyWith(
@@ -424,7 +423,7 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
           await updateAISettings(resetSettings);
           return resetSettings;
         }
-        
+
         return settings;
       } else {
         // สร้างค่าเริ่มต้น
@@ -474,10 +473,7 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
   /// เพิ่ม usage count
   Future<void> _incrementUsage() async {
     try {
-      await _firestore
-          .collection('app_settings')
-          .doc('ai_config')
-          .update({
+      await _firestore.collection('app_settings').doc('ai_config').update({
         'currentUsage': FieldValue.increment(1),
       });
     } catch (e) {

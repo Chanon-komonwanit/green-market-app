@@ -55,6 +55,7 @@ import 'package:green_market/screens/hashtag_feed_screen.dart';
 import 'package:green_market/screens/saved_posts_screen.dart';
 import 'package:green_market/screens/admin/ai_product_review_screen.dart';
 import 'package:green_market/screens/admin/ai_settings_screen.dart';
+import 'package:green_market/screens/seller/ultimate_shop_theme_system.dart';
 
 // Models
 import 'package:green_market/models/order.dart';
@@ -436,6 +437,17 @@ class MyApp extends StatelessWidget {
                     return MaterialPageRoute(
                       builder: (_) => const AISettingsScreen(),
                     );
+
+                  case '/seller/ultimate-themes':
+                    final args = settings.arguments as Map<String, dynamic>?;
+                    final sellerId = args?['sellerId'] as String?;
+                    if (sellerId != null) {
+                      return MaterialPageRoute(
+                        builder: (_) =>
+                            UltimateShopThemeSystem(sellerId: sellerId),
+                      );
+                    }
+                    return null;
 
                   default:
                     // Route not found - return null to use onUnknownRoute

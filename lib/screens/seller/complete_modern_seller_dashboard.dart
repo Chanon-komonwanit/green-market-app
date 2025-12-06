@@ -17,6 +17,7 @@ import 'package:green_market/screens/seller/enhanced_shipping_management_screen.
 import 'package:green_market/screens/seller/wallet_screen.dart';
 import 'package:green_market/screens/seller/shop_analytics_screen.dart';
 import 'package:green_market/screens/seller/complete_shop_theme_system.dart';
+import 'package:green_market/screens/seller/ultimate_shop_theme_system.dart';
 import 'package:green_market/screens/seller/advanced_promotions_screen.dart';
 import 'package:green_market/screens/seller/coupon_management_screen.dart';
 import 'package:green_market/screens/seller/preview_my_shop_screen.dart';
@@ -846,7 +847,7 @@ class _CompleteModernSellerDashboardState
       case 16: // รีวิวสินค้า
         return const ReviewManagementScreen();
       case 17: // ตกแต่งร้าน
-        return CompleteShopThemeSystem(sellerId: _sellerId ?? '');
+        return UltimateShopThemeSystem(sellerId: _sellerId ?? '');
       case 18: // ตั้งค่าร้านค้า
         return const ShopSettingsScreen();
       default:

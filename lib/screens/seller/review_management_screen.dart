@@ -16,7 +16,7 @@ class _ReviewManagementScreenState extends State<ReviewManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   List<ReviewData> _reviews = [];
   bool _isLoading = true;
@@ -30,7 +30,10 @@ class _ReviewManagementScreenState extends State<ReviewManagementScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadReviews();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadReviews();
+    }
   }
 
   @override
@@ -45,7 +48,7 @@ class _ReviewManagementScreenState extends State<ReviewManagementScreen>
       // Load all reviews for seller's products
       final productsSnapshot = await _firestore
           .collection('products')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .get();
 
       final productIds = productsSnapshot.docs.map((doc) => doc.id).toList();

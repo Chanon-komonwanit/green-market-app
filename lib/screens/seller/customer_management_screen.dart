@@ -17,7 +17,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   List<CustomerData> _customers = [];
   bool _isLoading = true;
@@ -30,7 +30,10 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadCustomers();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadCustomers();
+    }
   }
 
   @override
@@ -45,7 +48,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
       // โหลดคำสั่งซื้อทั้งหมด
       final ordersSnapshot = await _firestore
           .collection('orders')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .get();
 
       // จัดกลุ่มตาม userId

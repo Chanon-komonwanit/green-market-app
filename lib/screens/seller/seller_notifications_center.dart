@@ -17,7 +17,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   List<NotificationItem> _allNotifications = [];
   bool _isLoading = true;
@@ -27,7 +27,10 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
-    _loadNotifications();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadNotifications();
+    }
   }
 
   @override
@@ -44,7 +47,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       // 1. คำสั่งซื้อใหม่
       final newOrders = await _firestore
           .collection('orders')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .where('status', isEqualTo: 'pending')
           .orderBy('createdAt', descending: true)
           .limit(20)
@@ -67,7 +70,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       // 2. สินค้าใกล้หมด
       final lowStockProducts = await _firestore
           .collection('products')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .where('isActive', isEqualTo: true)
           .get();
 
@@ -90,7 +93,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       // 3. รีวิวใหม่
       final recentReviews = await _firestore
           .collection('reviews')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .orderBy('createdAt', descending: true)
           .limit(10)
           .get();
@@ -116,7 +119,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       final tomorrow = now.add(const Duration(days: 1));
       final expiringPromotions = await _firestore
           .collection('advanced_promotions')
-          .where('sellerId', isEqualTo: sellerId)
+          .where('sellerId', isEqualTo: _sellerId)
           .where('isActive', isEqualTo: true)
           .get();
 

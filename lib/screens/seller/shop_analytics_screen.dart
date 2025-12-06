@@ -17,7 +17,7 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String sellerId = FirebaseAuth.instance.currentUser!.uid;
+  String? _sellerId;
 
   bool _isLoading = true;
   String _selectedPeriod = '7days'; // 7days, 30days, 3months, 12months
@@ -33,7 +33,16 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadAnalytics();
+    _sellerId = FirebaseAuth.instance.currentUser?.uid;
+    if (_sellerId != null) {
+      _loadAnalytics();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      });
+    }
   }
 
   @override
@@ -88,9 +97,10 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
   }
 
   Future<void> _loadSalesData(DateTime startDate) async {
+    if (_sellerId == null) return;
     final ordersSnapshot = await _firestore
         .collection('orders')
-        .where('sellerId', isEqualTo: sellerId)
+        .where('sellerId', isEqualTo: _sellerId)
         .where('createdAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .where('status', whereIn: ['completed', 'delivered']).get();
@@ -130,7 +140,7 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
     // ดึงข้อมูลสินค้าที่ขายดี
     final ordersSnapshot = await _firestore
         .collection('orders')
-        .where('sellerId', isEqualTo: sellerId)
+        .where('sellerId', isEqualTo: _sellerId)
         .where('createdAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .where('status', whereIn: ['completed', 'delivered']).get();
@@ -173,7 +183,7 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
     // ดึงข้อมูลการเข้าชมจากระบบ view tracking
     final viewsSnapshot = await _firestore
         .collection('product_views')
-        .where('sellerId', isEqualTo: sellerId)
+        .where('sellerId', isEqualTo: _sellerId)
         .where('viewedAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .get();
@@ -192,7 +202,7 @@ class _ShopAnalyticsScreenState extends State<ShopAnalyticsScreen>
   Future<void> _loadRecentOrders() async {
     final ordersSnapshot = await _firestore
         .collection('orders')
-        .where('sellerId', isEqualTo: sellerId)
+        .where('sellerId', isEqualTo: _sellerId)
         .orderBy('createdAt', descending: true)
         .limit(10)
         .get();
