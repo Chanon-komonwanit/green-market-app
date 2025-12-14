@@ -4,6 +4,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/eco_coin.dart';
 import '../utils/constants.dart';
 
+// Custom Exceptions for better error handling
+class InsufficientBalanceException implements Exception {
+  final String message;
+  InsufficientBalanceException(this.message);
+  @override
+  String toString() => 'InsufficientBalanceException: $message';
+}
+
+class EcoCoinTransactionException implements Exception {
+  final String message;
+  final dynamic originalError;
+  EcoCoinTransactionException(this.message, [this.originalError]);
+  @override
+  String toString() =>
+      'EcoCoinTransactionException: $message${originalError != null ? ' ($originalError)' : ''}';
+}
+
 class EcoCoinsService {
   static final EcoCoinsService _instance = EcoCoinsService._internal();
   factory EcoCoinsService() => _instance;
@@ -11,6 +28,29 @@ class EcoCoinsService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Configuration constants
+  static const int maxRetries = 3;
+  static const Duration retryDelay = Duration(milliseconds: 500);
+
+  // Retry mechanism for critical operations (available for future use in transaction rollback)
+  Future<T> retryOperation<T>(Future<T> Function() operation,
+      {int retries = maxRetries}) async {
+    int attempts = 0;
+    while (attempts < retries) {
+      try {
+        return await operation();
+      } catch (e) {
+        attempts++;
+        if (attempts >= retries) {
+          throw EcoCoinTransactionException(
+              'Operation failed after $retries attempts', e);
+        }
+        await Future.delayed(retryDelay * attempts); // Exponential backoff
+      }
+    }
+    throw EcoCoinTransactionException('Operation failed');
+  }
 
   // Get current user's Eco Coins balance
   Stream<EcoCoinBalance?> getEcoCoinBalance() {
@@ -75,7 +115,7 @@ class EcoCoinsService {
             .toList());
   }
 
-  // Award coins to user
+  // Award coins to user with enhanced validation
   Future<void> awardCoins({
     required int amount,
     required String source,
@@ -83,88 +123,145 @@ class EcoCoinsService {
     String? orderId,
     EcoCoinTransactionType type = EcoCoinTransactionType.earned,
   }) async {
+    // Enhanced input validation
     final user = _auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
+    if (user == null) {
+      throw Exception('User not authenticated. Please log in to award coins.');
+    }
 
-    final batch = _firestore.batch();
+    if (amount <= 0) {
+      throw ArgumentError('Award amount must be positive. Received: $amount');
+    }
 
-    // สร้าง transaction record
-    final transactionRef = _firestore.collection('eco_coins').doc();
-    final transaction = EcoCoin(
-      id: transactionRef.id,
-      userId: user.uid,
-      amount: amount,
-      type: type,
-      source: source,
-      description: description,
-      orderId: orderId,
-      createdAt: Timestamp.now(),
-      expiredAt: type == EcoCoinTransactionType.earned
-          ? Timestamp.fromDate(DateTime.now()
-              .add(const Duration(days: 365))) // เหลียญหมดอายุใน 1 ปี
-          : null,
-    );
+    if (source.trim().isEmpty) {
+      throw ArgumentError('Source cannot be empty');
+    }
 
-    batch.set(transactionRef, transaction.toMap());
+    // Validate reasonable coin amount (prevent abuse)
+    const maxAwardAmount = 10000; // Maximum coins per transaction
+    if (amount > maxAwardAmount) {
+      throw ArgumentError(
+          'Award amount exceeds maximum allowed ($maxAwardAmount)');
+    }
 
-    // อัพเดท balance
-    final balanceRef = _firestore.collection('eco_coin_balances').doc(user.uid);
-    batch.update(balanceRef, {
-      'availableCoins': FieldValue.increment(amount),
-      'totalCoins': FieldValue.increment(amount),
-      'lifetimeEarned': FieldValue.increment(amount),
-      'lastUpdated': Timestamp.now(),
-    });
+    try {
+      final batch = _firestore.batch();
 
-    await batch.commit();
+      // สร้าง transaction record
+      final transactionRef = _firestore.collection('eco_coins').doc();
+      final transaction = EcoCoin(
+        id: transactionRef.id,
+        userId: user.uid,
+        amount: amount,
+        type: type,
+        source: source,
+        description: description,
+        orderId: orderId,
+        createdAt: Timestamp.now(),
+        expiredAt: type == EcoCoinTransactionType.earned
+            ? Timestamp.fromDate(DateTime.now()
+                .add(const Duration(days: 365))) // เหลียญหมดอายุใน 1 ปี
+            : null,
+      );
+
+      batch.set(transactionRef, transaction.toMap());
+
+      // อัพเดท balance
+      final balanceRef =
+          _firestore.collection('eco_coin_balances').doc(user.uid);
+      batch.update(balanceRef, {
+        'availableCoins': FieldValue.increment(amount),
+        'totalCoins': FieldValue.increment(amount),
+        'lifetimeEarned': FieldValue.increment(amount),
+        'lastUpdated': Timestamp.now(),
+      });
+
+      await batch.commit();
+    } catch (e) {
+      // Log error for debugging
+      print('Error awarding coins: $e');
+      rethrow; // Re-throw to allow caller to handle
+    }
   }
 
-  // Spend coins
+  // Spend coins with enhanced validation and error handling
   Future<bool> spendCoins({
     required int amount,
     required String source,
     String? description,
     String? orderId,
   }) async {
+    // Enhanced input validation
     final user = _auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
+    if (user == null) {
+      throw Exception('User not authenticated. Please log in to spend coins.');
+    }
 
-    // ตรวจสอบว่ามีเหลียญเพียงพอหรือไม่
-    final balanceDoc =
-        await _firestore.collection('eco_coin_balances').doc(user.uid).get();
+    if (amount <= 0) {
+      throw ArgumentError('Spend amount must be positive. Received: $amount');
+    }
 
-    if (!balanceDoc.exists) return false;
+    if (source.trim().isEmpty) {
+      throw ArgumentError('Source cannot be empty');
+    }
 
-    final balance = EcoCoinBalance.fromMap(balanceDoc.data()!, balanceDoc.id);
-    if (balance.availableCoins < amount) return false;
+    // Validate reasonable coin amount
+    const maxSpendAmount = 10000; // Maximum coins per transaction
+    if (amount > maxSpendAmount) {
+      throw ArgumentError(
+          'Spend amount exceeds maximum allowed ($maxSpendAmount)');
+    }
 
-    final batch = _firestore.batch();
+    try {
+      // ตรวจสอบว่ามีเหลียญเพียงพอหรือไม่
+      final balanceDoc =
+          await _firestore.collection('eco_coin_balances').doc(user.uid).get();
 
-    // สร้าง transaction record
-    final transactionRef = _firestore.collection('eco_coins').doc();
-    final transaction = EcoCoin(
-      id: transactionRef.id,
-      userId: user.uid,
-      amount: -amount, // ค่าลบสำหรับการใช้จ่าย
-      type: EcoCoinTransactionType.spent,
-      source: source,
-      description: description,
-      orderId: orderId,
-      createdAt: Timestamp.now(),
-    );
+      if (!balanceDoc.exists) {
+        throw StateError(
+            'User balance not found. Please initialize balance first.');
+      }
 
-    batch.set(transactionRef, transaction.toMap());
+      final balance = EcoCoinBalance.fromMap(balanceDoc.data()!, balanceDoc.id);
 
-    // อัพเดท balance
-    final balanceRef = _firestore.collection('eco_coin_balances').doc(user.uid);
-    batch.update(balanceRef, {
-      'availableCoins': FieldValue.increment(-amount),
-      'lifetimeSpent': FieldValue.increment(amount),
-      'lastUpdated': Timestamp.now(),
-    });
+      // Check sufficient balance
+      if (balance.availableCoins < amount) {
+        return false; // Insufficient balance
+      }
 
-    await batch.commit();
-    return true;
+      final batch = _firestore.batch();
+
+      // สร้าง transaction record
+      final transactionRef = _firestore.collection('eco_coins').doc();
+      final transaction = EcoCoin(
+        id: transactionRef.id,
+        userId: user.uid,
+        amount: -amount, // ค่าลบสำหรับการใช้จ่าย
+        type: EcoCoinTransactionType.spent,
+        source: source,
+        description: description,
+        orderId: orderId,
+        createdAt: Timestamp.now(),
+      );
+
+      batch.set(transactionRef, transaction.toMap());
+
+      // อัพเดท balance
+      final balanceRef =
+          _firestore.collection('eco_coin_balances').doc(user.uid);
+      batch.update(balanceRef, {
+        'availableCoins': FieldValue.increment(-amount),
+        'lifetimeSpent': FieldValue.increment(amount),
+        'lastUpdated': Timestamp.now(),
+      });
+
+      await batch.commit();
+      return true;
+    } catch (e) {
+      // Log error for debugging
+      print('Error spending coins: $e');
+      rethrow; // Re-throw to allow caller to handle
+    }
   }
 
   // Create initial balance for new user

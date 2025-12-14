@@ -152,22 +152,24 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
         final data = doc.data();
         final unreadMap = data['unreadCount'] as Map<String, dynamic>?;
         final unreadCount = unreadMap?[_sellerId] as int? ?? 0;
-        
+
         if (unreadCount > 0) {
           final participants = data['participants'] as List;
           final otherUserId = participants.firstWhere(
             (p) => p != _sellerId,
             orElse: () => '',
           );
-          final participantNames = data['participantNames'] as Map<String, dynamic>?;
+          final participantNames =
+              data['participantNames'] as Map<String, dynamic>?;
           final otherUserName = participantNames?[otherUserId] ?? 'ลูกค้า';
-          
+
           notifications.add(NotificationItem(
             id: doc.id,
             type: NotificationType.newMessage,
             title: '💬 ข้อความใหม่จาก $otherUserName',
             message: data['lastMessage'] ?? 'มีข้อความใหม่',
-            timestamp: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
+            timestamp: (data['lastMessageTime'] as Timestamp?)?.toDate() ??
+                DateTime.now(),
             isRead: false,
             actionData: {
               'roomId': doc.id,
@@ -202,7 +204,7 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       notification.isRead = true;
       _unreadCount = _allNotifications.where((n) => !n.isRead).length;
     });
-    
+
     // Persist read status to Firestore
     try {
       await _firestore
@@ -221,14 +223,13 @@ class _SellerNotificationCenterState extends State<SellerNotificationCenter>
       }
       _unreadCount = 0;
     });
-    
+
     // Persist all read statuses to Firestore
     try {
       final batch = _firestore.batch();
       for (var notification in _allNotifications) {
-        final docRef = _firestore
-            .collection('seller_notifications')
-            .doc(notification.id);
+        final docRef =
+            _firestore.collection('seller_notifications').doc(notification.id);
         batch.update(docRef, {'isRead': true});
       }
       await batch.commit();

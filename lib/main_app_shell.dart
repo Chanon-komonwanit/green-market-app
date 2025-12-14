@@ -10,15 +10,14 @@ import 'package:green_market/providers/user_provider.dart';
 import 'package:green_market/theme/app_colors.dart' as colors;
 import 'package:green_market/providers/app_config_provider.dart';
 import 'package:green_market/screens/admin/complete_admin_panel_screen.dart';
-import 'package:green_market/screens/home_screen_beautiful.dart'; // ใช้ home_screen_beautiful.dart
-import 'screens/my_home_screen.dart'; // My Home Screen - ใช้ relative path
-import 'package:green_market/screens/green_world_screen.dart';
+import 'package:green_market/screens/home_screen_beautiful.dart'; // 🛒 Marketplace (ตลาด)
+import 'screens/my_home_screen.dart'; // 🏠 My Home (หน้าส่วนตัว: Cart, Chat, Orders)
+import 'package:green_market/screens/green_world_hub_screen.dart';
 import 'package:green_market/screens/seller/complete_modern_seller_dashboard.dart';
 import 'package:green_market/screens/green_community_screen.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/services/notification_service.dart';
-import 'package:green_market/widgets/green_world_icon.dart';
 
 class MainAppShell extends StatefulWidget {
   const MainAppShell({super.key});
@@ -90,10 +89,9 @@ class _MainAppShellState extends State<MainAppShell> {
         context.read<UserProvider>(); // ใช้ read แทน listen: false
 
     List<Widget> pages = [
-      const HomeScreen(), // 0. ตลาด (ทุกคน) - จาก home_screen_beautiful.dart
-      const MyHomeScreen(), // 1. My Home (ทุกคน - รวม Cart, Chat, Orders, Notifications) - ใช้ MyHomeScreen เดิม
-      const GreenCommunityScreen(), // 2. ชุมชนสีเขียว
-      const GreenWorldScreen(), // 3. โลกสีเขียว
+      const MarketplaceScreen(), // 0. 🛒 ตลาด - สินค้าทั้งหมด + ไอคอนโปรไฟล์ที่กดเข้า My Home
+      const GreenCommunityScreen(), // 1. 🌱 ชุมชนสีเขียว - โพสต์, กลุ่ม, กิจกรรม
+      const GreenWorldHubScreen(), // 2. 🌍 โลกสีเขียว - Hub พร้อม 4 ส่วน: Activities, Investment, Carbon Credit, Knowledge
     ];
 
     // เพิ่มแท็บสำหรับผู้ขายที่อนุมัติแล้ว
@@ -124,7 +122,6 @@ class _MainAppShellState extends State<MainAppShell> {
 
     List<String> titles = [
       'ตลาด',
-      'My Home',
       'ชุมชนสีเขียว',
       'เปิดโลกสีเขียว',
     ];
@@ -152,16 +149,12 @@ class _MainAppShellState extends State<MainAppShell> {
           activeIcon: Icon(Icons.store),
           label: 'ตลาด'),
       const BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'My Home'),
-      const BottomNavigationBarItem(
           icon: Icon(Icons.groups_3_rounded, size: 28),
           activeIcon: Icon(Icons.groups_3_rounded, size: 32),
           label: 'ชุมชน'),
       const BottomNavigationBarItem(
-          icon: Icon(Icons.public, color: Colors.green, size: 28),
-          activeIcon: Icon(Icons.public, color: Colors.green, size: 32),
+          icon: Icon(Icons.public, size: 28),
+          activeIcon: Icon(Icons.public, size: 32),
           label: 'เปิดโลกสีเขียว'),
     ];
     if (userProvider.isSeller) {

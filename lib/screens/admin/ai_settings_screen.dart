@@ -94,6 +94,76 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     }
   }
 
+  Future<void> _testAPIKey() async {
+    final apiKey = _apiKeyController.text.trim();
+
+    if (apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ กรุณากรอก API Key')),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('กำลังทดสอบ API Key...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Test API with simple prompt
+      final testData = ProductEcoData(
+        productName: 'Test Product',
+        description: 'Test',
+        category: 'Test',
+        materials: ['bamboo'],
+        certificates: [],
+        manufacturingProcess: 'manual',
+        packagingType: 'recyclable',
+        wasteManagement: 'recyclable',
+        sellerClaimedScore: 50,
+        sellerJustification: 'test',
+      );
+
+      // This will test the API key
+      await _aiService.analyzeProduct(testData);
+
+      Navigator.pop(context); // Close loading
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ API Key ใช้งานได้!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context); // Close loading
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ API Key ไม่ถูกต้อง: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   Future<void> _saveSettings() async {
     if (_currentSettings == null) return;
 
@@ -330,20 +400,55 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _apiKeyController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Gemini API Key',
-                        hintText: 'กรอก API Key จาก Google AI Studio',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.vpn_key),
+                        hintText: 'AIzaSy...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.vpn_key),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.check_circle,
+                              color: Colors.green),
+                          onPressed: _testAPIKey,
+                          tooltip: 'ทดสอบ API Key',
+                        ),
                       ),
                       obscureText: true,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'รับ API Key ฟรีที่: https://makersuite.google.com/app/apikey',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.blue,
-                        fontStyle: FontStyle.italic,
+                    InkWell(
+                      onTap: () {
+                        // Open browser
+                        // launch('https://makersuite.google.com/app/apikey');
+                      },
+                      child: Text(
+                        '🔗 รับ API Key ฟรีที่: https://makersuite.google.com/app/apikey',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lightbulb,
+                              color: Colors.amber, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'วิธีรับ API Key: เข้า Google AI Studio → Create API Key → Copy',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),

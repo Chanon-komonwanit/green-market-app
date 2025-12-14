@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:green_market/models/product.dart';
+import 'package:green_market/models/ai_settings.dart';
 import 'package:green_market/services/ai_eco_analysis_service.dart';
 import 'package:green_market/services/firebase_service.dart';
+import 'package:green_market/widgets/ai_status_widget.dart';
+import 'package:green_market/screens/admin/ai_settings_screen.dart';
 
 class AIProductReviewScreen extends StatefulWidget {
   const AIProductReviewScreen({super.key});
@@ -16,7 +19,35 @@ class AIProductReviewScreen extends StatefulWidget {
 
 class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
   final AIEcoAnalysisService _aiService = AIEcoAnalysisService();
+  final FirebaseService _firebaseService = FirebaseService();
   String _filterStatus = 'all'; // all, pending, verified, discrepancy
+  AISettings? _aiSettings;
+  bool _isLoadingSettings = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAISettings();
+  }
+
+  Future<void> _loadAISettings() async {
+    try {
+      final settings = await _aiService.getAISettings();
+      if (mounted) {
+        setState(() {
+          _aiSettings = settings;
+          _isLoadingSettings = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading AI settings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSettings = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +56,65 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
         title: const Text('AI Product Review'),
         backgroundColor: Colors.deepPurple,
         actions: [
+          // AI Status Indicator
+          if (!_isLoadingSettings)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _aiSettings?.aiEnabled == true
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _aiSettings?.aiEnabled == true
+                          ? Colors.green
+                          : Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.smart_toy,
+                        size: 16,
+                        color: _aiSettings?.aiEnabled == true
+                            ? Colors.green
+                            : Colors.orange,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _aiSettings?.aiEnabled == true ? 'AI ON' : 'AI OFF',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: _aiSettings?.aiEnabled == true
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'AI Settings',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AISettingsScreen(),
+                ),
+              );
+              _loadAISettings(); // Reload after settings change
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.analytics),
             tooltip: 'AI Statistics',
@@ -108,12 +198,8 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
   }
 
   Widget _buildProductList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('products')
-          .where('aiAnalyzed', isEqualTo: true)
-          .orderBy('aiAnalyzedAt', descending: true)
-          .snapshots(),
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firebaseService.getProductRequests(status: 'pending'),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -134,26 +220,65 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
           );
         }
 
-        final products = snapshot.data!.docs
-            .map((doc) => Product.fromFirestore(doc))
-            .where((product) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'ไม่มีสินค้าที่รอการอนุมัติ',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'สินค้าที่ผู้ขายส่งมาจะแสดงที่นี่',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Filter requests with AI analysis
+        final requests = snapshot.data!.where((request) {
+          final productData = request['productData'] as Map<String, dynamic>?;
+          if (productData == null) return false;
+
+          // Check if AI analyzed
+          final aiAnalyzed = productData['aiAnalyzed'] == true;
+          if (!aiAnalyzed && _filterStatus != 'all') return false;
+
           // Apply filter
           switch (_filterStatus) {
             case 'pending':
-              return product.adminVerified != true;
+              return request['status'] == 'pending' && aiAnalyzed;
             case 'verified':
-              return product.adminVerified == true;
+              return request['status'] == 'approved';
             case 'discrepancy':
-              if (product.aiEcoScore == null) return false;
-              final diff = (product.ecoScore - product.aiEcoScore!).abs();
-              return diff >= 10 && product.adminVerified != true;
+              if (!aiAnalyzed) return false;
+              final aiScore = productData['aiEcoScore'] as int? ?? 0;
+              final sellerScore = productData['ecoScore'] as int? ?? 0;
+              final diff = (sellerScore - aiScore).abs();
+              return diff >= 10 && request['status'] == 'pending';
             case 'all':
             default:
               return true;
           }
         }).toList();
 
-        if (products.isEmpty) {
+        if (requests.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -178,33 +303,25 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: products.length,
+          itemCount: requests.length,
           itemBuilder: (context, index) {
-            return _buildProductCard(products[index]);
+            return _buildProductRequestCard(requests[index]);
           },
         );
       },
     );
   }
 
-  String _getEmptyMessage() {
-    switch (_filterStatus) {
-      case 'pending':
-        return 'ไม่มีสินค้าที่รอตรวจสอบ';
-      case 'verified':
-        return 'ยังไม่มีสินค้าที่ตรวจสอบแล้ว';
-      case 'discrepancy':
-        return 'ไม่มีสินค้าที่มีคะแนนต่างกัน';
-      default:
-        return 'ยังไม่มีสินค้าที่วิเคราะห์ด้วย AI';
-    }
-  }
+  Widget _buildProductRequestCard(Map<String, dynamic> request) {
+    final requestId = request['id'] as String;
+    final productData = request['productData'] as Map<String, dynamic>;
+    final product = Product.fromMap(productData);
 
-  Widget _buildProductCard(Product product) {
-    final aiScore = product.aiEcoScore ?? 0;
+    final aiScore = productData['aiEcoScore'] as int? ?? 0;
     final sellerScore = product.ecoScore;
     final scoreDiff = (sellerScore - aiScore).abs();
     final hasDiscrepancy = scoreDiff >= 10;
+    final aiAnalyzed = productData['aiAnalyzed'] == true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -221,7 +338,74 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with product info
+            // Status Badge
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: aiAnalyzed ? Colors.green[50] : Colors.orange[50],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: aiAnalyzed ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        aiAnalyzed ? Icons.check_circle : Icons.pending,
+                        size: 16,
+                        color: aiAnalyzed ? Colors.green : Colors.orange,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        aiAnalyzed ? 'AI วิเคราะห์แล้ว' : 'รอ AI วิเคราะห์',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: aiAnalyzed ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (hasDiscrepancy && aiAnalyzed)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.orange),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.warning,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'คะแนนต่าง $scoreDiff แต้ม',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Product Info
             Row(
               children: [
                 ClipRRect(
@@ -267,7 +451,7 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'วิเคราะห์: ${_formatDateTime(product.aiAnalyzedAt)}',
+                        'ส่งคำขอ: ${_formatDateTime(request['submittedAt'] as Timestamp?)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -278,96 +462,698 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
                 ),
               ],
             ),
-            const Divider(height: 24),
 
-            // Score Comparison Section
-            _buildScoreComparison(product, sellerScore, aiScore, scoreDiff),
+            if (aiAnalyzed) ...[
+              const Divider(height: 24),
 
-            const SizedBox(height: 16),
+              // Score Comparison
+              _buildScoreComparison(product, sellerScore, aiScore, scoreDiff),
 
-            // AI Reasoning
-            if (product.aiReasoning != null) ...[
-              const Text(
-                'เหตุผลจาก AI:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.purple[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.purple[200]!),
-                ),
-                child: Text(
-                  product.aiReasoning!,
+              const SizedBox(height: 16),
+
+              // AI Reasoning
+              if (productData['aiReasoning'] != null) ...[
+                const Text(
+                  'เหตุผลจาก AI:',
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[800],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // AI Suggestions
-            if (product.aiSuggestions != null &&
-                product.aiSuggestions!.isNotEmpty) ...[
-              const Text(
-                'คำแนะนำจาก AI:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.purple[200]!),
+                  ),
+                  child: Text(
+                    productData['aiReasoning'] as String,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[800],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              ...product.aiSuggestions!.map((suggestion) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('• ', style: TextStyle(fontSize: 16)),
-                      Expanded(
-                        child: Text(
-                          suggestion,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
+                const SizedBox(height: 16),
+              ],
+
+              // AI Suggestions
+              if (productData['aiSuggestions'] != null &&
+                  (productData['aiSuggestions'] as List).isNotEmpty) ...[
+                const Text(
+                  'คำแนะนำจาก AI:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...(productData['aiSuggestions'] as List).map((suggestion) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(fontSize: 16)),
+                        Expanded(
+                          child: Text(
+                            suggestion.toString(),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 16),
-            ],
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+              ],
 
-            // Score Breakdown
-            if (product.aiScoreBreakdown != null) ...[
-              const Text(
-                'รายละเอียดคะแนนจาก AI:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              // Score Breakdown
+              if (productData['aiScoreBreakdown'] != null) ...[
+                const Text(
+                  'รายละเอียดคะแนนจาก AI:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildScoreBreakdown(
+                  Map<String, double>.from(
+                    (productData['aiScoreBreakdown'] as Map).map(
+                      (key, value) => MapEntry(
+                        key.toString(),
+                        (value as num).toDouble(),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Admin Actions or Verified Badge
+              if (productData['adminVerified'] == true)
+                _buildVerifiedBadge(product)
+              else
+                _buildAdminActions(requestId, product, aiScore),
+            ] else ...[
+              const Divider(height: 24),
+
+              // Analyze Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _analyzeProduct(requestId, product),
+                  icon: const Icon(Icons.psychology),
+                  label: const Text('วิเคราะห์ด้วย AI'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(16),
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              _buildScoreBreakdown(product.aiScoreBreakdown!),
-              const SizedBox(height: 16),
             ],
-
-            // Admin Actions
-            if (product.adminVerified != true)
-              _buildAdminActions(product, aiScore)
-            else
-              _buildVerifiedBadge(product),
           ],
         ),
+      ),
+    );
+  }
+
+  // เพิ่ม method สำหรับวิเคราะห์สินค้าด้วย AI
+  Future<void> _analyzeProduct(String requestId, Product product) async {
+    // Check AI settings first
+    final settings = await _aiService.getAISettings();
+
+    if (!settings.aiEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ ระบบ AI ถูกปิดใช้งาน กรุณาเปิดใช้งานก่อน'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!settings.canUseAI()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '⚠️ ใช้งาน AI เกินขีดจำกัดวันนี้ (${settings.currentUsage}/${settings.dailyLimit})',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('กำลังวิเคราะห์สินค้าด้วย AI...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Prepare product data for AI
+      final productEcoData = ProductEcoData(
+        productName: product.name,
+        description: product.description,
+        sellerClaimedScore: product.ecoScore,
+        sellerJustification: product.description,
+        materials: [], // Product model doesn't have materials field
+        certificates: [], // Product model doesn't have certifications field
+        manufacturingProcess: '', // Product model doesn't have this field
+        packagingType: '', // Product model doesn't have this field
+        wasteManagement: '',
+        category: product.category,
+      );
+
+      // Analyze with AI
+      final result = await _aiService.analyzeProduct(productEcoData);
+
+      // Update product request with AI results
+      await FirebaseFirestore.instance
+          .collection('product_requests')
+          .doc(requestId)
+          .update({
+        'productData.aiEcoScore': result.aiEcoScore,
+        'productData.aiReasoning': result.aiReasoning,
+        'productData.aiSuggestions': result.aiSuggestions,
+        'productData.aiScoreBreakdown': result.scoreBreakdown,
+        'productData.aiConfidence': result.confidence,
+        'productData.aiAnalyzed': true,
+        'productData.aiAnalyzedAt': FieldValue.serverTimestamp(),
+      });
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ วิเคราะห์สำเร็จ: ${result.aiEcoScore}/100'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Close loading dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildAdminActions(String requestId, Product product, int aiScore) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          onPressed: () => _approveWithAIScore(requestId, aiScore),
+          icon: const Icon(Icons.check_circle),
+          label: Text('อนุมัติด้วยคะแนน AI ($aiScore/100)'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.all(16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => _approveWithSellerScore(requestId, product.ecoScore),
+          icon: const Icon(Icons.person),
+          label: Text('อนุมัติด้วยคะแนนผู้ขาย (${product.ecoScore}/100)'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.blue,
+            padding: const EdgeInsets.all(16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final customScore = await _showCustomScoreDialog(aiScore);
+            if (customScore != null) {
+              final feedback = await _showFeedbackDialog(null);
+              final confirmed = await _showConfirmDialog(
+                title: 'ยืนยันการอนุมัติ',
+                message: 'อนุมัติสินค้าด้วยคะแนน $customScore/100?',
+                confirmColor: Colors.purple,
+              );
+              if (confirmed) {
+                await _approveWithCustomScore(
+                  requestId,
+                  customScore,
+                  feedback,
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.tune),
+          label: const Text('กำหนดคะแนนเอง'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.purple,
+            padding: const EdgeInsets.all(16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => _rejectProduct(requestId),
+          icon: const Icon(Icons.cancel),
+          label: const Text('ปฏิเสธ'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            padding: const EdgeInsets.all(16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _approveWithCustomScore(
+    String requestId,
+    int customScore,
+    String? feedback,
+  ) async {
+    try {
+      await _firebaseService.approveProductRequest(
+        requestId,
+        ecoScore: customScore,
+      );
+
+      // Update with admin verification info
+      await _updateProductWithVerification(requestId, customScore, feedback);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ อนุมัติสินค้าด้วยคะแนน $customScore/100 สำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _approveWithAIScore(String requestId, int aiScore) async {
+    try {
+      await _firebaseService.approveProductRequest(
+        requestId,
+        ecoScore: aiScore,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ อนุมัติสินค้าด้วยคะแนน AI สำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _approveWithSellerScore(
+      String requestId, int sellerScore) async {
+    try {
+      await _firebaseService.approveProductRequest(
+        requestId,
+        ecoScore: sellerScore,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ อนุมัติสินค้าด้วยคะแนนผู้ขายสำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectProduct(String requestId) async {
+    // Show reason dialog
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ปฏิเสธสินค้า'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('กรุณาระบุเหตุผลในการปฏิเสธ:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'เหตุผล...',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('ปฏิเสธ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _firebaseService.rejectProductRequest(
+          requestId,
+          reasonController.text.trim(),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ ปฏิเสธสินค้าสำเร็จ'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ เกิดข้อผิดพลาด: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+
+    reasonController.dispose();
+  }
+
+  String _formatDateTime(Timestamp? timestamp) {
+    if (timestamp == null) return 'ไม่ระบุ';
+
+    final date = timestamp.toDate();
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) {
+      return 'เมื่อสักครู่';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} นาทีที่แล้ว';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} ชั่วโมงที่แล้ว';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} วันที่แล้ว';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  String _getEmptyMessage() {
+    switch (_filterStatus) {
+      case 'pending':
+        return 'ไม่มีสินค้าที่รอตรวจสอบ';
+      case 'verified':
+        return 'ยังไม่มีสินค้าที่ตรวจสอบแล้ว';
+      case 'discrepancy':
+        return 'ไม่มีสินค้าที่มีคะแนนต่างกัน';
+      default:
+        return 'ยังไม่มีสินค้าที่วิเคราะห์ด้วย AI';
+    }
+  }
+
+  // Helper: Show custom score dialog
+  Future<int?> _showCustomScoreDialog(int currentScore) async {
+    final controller = TextEditingController(text: currentScore.toString());
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('กำหนดคะแนนเอง'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('กรุณาระบุคะแนน Eco Score (0-100):'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'คะแนน 0-100',
+                suffixText: '/100',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final score = int.tryParse(controller.text);
+              if (score != null && score >= 0 && score <= 100) {
+                Navigator.pop(context, score);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('กรุณาระบุคะแนนระหว่าง 0-100'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  // Helper: Show confirm dialog
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    String confirmText = 'ยืนยัน',
+    String cancelText = 'ยกเลิก',
+    Color? confirmColor,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(cancelText),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: confirmColor != null
+                ? ElevatedButton.styleFrom(backgroundColor: confirmColor)
+                : null,
+            child: Text(confirmText),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  // Helper: Show feedback dialog
+  Future<String?> _showFeedbackDialog(String? currentFeedback) async {
+    final controller = TextEditingController(text: currentFeedback ?? '');
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ข้อเสนอแนะสำหรับผู้ขาย'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('กรุณาระบุข้อเสนอแนะหรือเหตุผล:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'ข้อเสนอแนะ...',
+              ),
+              maxLines: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  // Helper: Update product with admin verification
+  Future<void> _updateProductWithVerification(
+    String requestId,
+    int finalScore,
+    String? feedback,
+  ) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('product_requests')
+          .doc(requestId)
+          .update({
+        'productData.adminVerified': true,
+        'productData.adminApprovedScore': finalScore,
+        'productData.adminFeedback': feedback,
+        'productData.adminVerifiedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ บันทึกการตรวจสอบสำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // REMOVED: _buildProductCard - Not used, replaced by _buildProductRequestCard
+
+  Widget _buildVerifiedBadge(Product product) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.verified, color: Colors.green, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ตรวจสอบแล้ว',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+                if (product.adminFeedback != null)
+                  Text(
+                    product.adminFeedback!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                if (product.adminApprovedScore != null)
+                  Text(
+                    'คะแนนสุดท้าย: ${product.adminApprovedScore}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -616,473 +1402,71 @@ class _AIProductReviewScreenState extends State<AIProductReviewScreen> {
     }
   }
 
-  Widget _buildAdminActions(Product product, int aiScore) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _approveWithAIScore(product, aiScore),
-            icon: const Icon(Icons.check_circle),
-            label: const Text('ใช้คะแนน AI'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _approveWithSellerScore(product),
-            icon: const Icon(Icons.person_outline),
-            label: const Text('ใช้คะแนนผู้ขาย'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: () => _showCustomScoreDialog(product),
-          icon: const Icon(Icons.edit),
-          tooltip: 'กำหนดคะแนนเอง',
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.orange[100],
-            foregroundColor: Colors.orange[800],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVerifiedBadge(Product product) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.green[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.verified, color: Colors.green, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ตรวจสอบแล้ว',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                if (product.adminFeedback != null)
-                  Text(
-                    product.adminFeedback!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                if (product.adminApprovedScore != null)
-                  Text(
-                    'คะแนนสุดท้าย: ${product.adminApprovedScore}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _approveWithAIScore(Product product, int aiScore) async {
-    final confirmed = await _showConfirmDialog(
-      'ใช้คะแนน AI',
-      'คุณต้องการใช้คะแนนจาก AI ($aiScore คะแนน) ใช่หรือไม่?',
-    );
-
-    if (!confirmed) return;
-
-    try {
-      final feedback = await _showFeedbackDialog();
-      if (feedback == null) return;
-
-      await _updateProduct(
-        product,
-        aiScore,
-        'ใช้คะแนนจาก AI',
-        feedback,
-      );
-
-      // Learn from admin feedback
-      await _aiService.learnFromAdminFeedback(
-        productId: product.id,
-        adminApprovedScore: aiScore,
-        aiPredictedScore: product.aiEcoScore ?? 0,
-        adminComments: [feedback],
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('อนุมัติคะแนนจาก AI เรียบร้อยแล้ว'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _approveWithSellerScore(Product product) async {
-    final confirmed = await _showConfirmDialog(
-      'ใช้คะแนนผู้ขาย',
-      'คุณต้องการใช้คะแนนจากผู้ขาย (${product.ecoScore} คะแนน) ใช่หรือไม่?',
-    );
-
-    if (!confirmed) return;
-
-    try {
-      final feedback = await _showFeedbackDialog();
-      if (feedback == null) return;
-
-      await _updateProduct(
-        product,
-        product.ecoScore,
-        'ใช้คะแนนจากผู้ขาย',
-        feedback,
-      );
-
-      // Learn from admin feedback
-      await _aiService.learnFromAdminFeedback(
-        productId: product.id,
-        adminApprovedScore: product.ecoScore,
-        aiPredictedScore: product.aiEcoScore ?? 0,
-        adminComments: [feedback],
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('อนุมัติคะแนนจากผู้ขาย เรียบร้อยแล้ว'),
-            backgroundColor: Colors.blue,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _showCustomScoreDialog(Product product) async {
-    final controller = TextEditingController();
-    int? customScore;
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('กำหนดคะแนนเอง'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'คะแนนผู้ขาย: ${product.ecoScore}\n'
-              'คะแนน AI: ${product.aiEcoScore ?? "N/A"}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'คะแนนที่ต้องการกำหนด (0-100)',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                customScore = int.tryParse(value);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (customScore != null &&
-                  customScore! >= 0 &&
-                  customScore! <= 100) {
-                Navigator.pop(context, true);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('กรุณาใส่คะแนนระหว่าง 0-100'),
-                  ),
-                );
-              }
-            },
-            child: const Text('ยืนยัน'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && customScore != null) {
-      final feedback = await _showFeedbackDialog();
-      if (feedback == null) return;
-
-      await _updateProduct(
-        product,
-        customScore!,
-        'กำหนดคะแนนเอง',
-        feedback,
-      );
-
-      // Learn from admin feedback
-      await _aiService.learnFromAdminFeedback(
-        productId: product.id,
-        adminApprovedScore: customScore!,
-        aiPredictedScore: product.aiEcoScore ?? 0,
-        adminComments: [feedback],
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('กำหนดคะแนนเรียบร้อยแล้ว'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<bool> _showConfirmDialog(String title, String message) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('ยืนยัน'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
-  Future<String?> _showFeedbackDialog() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('เพิ่มความคิดเห็น'),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'ความคิดเห็น (ไม่บังคับ)',
-            border: OutlineInputBorder(),
-            hintText: 'เช่น AI วิเคราะห์ถูกต้อง, ผู้ขายให้ข้อมูลไม่ครบ, ฯลฯ',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('ยืนยัน'),
-          ),
-        ],
-      ),
-    );
-    return result ?? '';
-  }
-
-  Future<void> _updateProduct(
-    Product product,
-    int finalScore,
-    String decision,
-    String feedback,
-  ) async {
-    await FirebaseFirestore.instance
-        .collection('products')
-        .doc(product.id)
-        .update({
-      'ecoScore': finalScore,
-      'adminVerified': true,
-      'adminApprovedScore': finalScore,
-      'adminFeedback': '$decision${feedback.isNotEmpty ? ": $feedback" : ""}',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
   Future<void> _showAIStatistics() async {
     try {
-      final stats = await _aiService.getAIAccuracyStats();
+      // Fetch AI analysis statistics from Firestore
+      final statsSnapshot = await FirebaseFirestore.instance
+          .collection('ai_statistics')
+          .doc('overall')
+          .get();
 
       if (!mounted) return;
+
+      final stats = statsSnapshot.data() ?? {};
+      final totalAnalyzed = stats['totalAnalyzed'] ?? 0;
+      final approved = stats['approved'] ?? 0;
+      final rejected = stats['rejected'] ?? 0;
+      final averageScore = stats['averageScore'] ?? 0.0;
+      final accuracyRate = stats['accuracyRate'] ?? 0.0;
 
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.analytics, color: Colors.deepPurple),
+              Icon(Icons.analytics, color: Colors.blue),
               SizedBox(width: 8),
-              Text('AI Statistics'),
+              Text('AI Analysis Statistics'),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildStatRow(
-                  'Total Analyzed',
-                  '${stats['totalAnalyzed'] ?? 0}',
-                  Icons.assessment,
-                ),
-                _buildStatRow(
-                  'Admin Verified',
-                  '${stats['verifiedCount'] ?? 0}',
-                  Icons.verified,
-                ),
-                _buildStatRow(
-                  'Accuracy',
-                  '${(stats['accuracy'] ?? 0).toStringAsFixed(1)}%',
-                  Icons.percent,
-                ),
-                _buildStatRow(
-                  'Avg Score Difference',
-                  '${(stats['avgScoreDifference'] ?? 0).toStringAsFixed(1)}',
-                  Icons.compare_arrows,
-                ),
-                const Divider(height: 24),
-                Text(
-                  'Learning Progress',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: (stats['accuracy'] ?? 0) / 100,
-                    minHeight: 20,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.deepPurple,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatRow('Total Analyzed', totalAnalyzed.toString()),
+              _buildStatRow('Approved', approved.toString()),
+              _buildStatRow('Rejected', rejected.toString()),
+              _buildStatRow('Average Score', averageScore.toStringAsFixed(1)),
+              _buildStatRow('Accuracy Rate',
+                  '${(accuracyRate * 100).toStringAsFixed(1)}%'),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('ปิด'),
+              child: const Text('Close'),
             ),
           ],
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ไม่สามารถโหลดสถิติได้: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error loading statistics: $e')),
       );
     }
   }
 
-  Widget _buildStatRow(String label, String value, IconData icon) {
+  Widget _buildStatRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 20, color: Colors.deepPurple),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
-  }
-
-  String _formatDateTime(Timestamp? timestamp) {
-    if (timestamp == null) return 'N/A';
-    final date = timestamp.toDate();
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} นาทีที่แล้ว';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours} ชั่วโมงที่แล้ว';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays} วันที่แล้ว';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }

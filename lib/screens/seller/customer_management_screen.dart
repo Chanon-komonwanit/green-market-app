@@ -972,19 +972,19 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
   }
 
   // ===== NEW FUNCTIONS =====
-  
+
   Future<void> _openChatWithCustomer(CustomerData customer) async {
     try {
       if (_sellerId == null) return;
-      
+
       // Create or get existing chat room
       final chatRoomsRef = _firestore.collection('chat_rooms');
       final participants = [_sellerId!, customer.userId]..sort();
       final roomId = participants.join('_');
-      
+
       // Check if chat room exists
       final roomDoc = await chatRoomsRef.doc(roomId).get();
-      
+
       if (!roomDoc.exists) {
         // Create new chat room
         await chatRoomsRef.doc(roomId).set({
@@ -1002,7 +1002,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
-      
+
       // Navigate to chat screen
       if (mounted) {
         Navigator.pushNamed(
@@ -1029,7 +1029,7 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
     final offerController = TextEditingController();
     final discountController = TextEditingController();
     String offerType = 'discount'; // discount, freeShipping, bundle
-    
+
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1049,11 +1049,13 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
                   value: offerType,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'discount', child: Text('ส่วนลด')),
-                    DropdownMenuItem(value: 'freeShipping', child: Text('ส่งฟรี')),
+                    DropdownMenuItem(
+                        value: 'freeShipping', child: Text('ส่งฟรี')),
                     DropdownMenuItem(value: 'bundle', child: Text('ชุดสินค้า')),
                     DropdownMenuItem(value: 'points', child: Text('แต้มสะสม')),
                   ],
@@ -1130,7 +1132,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
         'customerName': customer.name,
         'offerType': offerType,
         'message': message,
-        'discountValue': discountValue.isNotEmpty ? int.tryParse(discountValue) : null,
+        'discountValue':
+            discountValue.isNotEmpty ? int.tryParse(discountValue) : null,
         'status': 'sent', // sent, viewed, accepted, rejected
         'createdAt': FieldValue.serverTimestamp(),
         'expiresAt': Timestamp.fromDate(
@@ -1143,9 +1146,8 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen>
         'userId': customer.userId,
         'type': 'special_offer',
         'title': '🎁 ข้อเสนอพิเศษสำหรับคุณ',
-        'message': message.isNotEmpty 
-            ? message 
-            : 'คุณได้รับข้อเสนอพิเศษจากร้านค้า',
+        'message':
+            message.isNotEmpty ? message : 'คุณได้รับข้อเสนอพิเศษจากร้านค้า',
         'data': {
           'sellerId': _sellerId,
           'offerType': offerType,

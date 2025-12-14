@@ -6,7 +6,7 @@ import 'package:green_market/providers/theme_provider.dart';
 import 'package:green_market/screens/admin/admin_dashboard_screen.dart';
 import 'package:green_market/screens/seller/complete_modern_seller_dashboard.dart';
 import 'package:green_market/screens/user/become_seller_screen.dart';
-import 'package:green_market/screens/user/edit_profile_screen.dart';
+import 'package:green_market/screens/user/enhanced_edit_profile_screen.dart';
 import 'package:green_market/utils/app_utils.dart';
 import 'package:green_market/utils/constants.dart';
 import 'package:image_picker/image_picker.dart';
@@ -121,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
           title: 'Edit Profile',
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => const EditProfileScreen(),
+              builder: (context) => const EnhancedEditProfileScreen(),
             ));
           },
         ),

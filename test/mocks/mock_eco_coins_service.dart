@@ -267,6 +267,7 @@ class MockEcoCoinsService implements EcoCoinsService {
     _emitUpdates();
   }
 
+  // Remove @override since these are not in base service
   @override
   Future<void> completeMission(String missionId) async {
     await _simulateDelay();
@@ -298,6 +299,24 @@ class MockEcoCoinsService implements EcoCoinsService {
       // Emit updated progress
       _emitUpdates();
     }
+  }
+
+  @override
+  Future<T> retryOperation<T>(Future<T> Function() operation,
+      {int retries = 3}) async {
+    int attempts = 0;
+    while (attempts < retries) {
+      try {
+        return await operation();
+      } catch (e) {
+        attempts++;
+        if (attempts >= retries) {
+          rethrow;
+        }
+        await Future.delayed(Duration(milliseconds: 500 * attempts));
+      }
+    }
+    throw Exception('Operation failed after $retries attempts');
   }
 
   @override

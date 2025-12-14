@@ -76,6 +76,14 @@ class EcoCoinProvider extends ChangeNotifier {
       _lastRefresh == null ||
       DateTime.now().difference(_lastRefresh!).compareTo(_cacheTimeout) > 0;
 
+  // Additional helpful getters
+  bool get hasBalance => _balance != null && _balance!.availableCoins > 0;
+  bool get canSpend => hasBalance && canPerformOperations;
+  int get lifetimeEarned => _balance?.lifetimeEarned ?? 0;
+  int get lifetimeSpent => _balance?.lifetimeSpent ?? 0;
+  double get spendingRate => _balance?.spendingRate ?? 0.0;
+  bool get isBalanceHealthy => _balance?.isHealthy ?? false;
+
   /// Enhanced security loading state management
   void _setLoading(bool loading) {
     if (_isLoading != loading) {

@@ -30,6 +30,11 @@ import '../models/product.dart';
 import '../models/cart_item.dart' as app_cart;
 import '../utils/constants.dart';
 
+/// 🏠 My Home Screen - หน้าส่วนตัวของผู้ใช้
+/// แสดงข้อมูลส่วนตัว: ตะกร้าสินค้า, แชท, คำสั่งซื้อ, การแจ้งเตือน
+/// หมายเหตุ: นี่คือหน้า "My Home" ไม่ใช่หน้า "ตลาด"
+/// หน้าตลาดอยู่ที่ home_screen_beautiful.dart (MarketplaceScreen)
+
 class MyHomeScreen extends StatefulWidget {
   const MyHomeScreen({super.key});
 
@@ -58,9 +63,42 @@ class _MyHomeScreenState extends State<MyHomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF059669),
+        elevation: 0,
+        centerTitle: true,
+        title: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '🏠 My Home',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            Text(
+              'หน้าส่วนตัว',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
+            const SizedBox(height: 8),
             // TabBar Section (4 แท็บ) - ย้ายขึ้นมาด้านบน
             _buildTabBarSection(),
 

@@ -85,10 +85,13 @@ class ProductEcoData {
 }
 
 class AIEcoAnalysisService {
-  // 🔑 Gemini API Key (Free tier: 60 requests/minute)
-  static const String _geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+  // 🔑 Gemini API Configuration
   static const String _geminiApiUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+  // Rate Limiting (Gemini Free tier: 60 requests/minute, 1500/day)
+  static final List<DateTime> _requestTimestamps = [];
+  static const int _maxRequestsPerMinute = 55; // Buffer ไว้ 5 requests
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -103,14 +106,24 @@ class AIEcoAnalysisService {
         return _fallbackAnalysis(data);
       }
 
+      // ✅ ตรวจสอบ API Key
+      if (settings.apiKey.isEmpty ||
+          settings.apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
+        print('⚠️ ยังไม่ได้ตั้งค่า Gemini API Key - ใช้ Fallback Analysis');
+        return _fallbackAnalysis(data);
+      }
+
+      // ⏱️ Rate Limiting (60 req/min)
+      await _checkRateLimit();
+
       // 📊 เพิ่ม usage count
       await _incrementUsage();
 
       // สร้าง prompt สำหรับ AI
       final String prompt = _buildAnalysisPrompt(data);
 
-      // เรียก Gemini AI (ใช้ API key จาก settings)
-      final response = await _callGeminiAPI(prompt, settings.apiKey);
+      // เรียก Gemini AI พร้อม retry
+      final response = await _callGeminiAPIWithRetry(prompt, settings.apiKey);
 
       // แปลงผลลัพธ์จาก AI
       final result = _parseAIResponse(response, data);
@@ -118,9 +131,10 @@ class AIEcoAnalysisService {
       // บันทึกผลการวิเคราะห์เพื่อ ML Learning
       await _saveLearningData(data, result);
 
+      print('✅ AI Analysis completed: ${result.aiEcoScore}/100');
       return result;
     } catch (e) {
-      print('Error in AI analysis: $e');
+      print('❌ Error in AI analysis: $e');
       // ถ้า AI ล้ม fallback เป็นการคำนวณแบบธรรมดา
       return _fallbackAnalysis(data);
     }
@@ -173,36 +187,98 @@ Be thorough but fair. Output ONLY valid JSON, no markdown.
 ''';
   }
 
+  /// ตรวจสอบ Rate Limit (60 requests/minute)
+  Future<void> _checkRateLimit() async {
+    final now = DateTime.now();
+
+    // ลบ timestamps ที่เก่ากว่า 1 นาที
+    _requestTimestamps
+        .removeWhere((timestamp) => now.difference(timestamp).inMinutes >= 1);
+
+    // ถ้าเกิน limit รอจนกว่าจะพอ
+    if (_requestTimestamps.length >= _maxRequestsPerMinute) {
+      final oldestRequest = _requestTimestamps.first;
+      final waitTime = 60 - now.difference(oldestRequest).inSeconds;
+
+      if (waitTime > 0) {
+        print('⏳ Rate limit reached, waiting ${waitTime}s...');
+        await Future.delayed(Duration(seconds: waitTime + 1));
+      }
+    }
+
+    _requestTimestamps.add(now);
+  }
+
+  /// เรียก Gemini AI API พร้อม Retry Logic
+  Future<String> _callGeminiAPIWithRetry(
+    String prompt,
+    String apiKey, {
+    int maxRetries = 3,
+  }) async {
+    Exception? lastError;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await _callGeminiAPI(prompt, apiKey);
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+
+        if (attempt < maxRetries) {
+          final delay = Duration(seconds: attempt * 2); // Exponential backoff
+          print('⚠️ Retry $attempt/$maxRetries after ${delay.inSeconds}s...');
+          await Future.delayed(delay);
+        }
+      }
+    }
+
+    throw lastError ?? Exception('AI API call failed');
+  }
+
   /// เรียก Gemini AI API
   Future<String> _callGeminiAPI(String prompt, String apiKey) async {
-    // ใช้ API key จาก settings แทน hardcoded
-    final effectiveApiKey = apiKey.isNotEmpty ? apiKey : _geminiApiKey;
-
-    final response = await http.post(
-      Uri.parse('$_geminiApiUrl?key=$effectiveApiKey'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'contents': [
-          {
-            'parts': [
-              {'text': prompt}
-            ]
-          }
-        ],
-        'generationConfig': {
-          'temperature': 0.4,
-          'topK': 32,
-          'topP': 1,
-          'maxOutputTokens': 2048,
-        }
-      }),
-    );
+    final response = await http
+        .post(
+          Uri.parse('$_geminiApiUrl?key=$apiKey'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'contents': [
+              {
+                'parts': [
+                  {'text': prompt}
+                ]
+              }
+            ],
+            'generationConfig': {
+              'temperature': 0.4,
+              'topK': 32,
+              'topP': 1,
+              'maxOutputTokens': 2048,
+            }
+          }),
+        )
+        .timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw Exception('API request timeout'),
+        );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+
+      // Validate response structure
+      if (data['candidates'] == null ||
+          data['candidates'].isEmpty ||
+          data['candidates'][0]['content'] == null) {
+        throw Exception('Invalid API response structure');
+      }
+
       return data['candidates'][0]['content']['parts'][0]['text'];
+    } else if (response.statusCode == 429) {
+      throw Exception('API rate limit exceeded (429)');
+    } else if (response.statusCode == 401) {
+      throw Exception('Invalid API key (401)');
     } else {
-      throw Exception('Gemini API error: ${response.statusCode}');
+      throw Exception(
+          'Gemini API error: ${response.statusCode} - ${response.body}');
     }
   }
 

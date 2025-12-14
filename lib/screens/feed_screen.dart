@@ -154,10 +154,10 @@ class _FeedScreenState extends State<FeedScreen>
         _posts.addAll(newPosts);
       }
       _isLoading = false;
-      setState(() {});
+      if (mounted) setState(() {});
     } catch (e) {
       _isLoading = false;
-      setState(() {});
+      if (mounted) setState(() {});
 
       String errorMessage = 'ไม่สามารถโหลดโพสต์ได้';
 

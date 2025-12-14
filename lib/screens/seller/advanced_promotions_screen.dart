@@ -893,7 +893,8 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailItem('ประเภท', _getPromotionTypeText(promotion['type'])),
+              _buildDetailItem(
+                  'ประเภท', _getPromotionTypeText(promotion['type'])),
               _buildDetailItem('คำอธิบาย', promotion['description'] ?? '-'),
               _buildDetailItem(
                 'ส่วนลด',
@@ -986,7 +987,8 @@ class _AdvancedPromotionsScreenState extends State<AdvancedPromotionsScreen>
 
   void _showEditPromotionDialog(Map<String, dynamic> promotion) {
     final nameController = TextEditingController(text: promotion['name']);
-    final descController = TextEditingController(text: promotion['description']);
+    final descController =
+        TextEditingController(text: promotion['description']);
     bool isActive = promotion['isActive'] ?? true;
 
     showDialog(

@@ -30,18 +30,33 @@ class EcoCoin {
   });
 
   factory EcoCoin.fromMap(Map<String, dynamic> map, String id) {
+    // Enhanced validation
+    if (id.isEmpty) {
+      throw ArgumentError('EcoCoin id cannot be empty');
+    }
+
+    final userId = map['userId'] as String?;
+    if (userId == null || userId.isEmpty) {
+      throw ArgumentError('EcoCoin userId cannot be null or empty');
+    }
+
+    final source = map['source'] as String?;
+    if (source == null || source.isEmpty) {
+      throw ArgumentError('EcoCoin source cannot be null or empty');
+    }
+
     return EcoCoin(
       id: id,
-      userId: map['userId'] as String,
+      userId: userId,
       amount: (map['amount'] as num).toInt(),
       type: EcoCoinTransactionType.values.firstWhere(
         (e) => e.name == map['type'],
         orElse: () => EcoCoinTransactionType.earned,
       ),
-      source: map['source'] as String,
+      source: source,
       description: map['description'] as String?,
       orderId: map['orderId'] as String?,
-      createdAt: map['createdAt'] as Timestamp,
+      createdAt: map['createdAt'] as Timestamp? ?? Timestamp.now(),
       expiredAt: map['expiredAt'] as Timestamp?,
       isActive: map['isActive'] as bool? ?? true,
     );
@@ -86,6 +101,25 @@ class EcoCoin {
       isActive: isActive ?? this.isActive,
     );
   }
+
+  // Helper methods สำหรับ business logic
+  bool get isExpired =>
+      expiredAt != null && expiredAt!.toDate().isBefore(DateTime.now());
+  bool get isEarned => type == EcoCoinTransactionType.earned;
+  bool get isSpent => type == EcoCoinTransactionType.spent;
+  bool get isValid => isActive && !isExpired;
+
+  // Get absolute amount (always positive)
+  int get absoluteAmount => amount.abs();
+
+  // Validation method
+  bool validate() {
+    if (id.isEmpty) return false;
+    if (userId.isEmpty) return false;
+    if (source.isEmpty) return false;
+    if (amount == 0) return false;
+    return true;
+  }
 }
 
 class EcoCoinBalance {
@@ -112,23 +146,50 @@ class EcoCoinBalance {
   });
 
   factory EcoCoinBalance.fromMap(Map<String, dynamic> map, String userId) {
-    final totalCoins = (map['totalCoins'] as num?)?.toInt() ?? 0;
+    // Enhanced validation
+    if (userId.isEmpty) {
+      throw ArgumentError('EcoCoinBalance userId cannot be empty');
+    }
+
+    // Safe parsing with validation
+    final totalCoins = _parsePositiveInt(map['totalCoins']);
+    final availableCoins = _parsePositiveInt(map['availableCoins']);
+    final expiredCoins = _parsePositiveInt(map['expiredCoins']);
+    final lifetimeEarned = _parsePositiveInt(map['lifetimeEarned']);
+    final lifetimeSpent = _parsePositiveInt(map['lifetimeSpent']);
+
+    // Business logic validation
+    if (availableCoins > totalCoins) {
+      throw StateError('Available coins cannot exceed total coins');
+    }
+
+    if (lifetimeSpent > lifetimeEarned) {
+      throw StateError('Lifetime spent cannot exceed lifetime earned');
+    }
+
     final currentTier = EcoCoinTierExtension.getCurrentTier(totalCoins);
     final nextTier = currentTier.getNextTier();
-    final coinsToNextTier =
-        nextTier != null ? nextTier.minCoins - totalCoins : 0;
+    final coinsToNextTier = nextTier != null
+        ? (nextTier.minCoins - totalCoins).clamp(0, double.infinity).toInt()
+        : 0;
 
     return EcoCoinBalance(
       userId: userId,
       totalCoins: totalCoins,
-      availableCoins: (map['availableCoins'] as num?)?.toInt() ?? 0,
-      expiredCoins: (map['expiredCoins'] as num?)?.toInt() ?? 0,
-      lifetimeEarned: (map['lifetimeEarned'] as num?)?.toInt() ?? 0,
-      lifetimeSpent: (map['lifetimeSpent'] as num?)?.toInt() ?? 0,
+      availableCoins: availableCoins,
+      expiredCoins: expiredCoins,
+      lifetimeEarned: lifetimeEarned,
+      lifetimeSpent: lifetimeSpent,
       currentTier: currentTier,
       coinsToNextTier: coinsToNextTier,
       lastUpdated: map['lastUpdated'] as Timestamp? ?? Timestamp.now(),
     );
+  }
+
+  // Helper method สำหรับ safe parsing
+  static int _parsePositiveInt(dynamic value) {
+    final parsed = (value as num?)?.toInt() ?? 0;
+    return parsed < 0 ? 0 : parsed; // Never return negative
   }
 
   Map<String, dynamic> toMap() {
@@ -164,6 +225,46 @@ class EcoCoinBalance {
       coinsToNextTier: coinsToNextTier ?? this.coinsToNextTier,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
+  }
+
+  // Helper methods สำหรับ business logic
+  bool hasEnoughCoins(int amount) => availableCoins >= amount;
+
+  bool get canUpgradeTier =>
+      coinsToNextTier > 0 && coinsToNextTier <= availableCoins;
+
+  double get balancePercentage {
+    if (lifetimeEarned == 0) return 0.0;
+    return (availableCoins / lifetimeEarned) * 100;
+  }
+
+  double get spendingRate {
+    if (lifetimeEarned == 0) return 0.0;
+    return (lifetimeSpent / lifetimeEarned) * 100;
+  }
+
+  bool get isHealthy => availableCoins > 0 && balancePercentage > 20;
+
+  // Validation method
+  bool validate() {
+    if (userId.isEmpty) return false;
+    if (totalCoins < 0 || availableCoins < 0) return false;
+    if (availableCoins > totalCoins) return false;
+    if (lifetimeSpent > lifetimeEarned) return false;
+    return true;
+  }
+
+  // Get tier progress percentage (0-100)
+  double getTierProgress() {
+    final nextTier = currentTier.getNextTier();
+    if (nextTier == null) return 100.0; // Max tier reached
+
+    final currentMin = currentTier.minCoins;
+    final nextMin = nextTier.minCoins;
+    final range = nextMin - currentMin;
+    final progress = totalCoins - currentMin;
+
+    return (progress / range * 100).clamp(0.0, 100.0);
   }
 }
 
